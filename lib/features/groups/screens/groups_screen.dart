@@ -184,64 +184,32 @@ class _GroupsScreenState extends State<GroupsScreen>
   void _showCreateGroupDialog() {
     final nameCtrl = TextEditingController();
     final descCtrl = TextEditingController();
-    String category = 'club';
 
+    // BottomSheet를 독립 위젯으로 분리해야 한글 IME 입력이 정상 동작
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          left: 20, right: 20, top: 24,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text('그룹 개설 신청', style: AppTextStyles.h3),
-            const SizedBox(height: 8),
-            const Text(
-              '슈퍼어드민 승인 후 활성화됩니다.',
-              style: AppTextStyles.body2,
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(labelText: '그룹명 *'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: descCtrl,
-              maxLines: 3,
-              decoration: const InputDecoration(labelText: '설명'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                if (nameCtrl.text.trim().isEmpty) return;
-                try {
-                  final resp = await _api.post('/groups', body: {
-                    'name': nameCtrl.text.trim(),
-                    'description': descCtrl.text.trim(),
-                    'category': category,
-                  });
-                  if (!context.mounted) return;
-                  Navigator.pop(ctx);
-                  if (resp['success'] == true) {
-                    showSuccessSnackBar(context, '그룹 개설 신청이 완료되었습니다!');
-                  }
-                } catch (e) {
-                  if (!context.mounted) return;
-                  showErrorSnackBar(context, e.toString());
-                }
-              },
-              child: const Text('신청하기'),
-            ),
-          ],
-        ),
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _CreateGroupSheet(
+        nameCtrl: nameCtrl,
+        descCtrl: descCtrl,
+        onSubmit: (name, desc) async {
+          try {
+            final resp = await _api.post('/groups', body: {
+              'name': name,
+              'description': desc,
+              'category': 'club',
+            });
+            if (!context.mounted) return;
+            Navigator.pop(ctx);
+            if (resp['success'] == true) {
+              showSuccessSnackBar(context, '그룹 개설 신청이 완료되었습니다!');
+            }
+          } catch (e) {
+            if (!context.mounted) return;
+            showErrorSnackBar(context, e.toString());
+          }
+        },
       ),
     );
   }
@@ -311,6 +279,117 @@ class _GroupCard extends StatelessWidget {
             ),
           ),
           const Icon(Icons.chevron_right, color: AppColors.textTertiary),
+        ],
+      ),
+    );
+  }
+}
+
+// ── 그룹 개설 신청 바텀시트 (독립 StatefulWidget - 한글 IME 정상 동작) ──────
+class _CreateGroupSheet extends StatefulWidget {
+  final TextEditingController nameCtrl;
+  final TextEditingController descCtrl;
+  final Future<void> Function(String name, String desc) onSubmit;
+
+  const _CreateGroupSheet({
+    required this.nameCtrl,
+    required this.descCtrl,
+    required this.onSubmit,
+  });
+
+  @override
+  State<_CreateGroupSheet> createState() => _CreateGroupSheetState();
+}
+
+class _CreateGroupSheetState extends State<_CreateGroupSheet> {
+  bool _isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 핸들
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const Text('그룹 개설 신청', style: AppTextStyles.h3),
+          const SizedBox(height: 6),
+          const Text(
+            '슈퍼어드민 승인 후 활성화됩니다.',
+            style: AppTextStyles.body2,
+          ),
+          const SizedBox(height: 20),
+
+          // 그룹명
+          TextField(
+            controller: widget.nameCtrl,
+            autofocus: true,
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(
+              labelText: '그룹명 *',
+              prefixIcon: Icon(Icons.group_outlined),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // 설명 - 독립 위젯이라 한글 IME 정상 동작
+          TextField(
+            controller: widget.descCtrl,
+            maxLines: 3,
+            textInputAction: TextInputAction.done,
+            decoration: const InputDecoration(
+              labelText: '설명',
+              hintText: '그룹에 대한 간단한 소개를 입력하세요.',
+              alignLabelWithHint: true,
+              prefixIcon: Icon(Icons.notes_outlined),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          ElevatedButton(
+            onPressed: _isLoading
+                ? null
+                : () async {
+                    if (widget.nameCtrl.text.trim().isEmpty) return;
+                    setState(() => _isLoading = true);
+                    await widget.onSubmit(
+                      widget.nameCtrl.text.trim(),
+                      widget.descCtrl.text.trim(),
+                    );
+                    if (mounted) setState(() => _isLoading = false);
+                  },
+            child: _isLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text('신청하기'),
+          ),
         ],
       ),
     );

@@ -28,6 +28,10 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
   String _selectedTemplate = 'modern_blue';
   bool _isPublic = true;
 
+  // 경력/약력 목록 (최대 10개)
+  final List<CareerItem> _careers = [];
+  static const int _maxCareers = 10;
+
   bool get _isEditing => widget.existingCard != null;
 
   @override
@@ -44,6 +48,7 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
       _bioCtrl.text = c.bio ?? '';
       _selectedTemplate = c.templateId;
       _isPublic = c.isPublic == 1;
+      _careers.addAll(c.careers);
     }
   }
 
@@ -67,11 +72,13 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
         company: _companyCtrl.text.isEmpty ? null : _companyCtrl.text,
         email: _emailCtrl.text.isEmpty ? null : _emailCtrl.text,
         phone: _phoneCtrl.text.isEmpty ? null : _phoneCtrl.text,
+        bio: _bioCtrl.text.isEmpty ? null : _bioCtrl.text,
         cardType: 'personal',
         templateId: _selectedTemplate,
         isPrimary: 0,
         isPublic: _isPublic ? 1 : 0,
         isActive: 1,
+        careers: List.from(_careers),
       );
 
   Future<void> _handleSave() async {
@@ -88,6 +95,8 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
       if (_bioCtrl.text.isNotEmpty) 'bio': _bioCtrl.text.trim(),
       'template_id': _selectedTemplate,
       'is_public': _isPublic ? 1 : 0,
+      if (_careers.isNotEmpty)
+        'careers': _careers.map((c) => c.toJson()).toList(),
     };
 
     bool success;
@@ -108,6 +117,135 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
     }
   }
 
+  // 경력 항목 추가 다이얼로그
+  void _showAddCareerDialog({int? editIndex}) {
+    final titleCtrl = TextEditingController(
+      text: editIndex != null ? _careers[editIndex].title : '',
+    );
+    final periodCtrl = TextEditingController(
+      text: editIndex != null ? (_careers[editIndex].period ?? '') : '',
+    );
+    final detailCtrl = TextEditingController(
+      text: editIndex != null ? (_careers[editIndex].detail ?? '') : '',
+    );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 24,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 핸들
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Text(
+              editIndex != null ? '약력 수정' : '약력 추가',
+              style: AppTextStyles.h3,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '학력, 경력, 자격증, 수상 등 자유롭게 입력하세요.',
+              style: AppTextStyles.body2,
+            ),
+            const SizedBox(height: 20),
+
+            // 타이틀 (필수)
+            TextFormField(
+              controller: titleCtrl,
+              autofocus: true,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                labelText: '타이틀 *',
+                hintText: '예) 서울대학교 경영학과, 삼성전자 부장',
+                prefixIcon: Icon(Icons.title),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // 기간
+            TextFormField(
+              controller: periodCtrl,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                labelText: '기간',
+                hintText: '예) 2010 - 2014, 2015.03 ~ 현재',
+                prefixIcon: Icon(Icons.calendar_today_outlined),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // 상세
+            TextFormField(
+              controller: detailCtrl,
+              textInputAction: TextInputAction.done,
+              decoration: const InputDecoration(
+                labelText: '상세',
+                hintText: '예) 졸업, 마케팅팀, 우수상',
+                prefixIcon: Icon(Icons.notes_outlined),
+              ),
+              onFieldSubmitted: (_) {
+                _saveCareer(ctx, editIndex, titleCtrl, periodCtrl, detailCtrl);
+              },
+            ),
+            const SizedBox(height: 24),
+
+            ElevatedButton(
+              onPressed: () {
+                _saveCareer(ctx, editIndex, titleCtrl, periodCtrl, detailCtrl);
+              },
+              child: Text(editIndex != null ? '수정 완료' : '추가'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _saveCareer(
+    BuildContext ctx,
+    int? editIndex,
+    TextEditingController titleCtrl,
+    TextEditingController periodCtrl,
+    TextEditingController detailCtrl,
+  ) {
+    if (titleCtrl.text.trim().isEmpty) return;
+    final item = CareerItem(
+      title: titleCtrl.text.trim(),
+      period: periodCtrl.text.trim().isEmpty ? null : periodCtrl.text.trim(),
+      detail: detailCtrl.text.trim().isEmpty ? null : detailCtrl.text.trim(),
+    );
+    setState(() {
+      if (editIndex != null) {
+        _careers[editIndex] = item;
+      } else {
+        _careers.add(item);
+      }
+    });
+    Navigator.pop(ctx);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -115,7 +253,8 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
         title: Text(_isEditing ? '명함 수정' : '명함 만들기'),
         actions: [
           TextButton(
-            onPressed: context.watch<CardsProvider>().isLoading ? null : _handleSave,
+            onPressed:
+                context.watch<CardsProvider>().isLoading ? null : _handleSave,
             child: Text(
               '저장',
               style: TextStyle(
@@ -137,17 +276,13 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 미리보기
+                    // ── 미리보기 ──────────────────────────
                     const Text('미리보기', style: AppTextStyles.label),
                     const SizedBox(height: 8),
-                    StatefulBuilder(
-                      builder: (context, setPreviewState) {
-                        return BusinessCardWidget(card: _previewCard);
-                      },
-                    ),
+                    BusinessCardWidget(card: _previewCard),
                     const SizedBox(height: 24),
 
-                    // 템플릿 선택
+                    // ── 템플릿 선택 ───────────────────────
                     const Text('템플릿', style: AppTextStyles.label),
                     const SizedBox(height: 8),
                     SizedBox(
@@ -194,12 +329,11 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
                         },
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 28),
 
-                    // 기본 정보
+                    // ── 기본 정보 ─────────────────────────
                     const Text('기본 정보', style: AppTextStyles.h4),
                     const SizedBox(height: 12),
-
                     TextFormField(
                       controller: _nameCtrl,
                       onChanged: (_) => setState(() {}),
@@ -228,9 +362,9 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
                         prefixIcon: Icon(Icons.business_outlined),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 28),
 
-                    // 연락처
+                    // ── 연락처 ────────────────────────────
                     const Text('연락처', style: AppTextStyles.h4),
                     const SizedBox(height: 12),
                     TextFormField(
@@ -261,13 +395,117 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
                         hintText: 'https://',
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 28),
 
-                    // 자기소개
+                    // ── 약력/경력 ─────────────────────────
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('약력 / 경력', style: AppTextStyles.h4),
+                        Row(
+                          children: [
+                            Text(
+                              '${_careers.length}/$_maxCareers',
+                              style: AppTextStyles.caption,
+                            ),
+                            const SizedBox(width: 8),
+                            if (_careers.length < _maxCareers)
+                              GestureDetector(
+                                onTap: _showAddCareerDialog,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.add,
+                                          size: 14, color: Colors.white),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        '추가',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '학력, 경력, 자격증, 수상 등 최대 ${_maxCareers}개',
+                      style: AppTextStyles.caption,
+                    ),
+                    const SizedBox(height: 12),
+
+                    // 경력 목록
+                    if (_careers.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.border,
+                            style: BorderStyle.solid,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.add_circle_outline,
+                                color: AppColors.textSecondary, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              '+ 추가 버튼으로 약력을 입력하세요',
+                              style: AppTextStyles.body2,
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      ReorderableListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _careers.length,
+                        onReorder: (oldIndex, newIndex) {
+                          setState(() {
+                            if (newIndex > oldIndex) newIndex--;
+                            final item = _careers.removeAt(oldIndex);
+                            _careers.insert(newIndex, item);
+                          });
+                        },
+                        itemBuilder: (context, index) {
+                          final career = _careers[index];
+                          return _CareerListTile(
+                            key: ValueKey('career_$index'),
+                            career: career,
+                            index: index,
+                            onEdit: () =>
+                                _showAddCareerDialog(editIndex: index),
+                            onDelete: () =>
+                                setState(() => _careers.removeAt(index)),
+                          );
+                        },
+                      ),
+                    const SizedBox(height: 28),
+
+                    // ── 자기소개 ──────────────────────────
                     const Text('자기소개', style: AppTextStyles.h4),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _bioCtrl,
+                      onChanged: (_) => setState(() {}),
                       maxLines: 3,
                       maxLength: 500,
                       decoration: const InputDecoration(
@@ -278,7 +516,7 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // 공개 설정
+                    // ── 공개 설정 ─────────────────────────
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 12),
@@ -292,7 +530,8 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.public, size: 20,
+                              const Icon(Icons.public,
+                                  size: 20,
                                   color: AppColors.textSecondary),
                               const SizedBox(width: 12),
                               Column(
@@ -311,25 +550,113 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
                           Switch(
                             value: _isPublic,
                             onChanged: (v) => setState(() => _isPublic = v),
-                            activeThumbColor: AppColors.primary,
+                            activeColor: AppColors.primary,
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 40),
-
-                    ElevatedButton(
-                      onPressed:
-                          provider.isLoading ? null : _handleSave,
-                      child: Text(_isEditing ? '수정 완료' : '명함 생성'),
-                    ),
                     const SizedBox(height: 32),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: provider.isLoading ? null : _handleSave,
+                        child: Text(_isEditing ? '수정 완료' : '명함 생성'),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+// ── 경력 항목 타일 ─────────────────────────────────────
+
+class _CareerListTile extends StatelessWidget {
+  final CareerItem career;
+  final int index;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _CareerListTile({
+    super.key,
+    required this.career,
+    required this.index,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: ListTile(
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        leading: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              '${index + 1}',
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+        title: Text(
+          career.title,
+          style: AppTextStyles.body1,
+        ),
+        subtitle: (career.period != null || career.detail != null)
+            ? Text(
+                [career.period, career.detail]
+                    .where((s) => s != null && s!.isNotEmpty)
+                    .join(' · '),
+                style: AppTextStyles.caption,
+              )
+            : null,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 드래그 핸들
+            const Icon(Icons.drag_handle,
+                color: AppColors.textSecondary, size: 20),
+            const SizedBox(width: 4),
+            // 수정
+            IconButton(
+              icon: const Icon(Icons.edit_outlined,
+                  size: 18, color: AppColors.textSecondary),
+              onPressed: onEdit,
+              visualDensity: VisualDensity.compact,
+            ),
+            // 삭제
+            IconButton(
+              icon: const Icon(Icons.delete_outline,
+                  size: 18, color: Colors.red),
+              onPressed: onDelete,
+              visualDensity: VisualDensity.compact,
+            ),
+          ],
+        ),
       ),
     );
   }
