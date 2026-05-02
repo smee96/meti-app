@@ -5,7 +5,7 @@ class AppConstants {
   static const bool useMock = true;
 
   // API
-  static const String baseUrl = 'https://api.meti.app/api/v1';
+  static const String baseUrl = 'https://the-meti.pages.dev/api/v1';
   // static const String baseUrl = 'http://localhost:3000/api/v1'; // 로컬 개발용
 
   // Storage Keys
@@ -29,11 +29,27 @@ class AppConstants {
   static const String cardTypePersonal = 'personal';
   static const String cardTypeGroup = 'group';
 
-  // Group Categories
+  // Group Categories (레거시 - 호환성 유지)
   static const String categoryAssociation = 'association';
   static const String categoryCompany = 'company';
   static const String categoryClub = 'club';
   static const String categoryOther = 'other';
+
+  // Plan Card Limits (v2.2)
+  static const int freeCardLimit = 3;
+  static const int proCardLimit = 10;
+  static const int businessCardLimit = -1; // 무제한
+
+  // Group Purpose Types (v2.2)
+  static const List<Map<String, String>> groupPurposes = [
+    {'value': 'networking', 'label': '네트워킹'},
+    {'value': 'business', 'label': '비즈니스'},
+    {'value': 'study', 'label': '스터디'},
+    {'value': 'hobby', 'label': '취미/동호회'},
+    {'value': 'alumni', 'label': '동문/동창'},
+    {'value': 'association', 'label': '협회/단체'},
+    {'value': 'other', 'label': '기타'},
+  ];
 
   // Visibility
   static const String visibilityPublic = 'public';

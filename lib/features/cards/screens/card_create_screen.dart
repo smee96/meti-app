@@ -26,7 +26,7 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
   final _bioCtrl = TextEditingController();
 
   String _selectedTemplate = 'modern_blue';
-  bool _isPublic = true;
+  bool _isPublic = false; // v2.2: 기본값 비공개(0)
 
   // 경력/약력 목록 (최대 10개)
   final List<CareerItem> _careers = [];
@@ -443,7 +443,7 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '학력, 경력, 자격증, 수상 등 최대 ${_maxCareers}개',
+                      '학력, 경력, 자격증, 수상 등 최대 $_maxCareers개',
                       style: AppTextStyles.caption,
                     ),
                     const SizedBox(height: 12),
@@ -550,7 +550,8 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
                           Switch(
                             value: _isPublic,
                             onChanged: (v) => setState(() => _isPublic = v),
-                            activeColor: AppColors.primary,
+                            activeThumbColor: AppColors.primary,
+                            activeTrackColor: AppColors.primary.withValues(alpha: 0.4),
                           ),
                         ],
                       ),
@@ -630,7 +631,8 @@ class _CareerListTile extends StatelessWidget {
             ? Text(
                 [career.period, career.detail]
                     .where((s) => s != null && s!.isNotEmpty)
-                    .join(' · '),
+                    .map((s) => s as String)
+                    .join(' \u00b7 '),
                 style: AppTextStyles.caption,
               )
             : null,

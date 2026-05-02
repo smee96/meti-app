@@ -203,8 +203,9 @@ class _CardsHomeScreenState extends State<CardsHomeScreen> {
             context,
             MaterialPageRoute(builder: (_) => const CardCreateScreen()),
           );
-          if (result == true) {
-            context.read<CardsProvider>().loadMyCards();
+          if (result == true && mounted) {
+            final provider = context.read<CardsProvider>();
+            provider.loadMyCards();
           }
         },
         backgroundColor: AppColors.primary,

@@ -47,8 +47,10 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
     );
 
     if (confirmed != true) return;
+    if (!mounted) return;
 
-    final success = await context.read<CardsProvider>().deleteCard(_card.id);
+    final provider = context.read<CardsProvider>();
+    final success = await provider.deleteCard(_card.id);
     if (!mounted) return;
     if (success) {
       showSuccessSnackBar(context, '명함이 삭제되었습니다.');
@@ -84,8 +86,9 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                   ),
                 );
                 if (result == true && mounted) {
-                  final updated =
-                      await context.read<CardsProvider>().getCardDetail(_card.id);
+                  final provider = context.read<CardsProvider>();
+                  final cardId = _card.id;
+                  final updated = await provider.getCardDetail(cardId);
                   if (updated != null && mounted) {
                     setState(() => _card = updated);
                   }
@@ -161,16 +164,20 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                     icon: Icons.email_outlined,
                     label: '이메일',
                     value: _card.email!,
-                    onTap: () => Clipboard.setData(ClipboardData(text: _card.email!))
-                        .then((_) => showSuccessSnackBar(context, '이메일이 복사되었습니다.')),
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: _card.email!));
+                      showSuccessSnackBar(context, '이메일이 복사되었습니다.');
+                    },
                   ),
                 if (_card.phone != null)
                   _InfoItem(
                     icon: Icons.phone_outlined,
                     label: '전화',
                     value: _card.phone!,
-                    onTap: () => Clipboard.setData(ClipboardData(text: _card.phone!))
-                        .then((_) => showSuccessSnackBar(context, '전화번호가 복사되었습니다.')),
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: _card.phone!));
+                      showSuccessSnackBar(context, '전화번호가 복사되었습니다.');
+                    },
                   ),
                 if (_card.website != null)
                   _InfoItem(

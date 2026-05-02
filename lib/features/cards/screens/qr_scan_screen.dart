@@ -82,13 +82,18 @@ class _QrScanScreenState extends State<QrScanScreen> {
         builder: (_) => _CardScanResultDialog(
           card: card,
           onSave: () async {
-            final success =
-                await context.read<CardsProvider>().saveCard(card.id);
+            final provider = context.read<CardsProvider>();
+            final cardId = card.id;
+            final success = await provider.saveCard(cardId);
             if (!context.mounted) return;
+            // ignore: use_build_context_synchronously
             Navigator.pop(context);
+            if (!context.mounted) return;
             if (success) {
+              // ignore: use_build_context_synchronously
               showSuccessSnackBar(context, '명함이 저장되었습니다!');
             } else {
+              // ignore: use_build_context_synchronously
               showErrorSnackBar(context, '명함 저장에 실패했습니다.');
             }
           },

@@ -47,7 +47,9 @@ class _MyPageScreenState extends State<MyPageScreen> {
       ),
     );
     if (confirmed != true) return;
-    await context.read<AuthProvider>().logout();
+    if (!mounted) return;
+    final auth = context.read<AuthProvider>();
+    await auth.logout();
     if (mounted) {
       Navigator.pushReplacementNamed(context, AppRoutes.login);
     }
