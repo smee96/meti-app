@@ -7,8 +7,17 @@ import 'mock_api.dart';
 class ApiException implements Exception {
   final String message;
   final int? statusCode;
+  final String? errorCode;        // 'card_limit_exceeded', 'plan_member_limit_reached' 등
+  final bool upgradeRequired;     // true 시 업그레이드 다이얼로그 표시
+  final Map<String, dynamic>? extra; // 추가 정보 (current, limit 등)
 
-  ApiException(this.message, {this.statusCode});
+  ApiException(
+    this.message, {
+    this.statusCode,
+    this.errorCode,
+    this.upgradeRequired = false,
+    this.extra,
+  });
 
   @override
   String toString() => message;
@@ -97,22 +106,9 @@ class ApiClient {
           return {'success': true, 'data': null, 'message': '비밀번호가 변경되었습니다.'};
         }
 
-        // 명함 생성
+        // 명함 생성 (v2.5: 플랜별 한도 체크)
         if (path == '/cards') {
-          return {
-            'success': true,
-            'data': {
-              'id': DateTime.now().millisecondsSinceEpoch % 10000,
-              'user_id': 1,
-              'card_type': body!['card_type'] ?? 'personal',
-              ...body,
-              'is_active': 1,
-              'sns_count': 0,
-              'created_at': DateTime.now().toIso8601String(),
-              'updated_at': DateTime.now().toIso8601String(),
-            },
-            'message': '명함이 생성되었습니다.',
-          };
+          return MockUsers.createCard(accessToken!, body!);
         }
 
         // QR 토큰 생성
@@ -132,9 +128,12 @@ class ApiClient {
           return {'success': true, 'data': null, 'message': '명함첩에 저장되었습니다.'};
         }
 
-        // 그룹 가입
+        // 그룹 가입 (v2.5: 플랜별 멤버 한도 체크)
         if (path.endsWith('/join') && path.startsWith('/groups')) {
-          return {'success': true, 'data': null, 'message': '그룹 가입이 완료되었습니다.'};
+          // /groups/:id/join 에서 groupId 추출
+          final parts = path.split('/');
+          final gid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
+          return MockUsers.joinGroup(accessToken!, gid, body ?? {});
         }
 
         // 이벤트 참가
@@ -236,7 +235,13 @@ class ApiClient {
 
       return {'success': true, 'data': null};
     } on MockApiException catch (e) {
-      throw ApiException(e.message, statusCode: e.statusCode);
+      throw ApiException(
+        e.message,
+        statusCode: e.statusCode,
+        errorCode: e.errorCode,
+        upgradeRequired: e.upgradeRequired,
+        extra: e.extra,
+      );
     }
   }
 

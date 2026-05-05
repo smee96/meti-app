@@ -121,6 +121,11 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
 
   // ── 멤버 탭 ────────────────────────────────────────────
   Widget _buildMembersTab() {
+    // v2.5: 플랜별 멤버 한도 표시
+    final maxLimit = widget.group['max_group_members'] as int?;
+    final memberCount = _members.length;
+    final isAtLimit = maxLimit != null && memberCount >= maxLimit;
+
     if (_members.isEmpty) {
       return const EmptyStateWidget(
         icon: Icons.people_outline,
@@ -128,17 +133,77 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
         subtitle: '초대 링크를 공유해 멤버를 초대해보세요.',
       );
     }
-    return RefreshIndicator(
-      onRefresh: _loadAll,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: _members.length,
-        separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
-        itemBuilder: (_, i) => _MemberTile(
-          member: _members[i],
-          onKick: () => _handleKick(_members[i]),
+    return Column(
+      children: [
+        // v2.5: 상단 멤버수/한도 표시
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: isAtLimit
+                ? AppColors.error.withValues(alpha: 0.06)
+                : AppColors.primary.withValues(alpha: 0.05),
+            border: Border(
+              bottom: BorderSide(
+                color: isAtLimit
+                    ? AppColors.error.withValues(alpha: 0.2)
+                    : AppColors.border,
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                isAtLimit ? Icons.warning_amber_rounded : Icons.people,
+                size: 16,
+                color: isAtLimit ? AppColors.error : AppColors.primary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                maxLimit != null
+                    ? '현재 $memberCount명 / 최대 $maxLimit명'
+                    : '현재 $memberCount명 (무제한)',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isAtLimit ? AppColors.error : AppColors.primary,
+                ),
+              ),
+              if (isAtLimit) ...[  
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    '한도 도달',
+                    style: TextStyle(
+                      fontSize: 10, color: AppColors.error,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
-      ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _loadAll,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: memberCount,
+              separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
+              itemBuilder: (_, i) => _MemberTile(
+                member: _members[i],
+                onKick: () => _handleKick(_members[i]),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

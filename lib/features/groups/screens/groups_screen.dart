@@ -319,8 +319,23 @@ class _GroupCard extends StatelessWidget {
                       const Icon(Icons.people_outline,
                           size: 13, color: AppColors.textTertiary),
                       const SizedBox(width: 4),
-                      Text('${group['member_count'] ?? 0}명',
-                          style: AppTextStyles.caption),
+                      // v2.5: 관리자 그룹이면 멤버수/한도 표시
+                      Builder(builder: (_) {
+                        final memberCount = group['member_count'] ?? 0;
+                        final maxLimit = group['max_group_members'] as int?;
+                        if (showRole && maxLimit != null) {
+                          final isAtLimit = memberCount >= maxLimit;
+                          return Text(
+                            '$memberCount/$maxLimit명',
+                            style: AppTextStyles.caption.copyWith(
+                              color: isAtLimit ? AppColors.error : null,
+                              fontWeight: isAtLimit ? FontWeight.bold : null,
+                            ),
+                          );
+                        }
+                        return Text('$memberCount명',
+                            style: AppTextStyles.caption);
+                      }),
                       if (group['purpose'] != null) ...[
                         const SizedBox(width: 8),
                         _PurposeBadge(purpose: group['purpose'] as String),
@@ -481,11 +496,107 @@ class _GroupDetailSheetState extends State<_GroupDetailSheet> {
         showErrorSnackBar(
             context, resp['message']?.toString() ?? '가입 신청에 실패했습니다.');
       }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      // v2.5: 멤버 한도 초과 시 업그레이드 모달
+      if (e.upgradeRequired && e.errorCode == 'plan_member_limit_reached') {
+        _showMemberLimitModal(e.extra?['limit'] as int? ?? 2);
+      } else {
+        showErrorSnackBar(context, e.message);
+      }
     } catch (e) {
       if (!mounted) return;
       showErrorSnackBar(context, e.toString());
     }
     if (mounted) setState(() => _isLoading = false);
+  }
+
+  /// v2.5 멤버 한도 초과 업그레이드 유도 모달
+  void _showMemberLimitModal(int limit) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40, height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Text('📋', style: TextStyle(fontSize: 36)),
+            const SizedBox(height: 12),
+            const Text(
+              '멤버 한도에 도달했습니다',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '현재 Free 플랜은 그룹당 최대\n$limit명까지 관리할 수 있습니다.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Pro로 업그레이드하면',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  SizedBox(height: 6),
+                  Text('• 그룹당 최대 10명까지 초대',
+                      style: TextStyle(fontSize: 13)),
+                  Text('• 10,000P/월 자동 지급',
+                      style: TextStyle(fontSize: 13)),
+                  Text('• 명함 최대 10개',
+                      style: TextStyle(fontSize: 13)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('나중에'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      // TODO: 인앱결제 구독 화면으로 이동
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Pro 구독하기'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override

@@ -40,6 +40,30 @@ class AppConstants {
   static const int proCardLimit = 10;
   static const int businessCardLimit = -1; // 무제한
 
+  // Plan Group Member Limits (v2.5) — 1P=1₩, 그룹당 최대 멤버 수
+  // free=2명, pro=10명, business=무제한(null)
+  static const int freeGroupMemberLimit = 2;
+  static const int proGroupMemberLimit = 10;
+  static const int businessGroupMemberLimit = -1; // 무제한
+
+  /// 플랜별 그룹 최대 멤버 수 반환 (-1 = 무제한)
+  static int groupMemberLimit(String plan) {
+    switch (plan) {
+      case planPro:
+        return proGroupMemberLimit;
+      case planBusiness:
+        return businessGroupMemberLimit;
+      default:
+        return freeGroupMemberLimit;
+    }
+  }
+
+  /// 플랜별 그룹 최대 멤버 수 표시 문자열
+  static String groupMemberLimitLabel(String plan) {
+    final limit = groupMemberLimit(plan);
+    return limit == -1 ? '무제한' : '$limit명';
+  }
+
   // Group Purpose Types (v2.2)
   static const List<Map<String, String>> groupPurposes = [
     {'value': 'networking', 'label': '네트워킹'},

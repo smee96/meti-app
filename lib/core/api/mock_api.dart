@@ -219,40 +219,128 @@ class MockUsers {
   }
 
   // ── Mock 명함 데이터 ──────────────────────────────────
+  // 명함 한도: free=3장, pro=10장 (v2.5 플랜 정책)
+  static final List<Map<String, dynamic>> _cards = [
+    {
+      'id': 1,
+      'user_id': 1,
+      'group_id': null,
+      'card_type': 'personal',
+      'name': '홍길동',
+      'title': '시니어 개발자',
+      'company': 'METI Corp',
+      'email': 'test@meti.app',
+      'phone': '010-1234-5678',
+      'website': 'https://meti.app',
+      'bio': 'Flutter & Dart 개발자입니다.',
+      'avatar_url': null,
+      'template_id': 'modern_blue',
+      'is_primary': 1,
+      'is_public': 0,
+      'is_active': 1,
+      'created_at': '2026-01-01 00:00:00',
+      'updated_at': '2026-01-01 00:00:00',
+      'sns_count': 0,
+    },
+    {
+      'id': 2,
+      'user_id': 1,
+      'group_id': null,
+      'card_type': 'personal',
+      'name': '홍길동 (공개)',
+      'title': 'Flutter Developer',
+      'company': 'METI Corp',
+      'email': 'public@meti.app',
+      'phone': null,
+      'website': null,
+      'bio': '공개 명함입니다.',
+      'avatar_url': null,
+      'template_id': 'minimal',
+      'is_primary': 0,
+      'is_public': 1,
+      'is_active': 1,
+      'created_at': '2026-02-01 00:00:00',
+      'updated_at': '2026-02-01 00:00:00',
+      'sns_count': 2,
+    },
+    {
+      'id': 3,
+      'user_id': 1,
+      'group_id': null,
+      'card_type': 'personal',
+      'name': '홍길동 (다크)',
+      'title': 'Tech Lead',
+      'company': null,
+      'email': 'tech@meti.app',
+      'phone': '010-0000-0000',
+      'website': null,
+      'bio': null,
+      'avatar_url': null,
+      'template_id': 'dark',
+      'is_primary': 0,
+      'is_public': 0,
+      'is_active': 1,
+      'created_at': '2026-03-01 00:00:00',
+      'updated_at': '2026-03-01 00:00:00',
+      'sns_count': 0,
+    },
+  ];
+
   static Map<String, dynamic> getCards() {
     return {
       'success': true,
-      'data': [
-        {
-          'id': 1,
-          'user_id': 1,
-          'group_id': null,
-          'card_type': 'personal',
-          'name': '홍길동',
-          'title': '시니어 개발자',
-          'company': 'METI Corp',
-          'email': 'test@meti.app',
-          'phone': '010-1234-5678',
-          'website': 'https://meti.app',
-          'bio': 'Flutter & Dart 개발자입니다.',
-          'avatar_url': null,
-          'template_id': 'modern_blue',
-          'is_primary': 1,
-          'is_public': 0,
-          'is_active': 1,
-          'created_at': '2026-01-01 00:00:00',
-          'updated_at': '2026-01-01 00:00:00',
-          'sns_count': 0,
-        }
-      ],
-      'pagination': {'page': 1, 'limit': 20, 'total': 1, 'total_pages': 1, 'has_next': false},
+      'data': List<Map<String, dynamic>>.from(_cards),
+      'pagination': {
+        'page': 1, 'limit': 20,
+        'total': _cards.length, 'total_pages': 1, 'has_next': false,
+      },
     };
+  }
+
+  /// 명함 생성 — 플랜별 한도 체크 (free=3, pro=10, business=무제한)
+  static Map<String, dynamic> createCard(
+      String accessToken, Map<String, dynamic> body) {
+    final email = _accessTokens[accessToken];
+    if (email == null) throw MockApiException('인증이 필요합니다.', 401);
+    final user = _users.firstWhere((u) => u['email'] == email);
+    final plan = user['plan'] as String? ?? 'free';
+
+    // 플랜별 명함 한도 체크
+    const limits = {'free': 3, 'pro': 10, 'business': -1};
+    final limit = limits[plan] ?? 3;
+    if (limit != -1 && _cards.length >= limit) {
+      throw MockApiException(
+        '명함 생성 한도를 초과했습니다.',
+        422,
+        errorCode: 'card_limit_exceeded',
+        upgradeRequired: true,
+      );
+    }
+
+    final newCard = {
+      'id': DateTime.now().millisecondsSinceEpoch % 100000,
+      'user_id': user['id'],
+      'group_id': null,
+      'card_type': body['card_type'] ?? 'personal',
+      ...body,
+      'is_active': 1,
+      'sns_count': 0,
+      'created_at': DateTime.now().toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+    _cards.add(newCard);
+    return {'success': true, 'data': newCard, 'message': '명함이 생성되었습니다.'};
   }
 
   // ── Mock 내 그룹 목록 ─────────────────────────────────
   static Map<String, dynamic> getMyGroups(String accessToken) {
     final email = _accessTokens[accessToken];
     if (email == null) throw MockApiException('인증이 필요합니다.', 401);
+    final user = _users.firstWhere((u) => u['email'] == email);
+    final plan = user['plan'] as String? ?? 'free';
+    // v2.5: 플랜별 최대 멤버 수
+    const memberLimits = {'free': 2, 'pro': 10, 'business': -1};
+    final memberLimit = memberLimits[plan] ?? 2;
     return {
       'success': true,
       'data': [
@@ -263,9 +351,9 @@ class MockUsers {
           'purpose': 'study',
           'visibility': 'public',
           'status': 'active',
-          'plan': 'free',
-          'member_count': 24,
-          'max_members': 100,
+          'admin_plan': plan,
+          'member_count': memberLimit == -1 ? 24 : memberLimit,
+          'max_group_members': memberLimit == -1 ? null : memberLimit,
           'my_role': 'admin',
           'admin_name': '홍길동',
         },
@@ -273,12 +361,47 @@ class MockUsers {
       'pagination': {'page': 1, 'limit': 20, 'total': 1, 'total_pages': 1, 'has_next': false},
     };
   }
+
+  /// 그룹 가입 신청 — 플랜별 멤버 한도 체크 (v2.5)
+  static Map<String, dynamic> joinGroup(
+      String accessToken, int groupId, Map<String, dynamic> body) {
+    final email = _accessTokens[accessToken];
+    if (email == null) throw MockApiException('인증이 필요합니다.', 401);
+    // Mock: 그룹 id=1은 관리자 플랜(=현재 유저 플랜)으로 한도 체크
+    // 실제 서버에서는 그룹 관리자 플랜을 기준으로 검사
+    final user = _users.firstWhere((u) => u['email'] == email);
+    final plan = user['plan'] as String? ?? 'free';
+    const memberLimits = {'free': 2, 'pro': 10, 'business': -1};
+    final limit = memberLimits[plan] ?? 2;
+    // Mock 시나리오: free 플랜은 이미 2명(한도 도달) → 한도 초과 에러
+    if (limit != -1 && groupId == 1 && plan == 'free') {
+      throw MockApiException(
+        '플랜 멤버 한도에 도달했습니다. 플랜을 업그레이드해주세요.',
+        422,
+        errorCode: 'plan_member_limit_reached',
+        upgradeRequired: true,
+        extra: {'current': limit, 'limit': limit},
+      );
+    }
+    return {'success': true, 'data': null, 'message': '그룹 가입 신청이 완료되었습니다.'};
+  }
 }
 
 class MockApiException implements Exception {
   final String message;
   final int statusCode;
-  MockApiException(this.message, this.statusCode);
+  final String? errorCode;
+  final bool upgradeRequired;
+  final Map<String, dynamic>? extra;
+
+  MockApiException(
+    this.message,
+    this.statusCode, {
+    this.errorCode,
+    this.upgradeRequired = false,
+    this.extra,
+  });
+
   @override
   String toString() => message;
 }

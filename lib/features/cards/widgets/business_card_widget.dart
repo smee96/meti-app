@@ -127,12 +127,36 @@ class BusinessCardWidget extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (card.isPublic == 1)
-                      Icon(
-                        Icons.public,
-                        size: 16,
-                        color: textColor.withValues(alpha: 0.5),
+                    // v2.5: 공개/비공개 아이콘 🌐 / 🔒
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(6),
                       ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            card.isPublic == 1
+                                ? Icons.public
+                                : Icons.lock_outline,
+                            size: 12,
+                            color: textColor.withValues(alpha: 0.75),
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            card.isPublic == 1 ? '공개' : '비공개',
+                            style: TextStyle(
+                              color: textColor.withValues(alpha: 0.75),
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
 

@@ -113,8 +113,80 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
           context, _isEditing ? '명함이 수정되었습니다.' : '명함이 생성되었습니다.');
       Navigator.pop(context, true);
     } else {
-      showErrorSnackBar(context, provider.errorMessage ?? '저장에 실패했습니다.');
+      // v2.5: 명함 한도 초과 시 업그레이드 유도 다이얼로그
+      if (provider.upgradeRequired &&
+          provider.errorCode == 'card_limit_exceeded') {
+        _showCardLimitDialog(provider.errorMessage ?? '명함 생성 한도를 초과했습니다.');
+      } else {
+        showErrorSnackBar(context, provider.errorMessage ?? '저장에 실패했습니다.');
+      }
     }
+  }
+
+  /// 명함 한도 초과 업그레이드 유도 다이얼로그 (v2.5)
+  void _showCardLimitDialog(String message) {
+    final user = context.read<CardsProvider>();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Text('📋', style: TextStyle(fontSize: 20)),
+            SizedBox(width: 8),
+            Text('명함 한도 초과'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message, style: const TextStyle(fontSize: 14)),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('플랜 업그레이드 혜택',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 13)),
+                  SizedBox(height: 6),
+                  Text('• Free → Pro: 최대 10개 명함',
+                      style: TextStyle(fontSize: 12)),
+                  Text('• Pro → Business: 무제한 명함',
+                      style: TextStyle(fontSize: 12)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('나중에'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              // TODO: 인앱결제 구독 화면으로 이동
+              // Navigator.pushNamed(context, AppRoutes.subscription);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('플랜 업그레이드'),
+          ),
+        ],
+      ),
+    );
+    // suppress unused variable warning
+    user.toString();
   }
 
   // 경력 항목 추가 다이얼로그

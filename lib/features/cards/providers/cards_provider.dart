@@ -9,11 +9,15 @@ class CardsProvider extends ChangeNotifier {
   List<CardModel> _contacts = [];
   bool _isLoading = false;
   String? _errorMessage;
+  String? _errorCode;
+  bool _upgradeRequired = false;
 
   List<CardModel> get myCards => _myCards;
   List<CardModel> get contacts => _contacts;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  String? get errorCode => _errorCode;
+  bool get upgradeRequired => _upgradeRequired;
 
   // ─── 내 명함 목록 ──────────────────────────────────────
   Future<void> loadMyCards() async {
@@ -58,6 +62,8 @@ class CardsProvider extends ChangeNotifier {
       }
     } on ApiException catch (e) {
       _errorMessage = e.message;
+      _errorCode = e.errorCode;
+      _upgradeRequired = e.upgradeRequired;
     } finally {
       _setLoading(false);
     }
@@ -162,7 +168,11 @@ class CardsProvider extends ChangeNotifier {
 
   void _setLoading(bool v) {
     _isLoading = v;
-    if (v) _errorMessage = null;
+    if (v) {
+      _errorMessage = null;
+      _errorCode = null;
+      _upgradeRequired = false;
+    }
     notifyListeners();
   }
 

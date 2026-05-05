@@ -200,24 +200,25 @@ class _PointScreenState extends State<PointScreen> {
         children: [
           const Text('플랜별 포인트 혜택', style: AppTextStyles.h4),
           const SizedBox(height: 12),
+          // v2.5: 플랜별 포인트 + 최대 멤버 수 함께 표시
           _PlanRow(
             icon: Icons.person_outline,
             plan: 'Free',
-            desc: '0P / 기본 기능, 명함 3장',
+            desc: '0P · 명함 3장 · 그룹 최대 2명 관리',
             color: AppColors.textSecondary,
           ),
           const Divider(height: 16),
           _PlanRow(
             icon: Icons.workspace_premium,
             plan: 'Pro',
-            desc: '10,000P/월 · 명함 10장, 고급 기능',
+            desc: '10,000P/월 · 명함 10장 · 최대 10명 관리',
             color: AppColors.accent,
           ),
           const Divider(height: 16),
           _PlanRow(
             icon: Icons.business,
             plan: 'Business',
-            desc: '그룹관리 · 명함 무제한, 그룹 어드민',
+            desc: '500,000P/월 · 명함 무제한 · 멤버 무제한',
             color: AppColors.primary,
           ),
         ],
