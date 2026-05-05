@@ -1,5 +1,5 @@
-/// Mock API - 백엔드 없이 회원가입/로그인 흐름 테스트용
-/// app_constants.dart의 useMock = true 로 전환
+// Mock API - 백엔드 없이 회원가입/로그인 흐름 테스트용
+// app_constants.dart의 useMock = true 로 전환
 
 class MockUsers {
   static final List<Map<String, dynamic>> _users = [
@@ -8,15 +8,18 @@ class MockUsers {
       'email': 'test@meti.app',
       'password': 'Test1234!',
       'name': '홍길동',
+      'role': 'user',
       'account_type': 'personal',
       'plan': 'free',
       'is_verified': 1,
       'avatar_url': null,
       'created_at': '2026-01-01 00:00:00',
+      'point_balance': 3500,
     }
   ];
 
   static final Map<String, String> _verifyTokens = {};
+  // ignore: unused_field
   static final Map<String, String> _resetTokens = {};
   static final Map<String, String> _accessTokens = {};
   static final Map<String, String> _refreshTokens = {};
@@ -41,11 +44,13 @@ class MockUsers {
       'email': email,
       'password': password,
       'name': name,
+      'role': 'user',
       'account_type': body['account_type'] ?? 'personal',
       'plan': 'free',
       'is_verified': 0,
       'avatar_url': null,
       'created_at': DateTime.now().toIso8601String(),
+      'point_balance': 0,
     });
     _verifyTokens[verifyToken] = email;
 
@@ -54,7 +59,7 @@ class MockUsers {
       'data': {
         'user_id': userId,
         'email': email,
-        'verify_token': verifyToken, // 개발 환경 노출
+        'verify_token': verifyToken,
       },
       'message': '회원가입이 완료되었습니다. 이메일을 확인해주세요.',
     };
@@ -100,8 +105,10 @@ class MockUsers {
           'id': user['id'],
           'email': user['email'],
           'name': user['name'],
+          'role': user['role'] ?? 'user',
           'account_type': user['account_type'],
           'plan': user['plan'],
+          'point_balance': user['point_balance'] ?? 0,
         },
       },
       'message': '로그인 성공',
@@ -120,12 +127,14 @@ class MockUsers {
         'id': user['id'],
         'email': user['email'],
         'name': user['name'],
+        'role': user['role'] ?? 'user',
         'account_type': user['account_type'],
         'plan': user['plan'],
         'plan_expires_at': null,
         'avatar_url': user['avatar_url'],
         'is_verified': user['is_verified'],
         'created_at': user['created_at'],
+        'point_balance': user['point_balance'] ?? 0,
       },
     };
   }
@@ -157,6 +166,58 @@ class MockUsers {
     return {'success': true, 'data': null, 'message': '로그아웃되었습니다.'};
   }
 
+  // ── Mock 포인트 지갑 ──────────────────────────────────
+  static Map<String, dynamic> getPointWallet(String accessToken) {
+    final email = _accessTokens[accessToken];
+    if (email == null) throw MockApiException('인증이 필요합니다.', 401);
+    final user = _users.firstWhere((u) => u['email'] == email);
+    return {
+      'success': true,
+      'data': {
+        'balance': user['point_balance'] ?? 3500,
+        'total_earned': 10000,
+        'total_spent': 6500,
+        'updated_at': DateTime.now().toIso8601String(),
+      },
+    };
+  }
+
+  // ── Mock 포인트 거래내역 ──────────────────────────────
+  static Map<String, dynamic> getPointTransactions(String accessToken) {
+    final email = _accessTokens[accessToken];
+    if (email == null) throw MockApiException('인증이 필요합니다.', 401);
+    return {
+      'success': true,
+      'data': [
+        {
+          'id': 1,
+          'type': 'earn',
+          'amount': 10000,
+          'balance_after': 10000,
+          'description': 'Pro 플랜 포인트 충전',
+          'created_at': '2026-03-01T10:00:00Z',
+        },
+        {
+          'id': 2,
+          'type': 'spend',
+          'amount': -5000,
+          'balance_after': 5000,
+          'description': 'Pro 플랜 구독 (1개월)',
+          'created_at': '2026-03-01T10:01:00Z',
+        },
+        {
+          'id': 3,
+          'type': 'spend',
+          'amount': -1500,
+          'balance_after': 3500,
+          'description': '그룹 명함 발급',
+          'created_at': '2026-04-15T14:30:00Z',
+        },
+      ],
+      'pagination': {'page': 1, 'limit': 20, 'total': 3, 'total_pages': 1, 'has_next': false},
+    };
+  }
+
   // ── Mock 명함 데이터 ──────────────────────────────────
   static Map<String, dynamic> getCards() {
     return {
@@ -177,12 +238,37 @@ class MockUsers {
           'avatar_url': null,
           'template_id': 'modern_blue',
           'is_primary': 1,
-          'is_public': 1,
+          'is_public': 0,
           'is_active': 1,
           'created_at': '2026-01-01 00:00:00',
           'updated_at': '2026-01-01 00:00:00',
           'sns_count': 0,
         }
+      ],
+      'pagination': {'page': 1, 'limit': 20, 'total': 1, 'total_pages': 1, 'has_next': false},
+    };
+  }
+
+  // ── Mock 내 그룹 목록 ─────────────────────────────────
+  static Map<String, dynamic> getMyGroups(String accessToken) {
+    final email = _accessTokens[accessToken];
+    if (email == null) throw MockApiException('인증이 필요합니다.', 401);
+    return {
+      'success': true,
+      'data': [
+        {
+          'id': 1,
+          'name': 'METI 개발자 모임',
+          'description': 'Flutter & Dart 개발자 커뮤니티',
+          'purpose': 'study',
+          'visibility': 'public',
+          'status': 'active',
+          'plan': 'free',
+          'member_count': 24,
+          'max_members': 100,
+          'my_role': 'admin',
+          'admin_name': '홍길동',
+        },
       ],
       'pagination': {'page': 1, 'limit': 20, 'total': 1, 'total_pages': 1, 'has_next': false},
     };

@@ -199,12 +199,14 @@ class _CardsHomeScreenState extends State<CardsHomeScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
+          // await 이전에 provider 캡처
+          final provider = context.read<CardsProvider>();
           final result = await Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const CardCreateScreen()),
           );
-          if (result == true && mounted) {
-            final provider = context.read<CardsProvider>();
+          if (!mounted) return;
+          if (result == true) {
             provider.loadMyCards();
           }
         },

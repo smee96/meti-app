@@ -6,6 +6,7 @@ import '../features/auth/screens/email_verification_screen.dart';
 import '../features/auth/screens/forgot_password_screen.dart';
 import '../features/home/screens/main_screen.dart';
 import '../features/intro/screens/intro_screen.dart';
+import '../features/points/screens/point_screen.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -41,6 +42,7 @@ class AppRoutes {
   // My
   static const String myProfile = '/my/profile';
   static const String myReward = '/my/reward';
+  static const String myPoints = '/my/points';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -58,6 +60,8 @@ class AppRoutes {
         return _slide(const IntroScreen(), settings);
       case main:
         return _fade(const MainScreen(), settings);
+      case myPoints:
+        return _slide(const PointScreen(), settings);
       default:
         return _fade(
           Scaffold(

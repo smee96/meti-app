@@ -79,19 +79,19 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
           PopupMenuButton<String>(
             onSelected: (value) async {
               if (value == 'edit') {
+                // await 이전에 provider 캡처
+                final provider = context.read<CardsProvider>();
+                final cardId = _card.id;
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => CardCreateScreen(existingCard: _card),
                   ),
                 );
-                if (result == true && mounted) {
-                  final provider = context.read<CardsProvider>();
-                  final cardId = _card.id;
+                if (!mounted) return;
+                if (result == true) {
                   final updated = await provider.getCardDetail(cardId);
-                  if (updated != null && mounted) {
-                    setState(() => _card = updated);
-                  }
+                  if (mounted) setState(() => _card = updated ?? _card);
                 }
               } else if (value == 'delete') {
                 _handleDelete();

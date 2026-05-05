@@ -3,6 +3,7 @@ import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../core/constants/app_constants.dart';
+import 'group_admin_screen.dart';
 
 class GroupsScreen extends StatefulWidget {
   const GroupsScreen({super.key});
@@ -58,7 +59,7 @@ class _GroupsScreenState extends State<GroupsScreen>
   Future<void> _loadMyGroups() async {
     setState(() => _isMyGroupsLoading = true);
     try {
-      final response = await _api.get('/groups/my');
+      final response = await _api.get('/groups/me');
       if (response['success'] == true) {
         setState(() => _myGroups = response['data'] as List);
       }
@@ -163,11 +164,36 @@ class _GroupsScreenState extends State<GroupsScreen>
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         itemCount: _myGroups.length,
         separatorBuilder: (_, __) => const SizedBox(height: 10),
-        itemBuilder: (_, i) => _GroupCard(
-          group: _myGroups[i],
-          showRole: true,
-          onTap: () => _showGroupDetail(_myGroups[i]),
-        ),
+        itemBuilder: (_, i) {
+          final g = _myGroups[i];
+          final myRole = g['my_role'] as String? ?? 'member';
+          final isAdmin = myRole == 'admin' || myRole == 'owner';
+          return _GroupCard(
+            group: g,
+            showRole: true,
+            onTap: () => _showGroupDetail(g),
+            adminButton: isAdmin
+                ? ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => GroupAdminScreen(group: g),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.manage_accounts, size: 16),
+                    label: const Text('관리'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accent,
+                      minimumSize: const Size(0, 32),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      textStyle: const TextStyle(fontSize: 12),
+                    ),
+                  )
+                : null,
+          );
+        },
       ),
     );
   }
@@ -228,8 +254,14 @@ class _GroupCard extends StatelessWidget {
   final dynamic group;
   final bool showRole;
   final VoidCallback? onTap;
+  final Widget? adminButton;
 
-  const _GroupCard({required this.group, this.showRole = false, this.onTap});
+  const _GroupCard({
+    required this.group,
+    this.showRole = false,
+    this.onTap,
+    this.adminButton,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -293,16 +325,19 @@ class _GroupCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         _PurposeBadge(purpose: group['purpose'] as String),
                       ],
-                      if (showRole && group['role'] != null) ...[
+                      if (showRole && group['my_role'] != null) ...[
                         const SizedBox(width: 8),
-                        _RoleBadge(role: group['role'] as String),
+                        _RoleBadge(role: group['my_role'] as String),
                       ],
                     ],
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppColors.textTertiary),
+            if (adminButton != null)
+              adminButton!
+            else
+              const Icon(Icons.chevron_right, color: AppColors.textTertiary),
           ],
         ),
       ),

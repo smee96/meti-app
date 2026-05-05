@@ -166,10 +166,26 @@ class ApiClient {
           return {'success': true, 'data': [], 'pagination': {'page': 1, 'limit': 20, 'total': 0}};
         }
         if (path == '/groups') return _mockGroups();
+        if (path == '/groups/me') return MockUsers.getMyGroups(accessToken!);
+        if (path.startsWith('/groups/') && path.endsWith('/members')) {
+          return {'success': true, 'data': _mockGroupMembers()};
+        }
+        if (path.startsWith('/groups/') && path.endsWith('/invite-links')) {
+          return {'success': true, 'data': _mockInviteLinks()};
+        }
         if (path == '/events') return _mockEvents();
         if (path == '/chat') return {'success': true, 'data': []};
         if (path.startsWith('/chat/') && path.endsWith('/messages')) {
           return {'success': true, 'data': []};
+        }
+        // 포인트 API
+        if (path == '/points/me') return MockUsers.getPointWallet(accessToken!);
+        if (path == '/points/me/transactions') return MockUsers.getPointTransactions(accessToken!);
+        if (path.startsWith('/points/groups/') && path.endsWith('/wallet')) {
+          return {
+            'success': true,
+            'data': {'balance': 0, 'total_earned': 0, 'total_spent': 0},
+          };
         }
       }
 
@@ -185,6 +201,37 @@ class ApiClient {
         if (path.startsWith('/cards/')) {
           return {'success': true, 'data': null, 'message': '명함이 삭제되었습니다.'};
         }
+        if (path.contains('/invite-links/')) {
+          return {'success': true, 'data': null, 'message': '초대 링크가 삭제되었습니다.'};
+        }
+      }
+
+      // ── 그룹 POST 라우팅 (멤버 승인/거절/내보내기, 초대링크 생성) ──
+      if (method == 'POST') {
+        if (path.contains('/members/') && path.endsWith('/approve')) {
+          return {'success': true, 'data': null, 'message': '가입을 승인했습니다.'};
+        }
+        if (path.contains('/members/') && path.endsWith('/reject')) {
+          return {'success': true, 'data': null, 'message': '가입 요청을 거절했습니다.'};
+        }
+        if (path.contains('/members/') && path.endsWith('/kick')) {
+          return {'success': true, 'data': null, 'message': '멤버를 내보냈습니다.'};
+        }
+        if (path.endsWith('/invite-links')) {
+          return {
+            'success': true,
+            'data': {
+              'id': DateTime.now().millisecondsSinceEpoch % 10000,
+              'token': 'mock-invite-${DateTime.now().millisecondsSinceEpoch}',
+              'max_uses': body?['max_uses'] ?? 100,
+              'use_count': 0,
+              'is_active': true,
+              'expires_at': body?['expires_at'],
+              'created_at': DateTime.now().toIso8601String(),
+            },
+            'message': '초대 링크가 생성되었습니다.',
+          };
+        }
       }
 
       return {'success': true, 'data': null};
@@ -192,6 +239,36 @@ class ApiClient {
       throw ApiException(e.message, statusCode: e.statusCode);
     }
   }
+
+  List<Map<String, dynamic>> _mockGroupMembers() => [
+    {
+      'id': 1, 'user_id': 1, 'name': '홍길동', 'email': 'test@meti.app',
+      'role': 'admin', 'status': 'active',
+      'joined_at': '2026-01-01T00:00:00Z',
+    },
+    {
+      'id': 2, 'user_id': 2, 'name': '김철수', 'email': 'chulsoo@meti.app',
+      'role': 'member', 'status': 'active',
+      'joined_at': '2026-02-15T00:00:00Z',
+    },
+    {
+      'id': 3, 'user_id': 3, 'name': '이영희', 'email': 'younghee@meti.app',
+      'role': 'member', 'status': 'active',
+      'joined_at': '2026-03-10T00:00:00Z',
+    },
+  ];
+
+  List<Map<String, dynamic>> _mockInviteLinks() => [
+    {
+      'id': 1,
+      'token': 'abc12345xyz',
+      'max_uses': 50,
+      'use_count': 7,
+      'is_active': true,
+      'expires_at': DateTime.now().add(const Duration(days: 5)).toIso8601String(),
+      'created_at': DateTime.now().subtract(const Duration(days: 2)).toIso8601String(),
+    },
+  ];
 
   Map<String, dynamic> _mockGroups() => {
     'success': true,

@@ -630,7 +630,7 @@ class _CareerListTile extends StatelessWidget {
         subtitle: (career.period != null || career.detail != null)
             ? Text(
                 [career.period, career.detail]
-                    .where((s) => s != null && s!.isNotEmpty)
+                    .where((s) => s != null && s.isNotEmpty)
                     .map((s) => s as String)
                     .join(' \u00b7 '),
                 style: AppTextStyles.caption,
