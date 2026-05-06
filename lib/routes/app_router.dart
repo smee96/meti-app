@@ -7,6 +7,7 @@ import '../features/auth/screens/forgot_password_screen.dart';
 import '../features/home/screens/main_screen.dart';
 import '../features/intro/screens/intro_screen.dart';
 import '../features/points/screens/point_screen.dart';
+import '../features/invite/screens/invite_join_screen.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -44,6 +45,9 @@ class AppRoutes {
   static const String myReward = '/my/reward';
   static const String myPoints = '/my/points';
 
+  // Invite deep-link
+  static const String inviteJoin = '/invite';
+
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
       case splash:
@@ -62,6 +66,11 @@ class AppRoutes {
         return _fade(const MainScreen(), settings);
       case myPoints:
         return _slide(const PointScreen(), settings);
+      case inviteJoin:
+        // arguments: {'token': String}
+        final args = settings.arguments as Map<String, dynamic>?;
+        final token = args?['token'] as String? ?? '';
+        return _slide(InviteJoinScreen(token: token), settings);
       default:
         return _fade(
           Scaffold(

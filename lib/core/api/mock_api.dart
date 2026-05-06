@@ -362,6 +362,47 @@ class MockUsers {
     };
   }
 
+  /// 초대링크 미리보기 — 인증 불필요, 그룹 정보 반환
+  static Map<String, dynamic> invitePreview(String token) {
+    // Mock: 토큰이 존재하면 그룹 정보 반환
+    if (token.isEmpty) {
+      throw MockApiException('유효하지 않은 초대 링크입니다.', 404);
+    }
+    return {
+      'success': true,
+      'data': {
+        'token': token,
+        'label': '일반 초대',
+        'group': {
+          'id': 1,
+          'name': 'METI 개발자 모임',
+          'description': 'Flutter & Dart 개발자 커뮤니티',
+          'purpose': 'study',
+          'visibility': 'public',
+          'member_count': 24,
+        },
+        'expires_at': null,
+        'max_uses': 100,
+        'use_count': 3,
+      },
+    };
+  }
+
+  /// 초대링크로 즉시 가입 — 인증 필요, birth_date 포함
+  static Map<String, dynamic> inviteJoin(
+      String accessToken, String token, Map<String, dynamic> body) {
+    final email = _accessTokens[accessToken];
+    if (email == null) throw MockApiException('인증이 필요합니다.', 401);
+    if (token.isEmpty) {
+      throw MockApiException('유효하지 않은 초대 링크입니다.', 404);
+    }
+    return {
+      'success': true,
+      'data': {'group_id': 1, 'status': 'active'},
+      'message': '그룹에 가입되었습니다.',
+    };
+  }
+
   /// 행사 참가 신청 — 그룹 포인트 3,000P 차감 시뮬레이션 (insufficient_points)
   static Map<String, dynamic> joinEvent(String accessToken) {
     final email = _accessTokens[accessToken];

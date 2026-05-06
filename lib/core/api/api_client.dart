@@ -106,6 +106,12 @@ class ApiClient {
           return {'success': true, 'data': null, 'message': '비밀번호가 변경되었습니다.'};
         }
 
+        // 초대링크로 그룹 가입 — 인증 필요
+        if (path == '/auth/invite-join') {
+          final token = body?['token'] as String? ?? '';
+          return MockUsers.inviteJoin(accessToken!, token, body ?? {});
+        }
+
         // 명함 생성 (v2.5: 플랜별 한도 체크)
         if (path == '/cards') {
           return MockUsers.createCard(accessToken!, body!);
@@ -160,6 +166,11 @@ class ApiClient {
       // ── GET 라우팅 ──
       if (method == 'GET') {
         if (path == '/auth/me') return MockUsers.getMe(accessToken!);
+        // 초대 미리보기 — 인증 불필요
+        if (path.startsWith('/auth/invite-preview/')) {
+          final token = path.replaceFirst('/auth/invite-preview/', '');
+          return MockUsers.invitePreview(token);
+        }
         if (path == '/cards') return MockUsers.getCards();
         if (path == '/cards/contacts/list') {
           return {'success': true, 'data': [], 'pagination': {'page': 1, 'limit': 20, 'total': 0}};
@@ -171,6 +182,19 @@ class ApiClient {
         }
         if (path.startsWith('/groups/') && path.endsWith('/invite-links')) {
           return {'success': true, 'data': _mockInviteLinks()};
+        }
+        // 대기 중인 멤버 목록 (승인 대기)
+        if (path.startsWith('/groups/') && path.contains('/members') && path.contains('pending')) {
+          return {
+            'success': true,
+            'data': [
+              {
+                'id': 4, 'user_id': 4, 'name': '박지수', 'email': 'jisoo@meti.app',
+                'role': 'member', 'status': 'pending',
+                'joined_at': DateTime.now().subtract(const Duration(hours: 3)).toIso8601String(),
+              },
+            ],
+          };
         }
         if (path == '/events') return _mockEvents();
         if (path == '/chat') return {'success': true, 'data': []};

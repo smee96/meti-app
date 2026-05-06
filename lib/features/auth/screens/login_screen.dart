@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
@@ -38,7 +39,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (!mounted) return;
     if (success) {
-      Navigator.pushReplacementNamed(context, AppRoutes.main);
+      // v2.5: 로그인 성공 후 pending 초대 토큰 확인
+      final prefs = await SharedPreferences.getInstance();
+      final pendingToken = prefs.getString('pending_invite_token');
+      if (!mounted) return;
+      if (pendingToken != null && pendingToken.isNotEmpty) {
+        // pending 초대 토큰 있으면 InviteJoinScreen으로
+        Navigator.pushReplacementNamed(
+          context,
+          AppRoutes.inviteJoin,
+          arguments: {'token': pendingToken},
+        );
+      } else {
+        Navigator.pushReplacementNamed(context, AppRoutes.main);
+      }
     } else {
       showErrorSnackBar(context, auth.errorMessage ?? '로그인에 실패했습니다.');
     }

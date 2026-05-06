@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../routes/app_router.dart';
@@ -60,13 +61,60 @@ class _SplashScreenState extends State<SplashScreen>
     await auth.checkAuthState();
     if (!mounted) return;
 
-    if (auth.isAuthenticated) {
-      // 이미 로그인 상태 → 바로 메인으로
-      Navigator.pushReplacementNamed(context, AppRoutes.main);
+    // ── v2.5 딥링크: /invite/:token 감지 (Web URL 기반) ──
+    // Flutter Web: Uri.base 로 현재 URL 확인
+    // Native: SharedPreferences에 저장된 pending 토큰 확인
+    final pendingToken = await _detectInviteToken();
+    if (!mounted) return;
+
+    final isAuth = auth.isAuthenticated;
+
+    if (isAuth) {
+      if (pendingToken != null && pendingToken.isNotEmpty) {
+        // 로그인 상태 + 초대 토큰 → 즉시 InviteJoinScreen
+        Navigator.pushReplacementNamed(
+          context,
+          AppRoutes.inviteJoin,
+          arguments: {'token': pendingToken},
+        );
+      } else {
+        // 이미 로그인 상태 → 바로 메인으로
+        Navigator.pushReplacementNamed(context, AppRoutes.main);
+      }
     } else {
+      if (pendingToken != null && pendingToken.isNotEmpty) {
+        // 비로그인 + 초대 토큰 → 토큰 저장 후 버튼 표시
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('pending_invite_token', pendingToken);
+        if (!mounted) return;
+      }
       // 비로그인 → 버튼 표시
       setState(() => _showButtons = true);
     }
+  }
+
+  /// 초대 토큰 감지
+  /// 1순위: 현재 URL 경로 (/invite/:token)
+  /// 2순위: SharedPreferences에 저장된 pending 토큰
+  Future<String?> _detectInviteToken() async {
+    try {
+      // Flutter Web: Uri.base로 URL 경로 확인
+      // ignore: undefined_prefixed_name
+      final uri = Uri.base;
+      final segments = uri.pathSegments;
+      // /invite/TOKEN 또는 /app/invite/TOKEN 형태
+      final inviteIdx = segments.indexOf('invite');
+      if (inviteIdx != -1 && inviteIdx + 1 < segments.length) {
+        final token = segments[inviteIdx + 1];
+        if (token.isNotEmpty) return token;
+      }
+    } catch (_) {
+      // Native 환경에서는 Uri.base 미지원 → SharedPreferences 폴백
+    }
+
+    // SharedPreferences에서 pending 토큰 확인
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('pending_invite_token');
   }
 
   @override
