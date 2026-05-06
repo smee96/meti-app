@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
+import '../../points/models/point_model.dart';
 
 /// 그룹 어드민 관리 화면
 /// - 멤버 목록 / 승인대기 / 초대링크 관리
@@ -25,16 +26,25 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
   List<dynamic> _inviteLinks = [];
   bool _isLoading = false;
 
+  // M2: 그룹 포인트 잔액
+  PointWallet? _groupWallet;
+  bool _isWalletLoading = false;
+  // M1: 포인트 이체 입력
+  final _transferAmountCtrl = TextEditingController();
+  bool _isTransferring = false;
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _loadAll();
+    _loadGroupWallet();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _transferAmountCtrl.dispose();
     super.dispose();
   }
 
@@ -63,6 +73,23 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
       }
     } catch (_) {}
     if (mounted) setState(() => _isLoading = false);
+  }
+
+  // M2: 그룹 지갑 로드
+  Future<void> _loadGroupWallet() async {
+    final gid = widget.group['id'] as int?;
+    if (gid == null) return;
+    setState(() => _isWalletLoading = true);
+    try {
+      final res = await _api.get('/points/groups/$gid/wallet');
+      if (res['success'] == true && mounted) {
+        setState(() {
+          _groupWallet = PointWallet.fromJson(
+              res['data'] as Map<String, dynamic>);
+        });
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _isWalletLoading = false);
   }
 
   @override
@@ -103,6 +130,7 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
               ),
             ),
             const Tab(text: '초대링크'),
+            const Tab(text: '포인트'),
           ],
         ),
       ),
@@ -114,6 +142,7 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
                 _buildMembersTab(),
                 _buildPendingTab(),
                 _buildInviteLinksTab(),
+                _buildPointsTab(),
               ],
             ),
     );
@@ -271,6 +300,292 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
         ),
       ],
     );
+  }
+
+  // ── 포인트 탭 (M1 이체 + M2 그룹 잔액) ──────────────────
+  Widget _buildPointsTab() {
+    final gid = widget.group['id'];
+    return RefreshIndicator(
+      onRefresh: () async {
+        await _loadGroupWallet();
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // M2: 그룹 포인트 잔액 카드
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.primary, AppColors.primaryLight],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.25),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.account_balance,
+                          color: Colors.white70, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${widget.group['name'] ?? '그룹'} 포인트 잔액',
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 13),
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: _loadGroupWallet,
+                        child: const Icon(Icons.refresh,
+                            color: Colors.white54, size: 18),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _isWalletLoading
+                      ? const SizedBox(
+                          height: 36,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2),
+                        )
+                      : Text(
+                          '${_formatNumber(_groupWallet?.balance ?? 0)} P',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -1,
+                          ),
+                        ),
+                  const SizedBox(height: 12),
+                  const Divider(color: Colors.white24),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      _WalletStatItem(
+                        label: '총 적립',
+                        value:
+                            '${_formatNumber(_groupWallet?.totalEarned ?? 0)}P',
+                      ),
+                      const SizedBox(width: 24),
+                      _WalletStatItem(
+                        label: '총 사용',
+                        value:
+                            '${_formatNumber(_groupWallet?.totalSpent ?? 0)}P',
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // M1: 포인트 이체 카드
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.accent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.swap_horiz_rounded,
+                            color: AppColors.accent, size: 20),
+                      ),
+                      const SizedBox(width: 10),
+                      const Text('포인트 이체', style: AppTextStyles.h4),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    '개인 포인트를 그룹으로 이체합니다. (역방향 이체 불가)',
+                    style: AppTextStyles.caption,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 이체 금액 입력
+                  TextField(
+                    controller: _transferAmountCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: '이체할 포인트',
+                      hintText: '예: 1000',
+                      suffixText: 'P',
+                      prefixIcon: Icon(Icons.monetization_on_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // 빠른 금액 선택
+                  Wrap(
+                    spacing: 8,
+                    children: [500, 1000, 3000, 5000].map((amt) {
+                      return OutlinedButton(
+                        onPressed: () {
+                          _transferAmountCtrl.text = '$amt';
+                        },
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(0, 32),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 4),
+                          textStyle: const TextStyle(fontSize: 12),
+                        ),
+                        child: Text('+${_formatNumber(amt)}P'),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 이체 버튼
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _isTransferring
+                          ? null
+                          : () => _handleTransfer(gid),
+                      icon: _isTransferring
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.send_rounded, size: 18),
+                      label: Text(_isTransferring ? '이체 중...' : '그룹으로 이체'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.accent,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // 안내 박스
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceVariant,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text(
+                '• 이체는 관리자만 가능합니다\n'
+                '• 이체 후 역방향(그룹→개인) 환불은 불가합니다\n'
+                '• 그룹 포인트는 행사 개설 등에 사용됩니다',
+                style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                    height: 1.6),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // M1: 이체 처리
+  Future<void> _handleTransfer(dynamic gid) async {
+    final amountText = _transferAmountCtrl.text.trim();
+    final amount = int.tryParse(amountText);
+    if (amount == null || amount <= 0) {
+      showErrorSnackBar(context, '올바른 이체 금액을 입력해주세요.');
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text('포인트 이체 확인'),
+        content: Text(
+          '개인 포인트에서 ${_formatNumber(amount)}P를\n'
+          '"${widget.group['name'] ?? '그룹'}"으로 이체하시겠습니까?\n\n'
+          '이체 후 역방향 환불은 불가합니다.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('이체하기'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    if (!mounted) return;
+
+    setState(() => _isTransferring = true);
+    try {
+      final res = await _api.post('/points/transfer', body: {
+        'group_id': gid,
+        'amount': amount,
+      });
+      if (!mounted) return;
+      if (res['success'] == true) {
+        _transferAmountCtrl.clear();
+        showSuccessSnackBar(context,
+            res['message'] ?? '${_formatNumber(amount)}P 이체 완료');
+        // 그룹 잔액 새로고침
+        await _loadGroupWallet();
+      } else {
+        showErrorSnackBar(context, res['message']?.toString() ?? '이체 실패');
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      if (e.errorCode == 'insufficient_points') {
+        final extra = e.extra ?? {};
+        final current = extra['current'] as int? ?? 0;
+        final short = extra['short'] as int? ?? 0;
+        showErrorSnackBar(
+          context,
+          '포인트 부족: 현재 ${_formatNumber(current)}P · ${_formatNumber(short)}P 부족',
+        );
+      } else {
+        showErrorSnackBar(context, e.message);
+      }
+    } catch (e) {
+      if (mounted) showErrorSnackBar(context, '이체 중 오류가 발생했습니다.');
+    } finally {
+      if (mounted) setState(() => _isTransferring = false);
+    }
+  }
+
+  String _formatNumber(int n) {
+    return n.toString().replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (m) => '${m[1]},',
+        );
   }
 
   // ── 액션 핸들러 ────────────────────────────────────────
@@ -732,6 +1047,29 @@ class _InviteLinkTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ── 지갑 통계 항목 (포인트 탭용) ──────────────────────
+class _WalletStatItem extends StatelessWidget {
+  final String label;
+  final String value;
+  const _WalletStatItem({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(color: Colors.white60, fontSize: 12)),
+        Text(value,
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w600)),
+      ],
     );
   }
 }

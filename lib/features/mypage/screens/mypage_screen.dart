@@ -331,7 +331,15 @@ class _MyPageScreenState extends State<MyPageScreen> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.pushNamed(
+                context,
+                AppRoutes.upgrade,
+                arguments: {
+                  'fromContext': '더 많은 명함과 그룹 관리를 위해 Pro 플랜으로 업그레이드하세요.',
+                },
+              );
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.accent,
               minimumSize: const Size(0, 36),

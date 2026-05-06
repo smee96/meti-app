@@ -8,6 +8,7 @@ import '../features/home/screens/main_screen.dart';
 import '../features/intro/screens/intro_screen.dart';
 import '../features/points/screens/point_screen.dart';
 import '../features/invite/screens/invite_join_screen.dart';
+import '../features/upgrade/screens/upgrade_screen.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -48,6 +49,9 @@ class AppRoutes {
   // Invite deep-link
   static const String inviteJoin = '/invite';
 
+  // Upgrade
+  static const String upgrade = '/upgrade';
+
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
       case splash:
@@ -71,6 +75,11 @@ class AppRoutes {
         final args = settings.arguments as Map<String, dynamic>?;
         final token = args?['token'] as String? ?? '';
         return _slide(InviteJoinScreen(token: token), settings);
+      case upgrade:
+        // arguments: {'fromContext': String?}
+        final upgradeArgs = settings.arguments as Map<String, dynamic>?;
+        final fromCtx = upgradeArgs?['fromContext'] as String?;
+        return _slide(UpgradeScreen(fromContext: fromCtx), settings);
       default:
         return _fade(
           Scaffold(

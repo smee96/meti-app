@@ -4,6 +4,7 @@ import '../providers/cards_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../routes/app_router.dart';
 import '../widgets/business_card_widget.dart';
 import '../models/card_model.dart';
 
@@ -173,8 +174,13 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
-              // TODO: 인앱결제 구독 화면으로 이동
-              // Navigator.pushNamed(context, AppRoutes.subscription);
+              Navigator.pushNamed(
+                context,
+                AppRoutes.upgrade,
+                arguments: {
+                  'fromContext': 'Free 플랜은 명함을 최대 3장까지 만들 수 있습니다. 더 많은 명함을 원하시면 업그레이드하세요.',
+                },
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,

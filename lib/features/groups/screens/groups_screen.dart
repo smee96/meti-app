@@ -3,6 +3,7 @@ import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../routes/app_router.dart';
 import 'group_admin_screen.dart';
 
 class GroupsScreen extends StatefulWidget {
@@ -680,7 +681,13 @@ class _GroupDetailSheetState extends State<_GroupDetailSheet> {
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.pop(ctx);
-                      // TODO: 인앱결제 구독 화면으로 이동
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.upgrade,
+                        arguments: {
+                          'fromContext': 'Free 플랜은 그룹당 최대 $limit명까지 관리할 수 있습니다. 더 많은 멤버를 관리하려면 업그레이드하세요.',
+                        },
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,

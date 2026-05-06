@@ -106,6 +106,11 @@ class ApiClient {
           return {'success': true, 'data': null, 'message': '비밀번호가 변경되었습니다.'};
         }
 
+        // 포인트 이체 (개인 → 그룹, 관리자 전용)
+        if (path == '/points/transfer') {
+          return MockUsers.transferPoints(accessToken!, body ?? {});
+        }
+
         // 초대링크로 그룹 가입 — 인증 필요
         if (path == '/auth/invite-join') {
           final token = body?['token'] as String? ?? '';

@@ -403,6 +403,42 @@ class MockUsers {
     };
   }
 
+  /// 개인 → 그룹 포인트 이체 (관리자 전용)
+  static Map<String, dynamic> transferPoints(
+      String accessToken, Map<String, dynamic> body) {
+    final email = _accessTokens[accessToken];
+    if (email == null) throw MockApiException('인증이 필요합니다.', 401);
+    final user = _users.firstWhere((u) => u['email'] == email);
+
+    final amount = body['amount'] as int? ?? 0;
+    if (amount <= 0) {
+      throw MockApiException('이체 금액은 1P 이상이어야 합니다.', 422);
+    }
+    final current = (user['point_balance'] as int?) ?? 0;
+    if (current < amount) {
+      throw MockApiException(
+        '포인트가 부족합니다.',
+        422,
+        errorCode: 'insufficient_points',
+        extra: {
+          'required': amount,
+          'current': current,
+          'short': amount - current,
+        },
+      );
+    }
+    // 차감
+    user['point_balance'] = current - amount;
+    return {
+      'success': true,
+      'data': {
+        'transferred': amount,
+        'personal_balance_after': user['point_balance'],
+      },
+      'message': '${amount}P가 그룹으로 이체되었습니다.',
+    };
+  }
+
   /// 행사 참가 신청 — 그룹 포인트 3,000P 차감 시뮬레이션 (insufficient_points)
   static Map<String, dynamic> joinEvent(String accessToken) {
     final email = _accessTokens[accessToken];
