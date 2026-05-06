@@ -218,6 +218,19 @@ class _EventCard extends StatelessWidget {
                               showSuccessSnackBar(context, '참가 신청이 완료되었습니다!');
                             }
                           }
+                        } on ApiException catch (e) {
+                          if (!context.mounted) return;
+                          // v2.5: 포인트 부족 오류 — 충전 버튼 없이 잔액/부족 정보만 표시
+                          if (e.errorCode == 'insufficient_points') {
+                            showInsufficientPointsSnackBar(
+                              context,
+                              current: e.extra?['current'] as int?,
+                              required: e.extra?['required'] as int?,
+                              short: e.extra?['short'] as int?,
+                            );
+                          } else {
+                            showErrorSnackBar(context, e.message);
+                          }
                         } catch (e) {
                           if (context.mounted) {
                             showErrorSnackBar(context, e.toString());

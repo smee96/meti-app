@@ -9,11 +9,16 @@ class PointProvider extends ChangeNotifier {
   List<PointTransaction> _transactions = [];
   bool _isLoading = false;
   String? _error;
+  // v2.5: insufficient_points 오류 정보
+  String? _errorCode;
+  Map<String, dynamic>? _errorExtra;
 
   PointWallet? get wallet => _wallet;
   List<PointTransaction> get transactions => _transactions;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  String? get errorCode => _errorCode;
+  Map<String, dynamic>? get errorExtra => _errorExtra;
   int get balance => _wallet?.balance ?? 0;
 
   // ─── 개인 지갑 조회 ───────────────────────────────────
@@ -69,6 +74,8 @@ class PointProvider extends ChangeNotifier {
 
   void clearError() {
     _error = null;
+    _errorCode = null;
+    _errorExtra = null;
     notifyListeners();
   }
 }

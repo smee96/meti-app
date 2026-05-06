@@ -362,6 +362,30 @@ class MockUsers {
     };
   }
 
+  /// 행사 참가 신청 — 그룹 포인트 3,000P 차감 시뮬레이션 (insufficient_points)
+  static Map<String, dynamic> joinEvent(String accessToken) {
+    final email = _accessTokens[accessToken];
+    if (email == null) throw MockApiException('인증이 필요합니다.', 401);
+    final user = _users.firstWhere((u) => u['email'] == email);
+    const required = 3000;
+    final current = (user['point_balance'] as int?) ?? 0;
+    if (current < required) {
+      throw MockApiException(
+        '포인트가 부족합니다.',
+        422,
+        errorCode: 'insufficient_points',
+        extra: {
+          'required': required,
+          'current': current,
+          'short': required - current,
+        },
+      );
+    }
+    // 포인트 충분 → 차감 후 성공
+    user['point_balance'] = current - required;
+    return {'success': true, 'data': null, 'message': '행사 참가 신청이 완료되었습니다.'};
+  }
+
   /// 그룹 가입 신청 — 플랜별 멤버 한도 체크 (v2.5)
   static Map<String, dynamic> joinGroup(
       String accessToken, int groupId, Map<String, dynamic> body) {

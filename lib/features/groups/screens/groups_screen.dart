@@ -498,9 +498,17 @@ class _GroupDetailSheetState extends State<_GroupDetailSheet> {
       }
     } on ApiException catch (e) {
       if (!mounted) return;
-      // v2.5: 멤버 한도 초과 시 업그레이드 모달
+      // v2.5: 멤버 한도 초과 → 업그레이드 모달
       if (e.upgradeRequired && e.errorCode == 'plan_member_limit_reached') {
         _showMemberLimitModal(e.extra?['limit'] as int? ?? 2);
+      // v2.5: 포인트 부족 → 충전 버튼 없이 잔액/부족 금액만 표시
+      } else if (e.errorCode == 'insufficient_points') {
+        showInsufficientPointsSnackBar(
+          context,
+          current: e.extra?['current'] as int?,
+          required: e.extra?['required'] as int?,
+          short: e.extra?['short'] as int?,
+        );
       } else {
         showErrorSnackBar(context, e.message);
       }

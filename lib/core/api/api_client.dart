@@ -136,9 +136,9 @@ class ApiClient {
           return MockUsers.joinGroup(accessToken!, gid, body ?? {});
         }
 
-        // 이벤트 참가
+        // 이벤트 참가 (행사 등록: 3,000P 차감 — insufficient_points 시뮬레이션)
         if (path.endsWith('/join') && path.startsWith('/events')) {
-          return {'success': true, 'data': null, 'message': '참가 신청이 완료되었습니다.'};
+          return MockUsers.joinEvent(accessToken!);
         }
 
         // 채팅 메시지 전송

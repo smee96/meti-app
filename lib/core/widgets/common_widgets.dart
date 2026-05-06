@@ -111,6 +111,68 @@ void showSuccessSnackBar(BuildContext context, String message) {
   );
 }
 
+/// 포인트 부족 오류 전용 스낵바
+/// - insufficient_points 응답 시 호출
+/// - 앱 내 충전 버튼 금지 (v2.5 정책)
+/// - extra: {'current': int, 'required': int, 'short': int}
+void showInsufficientPointsSnackBar(
+  BuildContext context, {
+  int? current,
+  int? required,
+  int? short,
+}) {
+  String fmt(int n) => n.toString().replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+        (m) => '${m[1]},',
+      );
+
+  final currentStr = current != null ? '${fmt(current)}P' : null;
+  final shortStr   = short    != null ? '${fmt(short)}P'   : null;
+
+  final detail = (currentStr != null && shortStr != null)
+      ? '현재 $currentStr · $shortStr 부족'
+      : null;
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          const Icon(Icons.account_balance_wallet_outlined,
+              color: Colors.white, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '포인트가 부족합니다',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14),
+                ),
+                if (detail != null)
+                  Text(
+                    detail,
+                    style: const TextStyle(
+                        color: Colors.white70, fontSize: 12),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: const Color(0xFFB45309), // amber-700
+      behavior: SnackBarBehavior.floating,
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      margin: const EdgeInsets.all(16),
+      duration: const Duration(seconds: 4),
+    ),
+  );
+}
+
 // ─── Empty State ──────────────────────────────────────
 class EmptyStateWidget extends StatelessWidget {
   final IconData icon;
