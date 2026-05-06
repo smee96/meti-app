@@ -198,6 +198,98 @@ class _GroupsScreenState extends State<GroupsScreen>
     );
   }
 
+  // ── 그룹 개설 신청 완료 '심사 중' 다이얼로그 (H3) ──────
+  void _showGroupPendingDialog(String groupName) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppColors.warning.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.hourglass_top_rounded,
+                color: AppColors.warning,
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              '개설 신청 완료',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              groupName.isNotEmpty ? '"$groupName"' : '그룹',
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withValues(alpha: 0.07),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                    color: AppColors.warning.withValues(alpha: 0.25)),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.info_outline,
+                          size: 14, color: AppColors.warning),
+                      SizedBox(width: 6),
+                      Text(
+                        '심사 중 (pending)',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.warning,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    '슈퍼어드민이 신청 내용을 검토한 후 승인합니다.\n승인되면 그룹이 활성화되며 멤버를 초대할 수 있습니다.',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                        height: 1.5),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('확인'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── 그룹 상세 바텀시트 ────────────────────────────────
   void _showGroupDetail(dynamic group) {
     showModalBottomSheet(
@@ -230,14 +322,12 @@ class _GroupsScreenState extends State<GroupsScreen>
             final resp = await _api.post('/groups', body: data);
             if (!ctx.mounted) return;
             Navigator.pop(ctx);
-            final success = resp['success'] == true;
-            final msg = success
-                ? '그룹 개설 신청이 완료되었습니다!\n슈퍼어드민 승인 후 활성화됩니다.'
-                : (resp['message']?.toString() ?? '신청에 실패했습니다.');
-            if (success) {
-              showSuccessSnackBar(ctx, msg);
+            if (resp['success'] == true) {
+              // H3: 성공 시 스낵바 대신 '심사 중' 다이얼로그 표시
+              _showGroupPendingDialog(data['name'] as String? ?? '');
             } else {
-              showErrorSnackBar(ctx, msg);
+              showErrorSnackBar(
+                  ctx, resp['message']?.toString() ?? '신청에 실패했습니다.');
             }
           } catch (e) {
             if (!ctx.mounted) return;
@@ -1071,7 +1161,26 @@ class _CreateGroupSheetState extends State<_CreateGroupSheet> {
               onPressed: _isLoading
                   ? null
                   : () async {
-                      if (_nameCtrl.text.trim().isEmpty) return;
+                      // H4: 그룹명 필수 검사
+                      if (_nameCtrl.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('그룹명을 입력해주세요.'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                        return;
+                      }
+                      // H4: purpose 5자 이상 검사 (value 기준)
+                      if (_selectedPurpose.length < 5) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('그룹 목적을 선택해주세요.'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                        return;
+                      }
                       setState(() => _isLoading = true);
                       await widget.onSubmit({
                         'name': _nameCtrl.text.trim(),
