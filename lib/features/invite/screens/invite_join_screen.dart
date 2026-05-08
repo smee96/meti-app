@@ -416,7 +416,17 @@ class _InviteJoinScreenState extends State<InviteJoinScreen> {
           // 가입 버튼
           LoadingButton(
             isLoading: _isJoining,
-            onPressed: () => _showBirthDateSheet(),
+            onPressed: () {
+              if (!auth.isAuthenticated) {
+                // 비로그인 → 토큰 저장 후 즉시 로그인 다이얼로그
+                _savePendingToken(widget.token).then((_) {
+                  if (mounted) _showLoginRequiredDialog();
+                });
+              } else {
+                // 로그인 상태 → birth_date 바텀시트
+                _showBirthDateSheet();
+              }
+            },
             child: Text(
               auth.isAuthenticated ? '그룹 가입하기' : '로그인하고 가입하기',
             ),

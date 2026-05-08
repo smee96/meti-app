@@ -4,6 +4,9 @@ import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../points/models/point_model.dart';
+import '../../lessons/models/lesson_model.dart';
+import '../../events/models/event_model.dart';
+import '../../products/models/product_model.dart';
 
 /// 그룹 어드민 관리 화면
 /// - 멤버 목록 / 승인대기 / 초대링크 관리
@@ -22,6 +25,8 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
   final ApiClient _api = ApiClient();
 
   List<dynamic> _members = [];
+  // 현재 로그인 유저의 이 그룹 내 역할 (admin 여부 판별용)
+  bool _isCurrentUserAdmin = false;
   List<dynamic> _pending = [];
   List<dynamic> _inviteLinks = [];
   bool _isLoading = false;
@@ -33,12 +38,30 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
   final _transferAmountCtrl = TextEditingController();
   bool _isTransferring = false;
 
+  // v2.6: 레슨
+  List<Lesson> _lessons = [];
+  bool _isLessonsLoading = false;
+  String _lessonStatusFilter = 'all'; // all | upcoming | ended | cancelled
+
+  // v2.6: 이벤트
+  List<Event> _events = [];
+  bool _isEventsLoading = false;
+  String _eventStatusFilter = 'all'; // all | upcoming | ongoing | ended | cancelled
+
+  // v2.6: 상품
+  List<Product> _products = [];
+  bool _isProductsLoading = false;
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    // v2.6: 탭 7개 (멤버/승인대기/초대링크/레슨/이벤트/상품/포인트)
+    _tabController = TabController(length: 7, vsync: this);
     _loadAll();
     _loadGroupWallet();
+    _loadLessons();
+    _loadGroupEvents();
+    _loadProducts();
   }
 
   @override
@@ -46,6 +69,65 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
     _tabController.dispose();
     _transferAmountCtrl.dispose();
     super.dispose();
+  }
+
+  // v2.6: 상품 목록 로드
+  Future<void> _loadProducts() async {
+    final gid = widget.group['id'] as int?;
+    if (gid == null) return;
+    setState(() => _isProductsLoading = true);
+    try {
+      final res = await _api.get('/products/groups/$gid/products');
+      if (res['success'] == true && mounted) {
+        setState(() {
+          _products = ((res['data'] as List?) ?? [])
+              .map((e) => Product.fromJson(e as Map<String, dynamic>))
+              .toList();
+        });
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _isProductsLoading = false);
+  }
+
+  // v2.6: 이벤트 목록 로드
+  Future<void> _loadGroupEvents() async {
+    final gid = widget.group['id'] as int?;
+    if (gid == null) return;
+    setState(() => _isEventsLoading = true);
+    try {
+      final params = <String, dynamic>{};
+      if (_eventStatusFilter != 'all') params['status'] = _eventStatusFilter;
+      final res = await _api.get('/events/groups/$gid/events', queryParams: params);
+      if (res['success'] == true && mounted) {
+        setState(() {
+          _events = ((res['data'] as List?) ?? [])
+              .map((e) => Event.fromJson(e as Map<String, dynamic>))
+              .toList();
+        });
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _isEventsLoading = false);
+  }
+
+  // v2.6: 레슨 목록 로드
+  Future<void> _loadLessons() async {
+    final gid = widget.group['id'] as int?;
+    if (gid == null) return;
+    setState(() => _isLessonsLoading = true);
+    try {
+      final params = <String, dynamic>{};
+      if (_lessonStatusFilter != 'all') params['status'] = _lessonStatusFilter;
+      final res = await _api.get('/lessons/groups/$gid/lessons',
+          queryParams: params);
+      if (res['success'] == true && mounted) {
+        setState(() {
+          _lessons = ((res['data'] as List?) ?? [])
+              .map((e) => Lesson.fromJson(e as Map<String, dynamic>))
+              .toList();
+        });
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _isLessonsLoading = false);
   }
 
   Future<void> _loadAll() async {
@@ -56,6 +138,9 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
       final mRes = await _api.get('/groups/$gid/members');
       if (mRes['success'] == true) {
         _members = (mRes['data'] as List?) ?? [];
+        // 현재 유저가 admin인지 확인 (my_role 필드 또는 멤버 목록 기준)
+        final myRole = widget.group['my_role'] as String?;
+        _isCurrentUserAdmin = myRole == 'admin' || myRole == 'sub_admin';
       }
       // 승인 대기
       final pRes =
@@ -104,6 +189,8 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
           indicatorColor: AppColors.primary,
           labelColor: AppColors.primary,
           unselectedLabelColor: AppColors.textSecondary,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
           tabs: [
             Tab(
               child: Row(
@@ -130,6 +217,42 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
               ),
             ),
             const Tab(text: '초대링크'),
+            Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('레슨'),
+                  if (_lessons.isNotEmpty) ...[
+                    const SizedBox(width: 4),
+                    _CountBadge(count: _lessons.length, color: const Color(0xFF10B981)),
+                  ],
+                ],
+              ),
+            ),
+            Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('이벤트'),
+                  if (_events.isNotEmpty) ...[  
+                    const SizedBox(width: 4),
+                    _CountBadge(count: _events.length, color: const Color(0xFF6366F1)),
+                  ],
+                ],
+              ),
+            ),
+            Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('상품'),
+                  if (_products.isNotEmpty) ...[  
+                    const SizedBox(width: 4),
+                    _CountBadge(count: _products.length, color: const Color(0xFFEC4899)),
+                  ],
+                ],
+              ),
+            ),
             const Tab(text: '포인트'),
           ],
         ),
@@ -142,6 +265,9 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
                 _buildMembersTab(),
                 _buildPendingTab(),
                 _buildInviteLinksTab(),
+                _buildLessonsTab(),
+                _buildEventsTab(),
+                _buildProductsTab(),
                 _buildPointsTab(),
               ],
             ),
@@ -227,7 +353,9 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
               separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
               itemBuilder: (_, i) => _MemberTile(
                 member: _members[i],
+                isCurrentUserAdmin: _isCurrentUserAdmin,
                 onKick: () => _handleKick(_members[i]),
+                onRoleChange: (newRole) => _handleRoleChange(_members[i], newRole),
               ),
             ),
           ),
@@ -300,6 +428,1304 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
         ),
       ],
     );
+  }
+
+  // ── 레슨 탭 (v2.6) ────────────────────────────────────
+  Widget _buildLessonsTab() {
+    final gid = widget.group['id'] as int?;
+    final canManage = _isCurrentUserAdmin ||
+        (_members.any((m) =>
+            m['role'] == 'instructor'));
+    // 현재 로그인 유저가 instructor인지 (my_role 기준)
+    final myRole = widget.group['my_role'] as String? ?? 'member';
+    final canCreate = myRole == 'admin' ||
+        myRole == 'sub_admin' ||
+        myRole == 'instructor';
+
+    return Column(
+      children: [
+        // 상단 필터 + 생성 버튼
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: AppColors.border)),
+          ),
+          child: Row(
+            children: [
+              // 상태 필터 칩
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _FilterChip(
+                        label: '전체',
+                        selected: _lessonStatusFilter == 'all',
+                        onTap: () => _setLessonFilter('all'),
+                      ),
+                      const SizedBox(width: 6),
+                      _FilterChip(
+                        label: '예정',
+                        selected: _lessonStatusFilter == 'upcoming',
+                        onTap: () => _setLessonFilter('upcoming'),
+                      ),
+                      const SizedBox(width: 6),
+                      _FilterChip(
+                        label: '종료',
+                        selected: _lessonStatusFilter == 'ended',
+                        onTap: () => _setLessonFilter('ended'),
+                      ),
+                      const SizedBox(width: 6),
+                      _FilterChip(
+                        label: '취소됨',
+                        selected: _lessonStatusFilter == 'cancelled',
+                        onTap: () => _setLessonFilter('cancelled'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (canCreate) ...[
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  onPressed: () => _showCreateLessonSheet(gid!),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('개설'),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(0, 36),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 0),
+                    textStyle: const TextStyle(fontSize: 13),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        // 레슨 목록
+        Expanded(
+          child: _isLessonsLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _lessons.isEmpty
+                  ? const EmptyStateWidget(
+                      icon: Icons.school_outlined,
+                      title: '등록된 레슨이 없습니다',
+                      subtitle: '개설 버튼을 눌러 첫 레슨을 만들어보세요.',
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _loadLessons,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _lessons.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(height: 12),
+                        itemBuilder: (_, i) => _LessonCard(
+                          lesson: _lessons[i],
+                          canManage: canManage,
+                          onRegister: () =>
+                              _handleLessonRegister(_lessons[i]),
+                          onCancel: () =>
+                              _handleLessonCancel(_lessons[i]),
+                          onCancelRegistration: () =>
+                              _handleCancelLessonRegistration(_lessons[i]),
+                        ),
+                      ),
+                    ),
+        ),
+      ],
+    );
+  }
+
+  // ── 이벤트 탭 (v2.6) ──────────────────────────────────
+  Widget _buildEventsTab() {
+    final gid = widget.group['id'] as int?;
+    final myRole = widget.group['my_role'] as String? ?? 'member';
+    final canCreate = myRole == 'admin' || myRole == 'sub_admin';
+
+    return Column(
+      children: [
+        // 상단 필터 + 생성 버튼
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: AppColors.border)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _FilterChip(
+                        label: '전체',
+                        selected: _eventStatusFilter == 'all',
+                        onTap: () => _setEventFilter('all'),
+                        activeColor: const Color(0xFF6366F1),
+                      ),
+                      const SizedBox(width: 6),
+                      _FilterChip(
+                        label: '예정',
+                        selected: _eventStatusFilter == 'upcoming',
+                        onTap: () => _setEventFilter('upcoming'),
+                        activeColor: const Color(0xFF6366F1),
+                      ),
+                      const SizedBox(width: 6),
+                      _FilterChip(
+                        label: '진행중',
+                        selected: _eventStatusFilter == 'ongoing',
+                        onTap: () => _setEventFilter('ongoing'),
+                        activeColor: const Color(0xFF6366F1),
+                      ),
+                      const SizedBox(width: 6),
+                      _FilterChip(
+                        label: '종료',
+                        selected: _eventStatusFilter == 'ended',
+                        onTap: () => _setEventFilter('ended'),
+                        activeColor: const Color(0xFF6366F1),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (canCreate) ...[
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  onPressed: () => _showCreateEventSheet(gid!),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('개설'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6366F1),
+                    minimumSize: const Size(0, 36),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 0),
+                    textStyle: const TextStyle(fontSize: 13),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        // 이벤트 목록
+        Expanded(
+          child: _isEventsLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _events.isEmpty
+                  ? const EmptyStateWidget(
+                      icon: Icons.event_outlined,
+                      title: '등록된 이벤트가 없습니다',
+                      subtitle: '개설 버튼을 눌러 첫 이벤트를 만들어보세요.',
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _loadGroupEvents,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _events.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(height: 12),
+                        itemBuilder: (_, i) => _EventCard(
+                          event: _events[i],
+                          canManage: canCreate,
+                          onJoin: () => _handleEventJoin(_events[i]),
+                          onLeave: () => _handleEventLeave(_events[i]),
+                          onCancel: () => _handleEventCancel(_events[i]),
+                        ),
+                      ),
+                    ),
+        ),
+      ],
+    );
+  }
+
+  void _setEventFilter(String filter) {
+    setState(() => _eventStatusFilter = filter);
+    _loadGroupEvents();
+  }
+
+  // 이벤트 개설 바텀시트
+  Future<void> _showCreateEventSheet(int gid) async {
+    final titleCtrl    = TextEditingController();
+    final descCtrl     = TextEditingController();
+    final locationCtrl = TextEditingController();
+    final capacityCtrl = TextEditingController(text: '30');
+    final startCtrl    = TextEditingController();
+    final endCtrl      = TextEditingController();
+    DateTime? selectedStart;
+    DateTime? selectedEnd;
+
+    Future<void> pickDate(
+      BuildContext ctx,
+      TextEditingController ctrl,
+      DateTime? Function() getCurrent,
+      void Function(DateTime) onPicked,
+    ) async {
+      final now = DateTime.now();
+      final picked = await showDatePicker(
+        context: ctx,
+        initialDate: getCurrent() ?? now,
+        firstDate: now,
+        lastDate: now.add(const Duration(days: 365)),
+      );
+      if (picked == null || !ctx.mounted) return;
+      final time = await showTimePicker(
+        context: ctx,
+        initialTime: const TimeOfDay(hour: 18, minute: 0),
+      );
+      if (time != null) {
+        final dt = DateTime(picked.year, picked.month, picked.day,
+            time.hour, time.minute);
+        onPicked(dt);
+        ctrl.text =
+            '${picked.year}.${picked.month.toString().padLeft(2, '0')}.${picked.day.toString().padLeft(2, '0')} '
+            '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+      }
+    }
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            left: 20, right: 20, top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 헤더
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.event_outlined,
+                          color: Color(0xFF6366F1), size: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text('이벤트 개설', style: AppTextStyles.h3),
+                    const Spacer(),
+                    // 비용 안내
+                    StatefulBuilder(builder: (_, ss) {
+                      final cap = int.tryParse(capacityCtrl.text) ?? 30;
+                      final cost = cap <= 30 ? 1000 : cap <= 100 ? 3000 : 5000;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '그룹 포인트 ${_fmt(cost)}P',
+                          style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.warning,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  '정원 ≤30: 1,000P  |  31-100: 3,000P  |  >100: 5,000P',
+                  style: TextStyle(
+                      fontSize: 11, color: AppColors.textTertiary),
+                ),
+                const SizedBox(height: 16),
+
+                // 제목
+                TextField(
+                  controller: titleCtrl,
+                  decoration: const InputDecoration(
+                    labelText: '이벤트 제목 *',
+                    hintText: '예: 여름 네트워킹 밋업',
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // 장소
+                TextField(
+                  controller: locationCtrl,
+                  decoration: const InputDecoration(
+                    labelText: '장소',
+                    hintText: '예: 강남 코워킹스페이스',
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // 시작 일시
+                TextField(
+                  controller: startCtrl,
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    labelText: '시작 일시 *',
+                    hintText: '날짜를 선택하세요',
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.calendar_today, size: 18),
+                      onPressed: () => pickDate(
+                        ctx, startCtrl,
+                        () => selectedStart,
+                        (dt) => setSheetState(() => selectedStart = dt),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // 종료 일시 (선택)
+                TextField(
+                  controller: endCtrl,
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    labelText: '종료 일시 (선택)',
+                    hintText: '날짜를 선택하세요',
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.calendar_today, size: 18),
+                      onPressed: () => pickDate(
+                        ctx, endCtrl,
+                        () => selectedEnd,
+                        (dt) => setSheetState(() => selectedEnd = dt),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // 정원
+                TextField(
+                  controller: capacityCtrl,
+                  keyboardType: TextInputType.number,
+                  onChanged: (_) => setSheetState(() {}),
+                  decoration: const InputDecoration(
+                    labelText: '최대 참가 인원 *',
+                    suffixText: '명',
+                    helperText: '정원에 따라 개설 비용이 달라집니다',
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // 설명
+                TextField(
+                  controller: descCtrl,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: '이벤트 설명 (선택)',
+                    hintText: '간단한 소개를 입력하세요',
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // 개설 버튼
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6366F1),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onPressed: () async {
+                      if (titleCtrl.text.trim().isEmpty) {
+                        showErrorSnackBar(ctx, '이벤트 제목을 입력해주세요.');
+                        return;
+                      }
+                      if (selectedStart == null) {
+                        showErrorSnackBar(ctx, '시작 일시를 선택해주세요.');
+                        return;
+                      }
+                      final cap =
+                          int.tryParse(capacityCtrl.text.trim()) ?? 0;
+                      if (cap <= 0) {
+                        showErrorSnackBar(ctx, '최대 참가 인원을 올바르게 입력해주세요.');
+                        return;
+                      }
+                      Navigator.pop(ctx);
+
+                      try {
+                        final res = await _api.post(
+                          '/events/groups/$gid/events',
+                          body: {
+                            'title': titleCtrl.text.trim(),
+                            'description': descCtrl.text.trim().isEmpty
+                                ? null
+                                : descCtrl.text.trim(),
+                            'location': locationCtrl.text.trim().isEmpty
+                                ? null
+                                : locationCtrl.text.trim(),
+                            'starts_at': selectedStart!.toIso8601String(),
+                            'ends_at': selectedEnd?.toIso8601String(),
+                            'capacity': cap,
+                            'visibility': 'public',
+                            'registration_type': 'pre_required',
+                            'entry_fee': 0,
+                          },
+                        );
+                        if (!mounted) return;
+                        if (res['success'] == true) {
+                          showSuccessSnackBar(
+                              context, res['message'] ?? '이벤트가 개설되었습니다.');
+                          _loadGroupEvents();
+                        }
+                      } on ApiException catch (e) {
+                        if (!mounted) return;
+                        if (e.errorCode == 'insufficient_group_points') {
+                          final extra = e.extra ?? {};
+                          final cur = extra['current'] as int? ?? 0;
+                          final req = extra['required'] as int? ?? 0;
+                          showErrorSnackBar(
+                            context,
+                            '그룹 포인트 부족: 현재 ${_fmt(cur)}P / 필요 ${_fmt(req)}P\n'
+                            '포인트 탭에서 개인 포인트를 이체해주세요.',
+                          );
+                        } else {
+                          showErrorSnackBar(context, e.message);
+                        }
+                      } catch (_) {
+                        if (mounted) {
+                          showErrorSnackBar(context, '이벤트 개설 중 오류가 발생했습니다.');
+                        }
+                      }
+                    },
+                    child: const Text('이벤트 개설',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 이벤트 참가 신청
+  Future<void> _handleEventJoin(Event event) async {
+    try {
+      final res = await _api.post('/events/${event.id}/join');
+      if (!mounted) return;
+      if (res['success'] == true) {
+        showSuccessSnackBar(context, '이벤트 참가 신청이 완료되었습니다.');
+        _loadGroupEvents();
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      if (e.errorCode == 'insufficient_points') {
+        final extra = e.extra ?? {};
+        showInsufficientPointsSnackBar(
+          context,
+          current: extra['current'] as int?,
+          required: extra['required'] as int?,
+          short: extra['short'] as int?,
+        );
+      } else {
+        showErrorSnackBar(context, e.message);
+      }
+    } catch (_) {
+      if (mounted) showErrorSnackBar(context, '오류가 발생했습니다.');
+    }
+  }
+
+  // 이벤트 참가 취소
+  Future<void> _handleEventLeave(Event event) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('참가 취소'),
+        content: Text('"${event.title}" 참가를 취소하시겠습니까?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('아니오')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('취소하기'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      final res = await _api.delete('/events/${event.id}/join');
+      if (!mounted) return;
+      if (res['success'] == true) {
+        showSuccessSnackBar(context, '이벤트 참가 신청이 취소되었습니다.');
+        _loadGroupEvents();
+      }
+    } on ApiException catch (e) {
+      if (!mounted) showErrorSnackBar(context, e.message);
+    } catch (_) {
+      if (mounted) showErrorSnackBar(context, '오류가 발생했습니다.');
+    }
+  }
+
+  // ── 상품 관리 탭 (v2.6) ───────────────────────────────
+  Widget _buildProductsTab() {
+    final gid = widget.group['id'] as int?;
+    final myRole = widget.group['my_role'] as String? ?? 'member';
+    final canManage = myRole == 'admin' || myRole == 'sub_admin';
+
+    return Column(
+      children: [
+        // 상단 등록 버튼 (관리자만)
+        if (canManage)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: ElevatedButton.icon(
+              onPressed: () => _showCreateProductSheet(gid!),
+              icon: const Icon(Icons.add_shopping_cart, size: 18),
+              label: const Text('상품 등록'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEC4899),
+                minimumSize: const Size(double.infinity, 48),
+              ),
+            ),
+          ),
+
+        // 상품 목록
+        Expanded(
+          child: _isProductsLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _products.isEmpty
+                  ? const EmptyStateWidget(
+                      icon: Icons.store_outlined,
+                      title: '등록된 상품이 없습니다',
+                      subtitle: '상품 등록 버튼을 눌러 첫 상품을 추가하세요.',
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _loadProducts,
+                      child: ListView.separated(
+                        padding: EdgeInsets.only(
+                          left: 16,
+                          right: 16,
+                          top: canManage ? 0 : 16,
+                          bottom: 16,
+                        ),
+                        itemCount: _products.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(height: 12),
+                        itemBuilder: (_, i) => _ProductTile(
+                          product: _products[i],
+                          canManage: canManage,
+                          onBuy: () => _handleBuyProduct(_products[i]),
+                          onToggle: () =>
+                              _handleToggleProduct(_products[i]),
+                        ),
+                      ),
+                    ),
+        ),
+      ],
+    );
+  }
+
+  // 상품 등록 바텀시트
+  Future<void> _showCreateProductSheet(int gid) async {
+    final nameCtrl  = TextEditingController();
+    final descCtrl  = TextEditingController();
+    final priceCtrl = TextEditingController();
+    final stockCtrl = TextEditingController();
+    String selectedType = 'service';
+    bool hasExpiry = false;
+    DateTime? expiresAt;
+    final expiryCtrl = TextEditingController();
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            left: 20, right: 20, top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 헤더
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEC4899).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.store_outlined,
+                          color: Color(0xFFEC4899), size: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text('상품 등록', style: AppTextStyles.h3),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // 상품명
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: '상품명 *',
+                    hintText: '예: 수영 강습 쿠폰 (10회)',
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // 상품 유형
+                DropdownButtonFormField<String>(
+                  initialValue: selectedType,
+                  decoration: const InputDecoration(labelText: '상품 유형 *'),
+                  items: const [
+                    DropdownMenuItem(value: 'service',  child: Text('서비스')),
+                    DropdownMenuItem(value: 'physical', child: Text('실물 상품')),
+                    DropdownMenuItem(value: 'digital',  child: Text('디지털')),
+                  ],
+                  onChanged: (v) =>
+                      setSheetState(() => selectedType = v ?? 'service'),
+                ),
+                const SizedBox(height: 12),
+
+                // 가격
+                TextField(
+                  controller: priceCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: '가격 *',
+                    suffixText: 'P',
+                    hintText: '포인트 단위',
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // 재고 (null = 무제한)
+                TextField(
+                  controller: stockCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: '재고',
+                    hintText: '비워두면 무제한',
+                    suffixText: '개',
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // 유효기간 토글
+                Row(
+                  children: [
+                    Switch(
+                      value: hasExpiry,
+                      activeThumbColor: const Color(0xFFEC4899),
+                      onChanged: (v) => setSheetState(() {
+                        hasExpiry = v;
+                        if (!v) {
+                          expiresAt = null;
+                          expiryCtrl.clear();
+                        }
+                      }),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('유효기간 설정',
+                        style: TextStyle(fontSize: 14)),
+                  ],
+                ),
+                if (hasExpiry) ...[
+                  TextField(
+                    controller: expiryCtrl,
+                    readOnly: true,
+                    decoration: InputDecoration(
+                      labelText: '만료일 *',
+                      hintText: '날짜를 선택하세요',
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.calendar_today, size: 18),
+                        onPressed: () async {
+                          final now = DateTime.now();
+                          final picked = await showDatePicker(
+                            context: ctx,
+                            initialDate:
+                                now.add(const Duration(days: 90)),
+                            firstDate: now,
+                            lastDate:
+                                now.add(const Duration(days: 730)),
+                          );
+                          if (picked != null) {
+                            setSheetState(() {
+                              expiresAt = picked;
+                              expiryCtrl.text =
+                                  '${picked.year}.${picked.month.toString().padLeft(2, '0')}.${picked.day.toString().padLeft(2, '0')}';
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                // 설명
+                TextField(
+                  controller: descCtrl,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: '상품 설명 (선택)',
+                    hintText: '간단한 상품 설명을 입력하세요',
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // 등록 버튼
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFEC4899),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onPressed: () async {
+                      if (nameCtrl.text.trim().isEmpty) {
+                        showErrorSnackBar(ctx, '상품명을 입력해주세요.');
+                        return;
+                      }
+                      final price =
+                          int.tryParse(priceCtrl.text.trim()) ?? -1;
+                      if (price < 0) {
+                        showErrorSnackBar(ctx, '가격을 올바르게 입력해주세요.');
+                        return;
+                      }
+                      if (hasExpiry && expiresAt == null) {
+                        showErrorSnackBar(ctx, '만료일을 선택해주세요.');
+                        return;
+                      }
+                      Navigator.pop(ctx);
+
+                      final stockVal =
+                          int.tryParse(stockCtrl.text.trim());
+                      try {
+                        final res = await _api.post(
+                          '/products/groups/$gid/products',
+                          body: {
+                            'name': nameCtrl.text.trim(),
+                            'description':
+                                descCtrl.text.trim().isEmpty
+                                    ? null
+                                    : descCtrl.text.trim(),
+                            'type': selectedType,
+                            'price': price,
+                            'stock': stockVal,
+                            'expires_at': expiresAt?.toIso8601String(),
+                          },
+                        );
+                        if (!mounted) return;
+                        if (res['success'] == true) {
+                          showSuccessSnackBar(
+                              context, '상품이 등록되었습니다.');
+                          _loadProducts();
+                        }
+                      } on ApiException catch (e) {
+                        if (mounted) showErrorSnackBar(context, e.message);
+                      } catch (_) {
+                        if (mounted) {
+                          showErrorSnackBar(
+                              context, '상품 등록 중 오류가 발생했습니다.');
+                        }
+                      }
+                    },
+                    child: const Text('상품 등록',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 상품 구매 (포인트 결제)
+  Future<void> _handleBuyProduct(Product product) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text('상품 구매'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(product.name,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            Text(
+              '${_fmt(product.price)}P로 결제됩니다.',
+              style: const TextStyle(color: AppColors.primary),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('취소')),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('구매하기')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final res = await _api.post('/orders', body: {
+        'product_id': product.id,
+        'payment_method': 'points',
+      });
+      if (!mounted) return;
+      if (res['success'] == true) {
+        showSuccessSnackBar(context, res['message'] ?? '구매가 완료되었습니다.');
+        _loadProducts();
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      if (e.errorCode == 'insufficient_points') {
+        final extra = e.extra ?? {};
+        showInsufficientPointsSnackBar(
+          context,
+          current: extra['current'] as int?,
+          required: extra['required'] as int?,
+          short: extra['short'] as int?,
+        );
+      } else {
+        showErrorSnackBar(context, e.message);
+      }
+    } catch (_) {
+      if (mounted) showErrorSnackBar(context, '오류가 발생했습니다.');
+    }
+  }
+
+  // 상품 활성/비활성 토글
+  Future<void> _handleToggleProduct(Product product) async {
+    final newActive = !product.isActive;
+    try {
+      final res = await _api.patch(
+        '/products/${product.id}/toggle',
+        body: {'is_active': newActive},
+      );
+      if (!mounted) return;
+      if (res['success'] == true) {
+        showSuccessSnackBar(
+            context, newActive ? '상품이 활성화되었습니다.' : '상품이 비활성화되었습니다.');
+        _loadProducts();
+      }
+    } on ApiException catch (e) {
+      if (mounted) showErrorSnackBar(context, e.message);
+    } catch (_) {
+      if (mounted) showErrorSnackBar(context, '오류가 발생했습니다.');
+    }
+  }
+
+  // 이벤트 취소 (관리자)
+  Future<void> _handleEventCancel(Event event) async {
+    final gid = widget.group['id'] as int?;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('이벤트 취소'),
+        content: Text(
+            '"${event.title}" 이벤트를 취소하시겠습니까?\n포인트는 환불되지 않습니다.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('아니오')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('취소'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      final res =
+          await _api.delete('/events/groups/$gid/events/${event.id}');
+      if (!mounted) return;
+      if (res['success'] == true) {
+        showSuccessSnackBar(context, '이벤트가 취소되었습니다.');
+        _loadGroupEvents();
+      }
+    } on ApiException catch (e) {
+      if (!mounted) showErrorSnackBar(context, e.message);
+    } catch (_) {
+      if (mounted) showErrorSnackBar(context, '오류가 발생했습니다.');
+    }
+  }
+
+  void _setLessonFilter(String filter) {
+    setState(() => _lessonStatusFilter = filter);
+    _loadLessons();
+  }
+
+  // 레슨 개설 바텀시트
+  Future<void> _showCreateLessonSheet(int gid) async {
+    final titleCtrl    = TextEditingController();
+    final descCtrl     = TextEditingController();
+    final locationCtrl = TextEditingController();
+    final capacityCtrl = TextEditingController(text: '10');
+    final dateCtrl     = TextEditingController();
+    DateTime? selectedDate;
+
+    // instructor 목록 (현재 멤버에서 instructor + admin/sub_admin 추출)
+    final instructors = _members
+        .where((m) => ['admin', 'sub_admin', 'instructor']
+            .contains(m['role'] as String?))
+        .toList();
+    dynamic selectedInstructor =
+        instructors.isNotEmpty ? instructors.first : null;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 헤더
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.school_outlined,
+                          color: Color(0xFF10B981), size: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text('레슨 개설', style: AppTextStyles.h3),
+                    const Spacer(),
+                    // 비용 안내 배지
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.warning.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        '그룹 포인트 500P 차감',
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.warning,
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // 제목
+                TextField(
+                  controller: titleCtrl,
+                  decoration: const InputDecoration(
+                    labelText: '레슨 제목 *',
+                    hintText: '예: 수영 초급 클래스',
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // 강사 선택
+                DropdownButtonFormField<dynamic>(
+                  initialValue: selectedInstructor,
+                  decoration: const InputDecoration(labelText: '강사 *'),
+                  items: instructors
+                      .map((m) => DropdownMenuItem(
+                            value: m,
+                            child: Text(
+                              '${m['name']} (${_roleLabel(m['role'] as String? ?? '')})',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (v) =>
+                      setSheetState(() => selectedInstructor = v),
+                ),
+                const SizedBox(height: 12),
+
+                // 일시 선택
+                TextField(
+                  controller: dateCtrl,
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    labelText: '레슨 일시 *',
+                    hintText: '날짜를 선택하세요',
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.calendar_today, size: 18),
+                      onPressed: () async {
+                        final now = DateTime.now();
+                        final picked = await showDatePicker(
+                          context: ctx,
+                          initialDate: now,
+                          firstDate: now,
+                          lastDate: now.add(const Duration(days: 365)),
+                        );
+                        if (picked == null || !ctx.mounted) return;
+                        final time = await showTimePicker(
+                          context: ctx,
+                          initialTime: TimeOfDay.now(),
+                        );
+                        if (time != null) {
+                          selectedDate = DateTime(
+                              picked.year, picked.month, picked.day,
+                              time.hour, time.minute);
+                          setSheetState(() {
+                            dateCtrl.text =
+                                '${picked.year}.${picked.month.toString().padLeft(2,'0')}.${picked.day.toString().padLeft(2,'0')} '
+                                '${time.hour.toString().padLeft(2,'0')}:${time.minute.toString().padLeft(2,'0')}';
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // 장소
+                TextField(
+                  controller: locationCtrl,
+                  decoration: const InputDecoration(
+                    labelText: '장소',
+                    hintText: '예: 실내수영장 A레인',
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // 정원
+                TextField(
+                  controller: capacityCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration:
+                      const InputDecoration(labelText: '정원 *', suffixText: '명'),
+                ),
+                const SizedBox(height: 12),
+
+                // 설명
+                TextField(
+                  controller: descCtrl,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: '레슨 설명 (선택)',
+                    hintText: '간단한 소개를 입력하세요',
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // 개설 버튼
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onPressed: () async {
+                      if (titleCtrl.text.trim().isEmpty) {
+                        showErrorSnackBar(ctx, '레슨 제목을 입력해주세요.');
+                        return;
+                      }
+                      if (selectedDate == null) {
+                        showErrorSnackBar(ctx, '레슨 일시를 선택해주세요.');
+                        return;
+                      }
+                      final capacity =
+                          int.tryParse(capacityCtrl.text.trim()) ?? 0;
+                      if (capacity <= 0) {
+                        showErrorSnackBar(ctx, '정원을 올바르게 입력해주세요.');
+                        return;
+                      }
+                      Navigator.pop(ctx);
+
+                      try {
+                        final res = await _api.post(
+                          '/lessons/groups/$gid/lessons',
+                          body: {
+                            'title': titleCtrl.text.trim(),
+                            'description': descCtrl.text.trim().isEmpty
+                                ? null
+                                : descCtrl.text.trim(),
+                            'instructor_id':
+                                selectedInstructor?['user_id'] ?? 1,
+                            'instructor_name':
+                                selectedInstructor?['name'] ?? '',
+                            'scheduled_at':
+                                selectedDate!.toIso8601String(),
+                            'duration_minutes': 60,
+                            'capacity': capacity,
+                            'location': locationCtrl.text.trim().isEmpty
+                                ? null
+                                : locationCtrl.text.trim(),
+                            'schedule_type': 'one-time',
+                          },
+                        );
+                        if (!mounted) return;
+                        if (res['success'] == true) {
+                          showSuccessSnackBar(
+                              context,
+                              res['message'] ??
+                                  '레슨이 개설되었습니다.');
+                          _loadLessons();
+                        }
+                      } on ApiException catch (e) {
+                        if (!mounted) return;
+                        if (e.errorCode == 'insufficient_group_points') {
+                          final extra  = e.extra ?? {};
+                          final cur    = extra['current'] as int? ?? 0;
+                          final req    = extra['required'] as int? ?? 500;
+                          showErrorSnackBar(
+                            context,
+                            '그룹 포인트 부족: 현재 ${_fmt(cur)}P / 필요 ${_fmt(req)}P\n'
+                            '포인트 탭에서 개인 포인트를 이체해주세요.',
+                          );
+                        } else {
+                          showErrorSnackBar(context, e.message);
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          showErrorSnackBar(context, '레슨 개설 중 오류가 발생했습니다.');
+                        }
+                      }
+                    },
+                    child: const Text('레슨 개설',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _roleLabel(String role) {
+    const map = {
+      'admin': '관리자', 'sub_admin': '부관리자',
+      'instructor': '강사', 'member': '일반',
+    };
+    return map[role] ?? role;
+  }
+
+  String _fmt(int n) => n.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+
+  // 수강 신청
+  Future<void> _handleLessonRegister(Lesson lesson) async {
+    try {
+      final res = await _api.post('/lessons/${lesson.id}/register');
+      if (!mounted) return;
+      if (res['success'] == true) {
+        showSuccessSnackBar(context, '수강 신청이 완료되었습니다.');
+        _loadLessons();
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      showErrorSnackBar(context, e.message);
+    } catch (_) {
+      if (mounted) showErrorSnackBar(context, '오류가 발생했습니다.');
+    }
+  }
+
+  // 수강 취소
+  Future<void> _handleCancelLessonRegistration(Lesson lesson) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('수강 취소'),
+        content: Text('"${lesson.title}" 수강 신청을 취소하시겠습니까?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('아니오')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('취소하기'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      final res = await _api.delete('/lessons/${lesson.id}/register');
+      if (!mounted) return;
+      if (res['success'] == true) {
+        showSuccessSnackBar(context, '수강 신청이 취소되었습니다.');
+        _loadLessons();
+      }
+    } on ApiException catch (e) {
+      if (!mounted) showErrorSnackBar(context, e.message);
+    } catch (_) {
+      if (mounted) showErrorSnackBar(context, '오류가 발생했습니다.');
+    }
+  }
+
+  // 레슨 취소 (관리자)
+  Future<void> _handleLessonCancel(Lesson lesson) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('레슨 취소'),
+        content: Text('"${lesson.title}" 레슨을 취소하시겠습니까?\n포인트는 환불되지 않습니다.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('아니오')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('취소'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      final res = await _api.delete('/lessons/${lesson.id}');
+      if (!mounted) return;
+      if (res['success'] == true) {
+        showSuccessSnackBar(context, '레슨이 취소되었습니다.');
+        _loadLessons();
+      }
+    } on ApiException catch (e) {
+      if (!mounted) showErrorSnackBar(context, e.message);
+    } catch (_) {
+      if (mounted) showErrorSnackBar(context, '오류가 발생했습니다.');
+    }
   }
 
   // ── 포인트 탭 (M1 이체 + M2 그룹 잔액) ──────────────────
@@ -588,6 +2014,55 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
         );
   }
 
+  // ── 역할 변경 (v2.6) ─────────────────────────────────
+  Future<void> _handleRoleChange(dynamic member, String newRole) async {
+    final gid = widget.group['id'];
+    final mid = member['user_id'] ?? member['id'];
+    final name = member['name'] as String? ?? '멤버';
+
+    final roleLabel = {
+      'sub_admin': '부관리자',
+      'instructor': '강사',
+      'member': '일반 멤버',
+    }[newRole] ?? newRole;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text('역할 변경'),
+        content: Text('$name 님의 역할을 "$roleLabel"(으)로 변경하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('변경'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final res = await _api.patch(
+        '/groups/$gid/members/$mid/role',
+        body: {'role': newRole},
+      );
+      if (!mounted) return;
+      if (res['success'] == true) {
+        showSuccessSnackBar(context, '$name 님의 역할이 $roleLabel(으)로 변경되었습니다.');
+        _loadAll();
+      } else {
+        showErrorSnackBar(context, res['message']?.toString() ?? '역할 변경 실패');
+      }
+    } catch (e) {
+      if (mounted) showErrorSnackBar(context, e.toString());
+    }
+  }
+
   // ── 액션 핸들러 ────────────────────────────────────────
   Future<void> _handleApprove(dynamic member) async {
     final gid = widget.group['id'];
@@ -754,25 +2229,47 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
   }
 }
 
-// ── 멤버 타일 ──────────────────────────────────────────
+// ── 멤버 타일 (v2.6: instructor 역할 + 역할 변경) ───────
 class _MemberTile extends StatelessWidget {
   final dynamic member;
+  final bool isCurrentUserAdmin;     // 현재 로그인 유저가 admin인지
   final VoidCallback onKick;
-  const _MemberTile({required this.member, required this.onKick});
+  final void Function(String newRole) onRoleChange;
+
+  const _MemberTile({
+    required this.member,
+    required this.isCurrentUserAdmin,
+    required this.onKick,
+    required this.onRoleChange,
+  });
+
+  // 역할별 배지 색상·레이블
+  static const _roleConfig = {
+    'admin':      {'label': '관리자',   'color': 0xFFF59E0B},  // warning
+    'owner':      {'label': '관리자',   'color': 0xFFF59E0B},
+    'sub_admin':  {'label': '부관리자', 'color': 0xFF6366F1},  // indigo
+    'instructor': {'label': '강사',    'color': 0xFF10B981},  // green
+    'member':     {'label': '',        'color': 0x00000000},
+  };
 
   @override
   Widget build(BuildContext context) {
     final role = member['role'] as String? ?? 'member';
-    final isAdmin = role == 'admin' || role == 'owner';
-    final name = member['name'] as String? ?? '알 수 없음';
-    final email = member['email'] as String? ?? '';
-    final joinedAt = member['joined_at'] as String?;
+    final isAdmin   = role == 'admin' || role == 'owner';
+    final isFixed   = isAdmin;          // admin은 역할 변경/내보내기 불가
+    final name      = member['name']  as String? ?? '알 수 없음';
+    final email     = member['email'] as String? ?? '';
+    final joinedAt  = member['joined_at'] as String?;
+    final config    = _roleConfig[role];
+    final roleLabel = config?['label'] as String? ?? '';
+    final roleColor = Color(config?['color'] as int? ?? 0x00000000);
 
     String dateStr = '';
     if (joinedAt != null) {
       try {
         final dt = DateTime.parse(joinedAt).toLocal();
-        dateStr = '가입 ${dt.year}.${dt.month.toString().padLeft(2, '0')}.${dt.day.toString().padLeft(2, '0')}';
+        dateStr =
+            '가입 ${dt.year}.${dt.month.toString().padLeft(2, '0')}.${dt.day.toString().padLeft(2, '0')}';
       } catch (_) {}
     }
 
@@ -781,20 +2278,24 @@ class _MemberTile extends StatelessWidget {
       leading: UserAvatar(name: name, size: 44),
       title: Row(
         children: [
-          Text(name, style: AppTextStyles.h4),
-          if (isAdmin) ...[
+          Flexible(
+            child: Text(name,
+                style: AppTextStyles.h4, overflow: TextOverflow.ellipsis),
+          ),
+          if (roleLabel.isNotEmpty) ...[
             const SizedBox(width: 6),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: AppColors.warning.withValues(alpha: 0.12),
+                color: roleColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: const Text(
-                '관리자',
+              child: Text(
+                roleLabel,
                 style: TextStyle(
                     fontSize: 10,
-                    color: AppColors.warning,
+                    color: roleColor,
                     fontWeight: FontWeight.w600),
               ),
             ),
@@ -806,27 +2307,80 @@ class _MemberTile extends StatelessWidget {
         style: AppTextStyles.caption,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: !isAdmin
+      // admin 본인은 팝업 없음, 나머지는 역할변경+내보내기
+      trailing: (!isFixed && isCurrentUserAdmin)
           ? PopupMenuButton<String>(
               onSelected: (v) {
-                if (v == 'kick') onKick();
+                if (v == 'kick') {
+                  onKick();
+                } else {
+                  onRoleChange(v);
+                }
               },
               itemBuilder: (_) => [
+                // ── 역할 변경 서브메뉴 ──
+                if (role != 'sub_admin')
+                  const PopupMenuItem(
+                    value: 'sub_admin',
+                    child: _RoleMenuItem(
+                      icon: Icons.manage_accounts,
+                      label: '부관리자로 변경',
+                      color: Color(0xFF6366F1),
+                    ),
+                  ),
+                if (role != 'instructor')
+                  const PopupMenuItem(
+                    value: 'instructor',
+                    child: _RoleMenuItem(
+                      icon: Icons.school_outlined,
+                      label: '강사로 지정',
+                      color: Color(0xFF10B981),
+                    ),
+                  ),
+                if (role != 'member')
+                  const PopupMenuItem(
+                    value: 'member',
+                    child: _RoleMenuItem(
+                      icon: Icons.person_outline,
+                      label: '일반 멤버로 변경',
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                const PopupMenuDivider(),
                 const PopupMenuItem(
                   value: 'kick',
-                  child: Row(
-                    children: [
-                      Icon(Icons.person_remove_outlined,
-                          size: 16, color: AppColors.error),
-                      SizedBox(width: 8),
-                      Text('내보내기',
-                          style: TextStyle(color: AppColors.error)),
-                    ],
+                  child: _RoleMenuItem(
+                    icon: Icons.person_remove_outlined,
+                    label: '내보내기',
+                    color: AppColors.error,
                   ),
                 ),
               ],
             )
           : null,
+    );
+  }
+}
+
+// 팝업 메뉴 아이템 공통 위젯
+class _RoleMenuItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  const _RoleMenuItem({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 8),
+        Text(label, style: TextStyle(color: color, fontSize: 14)),
+      ],
     );
   }
 }
@@ -1094,6 +2648,766 @@ class _CountBadge extends StatelessWidget {
             color: Colors.white,
             fontSize: 11,
             fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+
+// ── 레슨/이벤트 필터 칩 (v2.6) ───────────────────────
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final Color activeColor;
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.activeColor = const Color(0xFF10B981),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? activeColor : AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? activeColor : AppColors.border,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: selected ? Colors.white : AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── 상품 타일 (v2.6) ───────────────────────────────────
+class _ProductTile extends StatelessWidget {
+  final Product product;
+  final bool canManage;
+  final VoidCallback onBuy;
+  final VoidCallback onToggle;
+
+  const _ProductTile({
+    required this.product,
+    required this.canManage,
+    required this.onBuy,
+    required this.onToggle,
+  });
+
+  static const _typeColors = {
+    'service':  Color(0xFF6366F1),
+    'physical': Color(0xFFEC4899),
+    'digital':  Color(0xFF10B981),
+  };
+
+  String _formatNumber(int n) => n.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+
+  @override
+  Widget build(BuildContext context) {
+    final typeColor = _typeColors[product.type] ?? AppColors.textTertiary;
+    final canBuy    = product.canPurchase;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: product.isActive
+              ? AppColors.border
+              : AppColors.error.withValues(alpha: 0.25),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 유형 배지 + 상태 + 관리자 토글
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: typeColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    product.typeLabel,
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: typeColor),
+                  ),
+                ),
+                if (!product.isActive) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      '판매 중지',
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.error),
+                    ),
+                  ),
+                ],
+                if (product.isSoldOut) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      '품절',
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.warning),
+                    ),
+                  ),
+                ],
+                const Spacer(),
+                // 관리자 전용 활성/비활성 토글
+                if (canManage)
+                  GestureDetector(
+                    onTap: onToggle,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: product.isActive
+                            ? AppColors.success.withValues(alpha: 0.1)
+                            : AppColors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: product.isActive
+                              ? AppColors.success.withValues(alpha: 0.4)
+                              : AppColors.border,
+                        ),
+                      ),
+                      child: Text(
+                        product.isActive ? '판매중' : '중지됨',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: product.isActive
+                              ? AppColors.success
+                              : AppColors.textTertiary,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // 상품명
+            Text(product.name, style: AppTextStyles.h4),
+            if (product.description != null) ...[
+              const SizedBox(height: 4),
+              Text(product.description!,
+                  style: AppTextStyles.caption,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis),
+            ],
+            const SizedBox(height: 10),
+
+            // 가격 + 재고
+            Row(
+              children: [
+                Text(
+                  '${_formatNumber(product.price)} P',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const Spacer(),
+                if (product.stock != null)
+                  Text(
+                    '재고 ${product.remaining}/${product.stock}개',
+                    style: AppTextStyles.caption,
+                  )
+                else
+                  const Text('재고 무제한', style: AppTextStyles.caption),
+              ],
+            ),
+
+            // 유효기간
+            if (product.expiresAt != null) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(
+                    Icons.access_time,
+                    size: 12,
+                    color: product.isExpired
+                        ? AppColors.error
+                        : AppColors.textTertiary,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${product.expiresAt!.year}.${product.expiresAt!.month.toString().padLeft(2, '0')}.${product.expiresAt!.day.toString().padLeft(2, '0')} 만료'
+                    '${product.isExpired ? ' (만료됨)' : ''}',
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: product.isExpired
+                            ? AppColors.error
+                            : AppColors.textTertiary),
+                  ),
+                ],
+              ),
+            ],
+
+            // 구매 버튼 (멤버용)
+            if (!canManage) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: canBuy ? onBuy : null,
+                  icon: const Icon(Icons.shopping_cart_outlined, size: 15),
+                  label: Text(
+                    product.isSoldOut
+                        ? '품절'
+                        : product.isExpired
+                            ? '판매 종료'
+                            : !product.isActive
+                                ? '판매 중지'
+                                : '구매하기',
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 36),
+                    backgroundColor: const Color(0xFFEC4899),
+                    disabledBackgroundColor: AppColors.border,
+                    textStyle: const TextStyle(fontSize: 13),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── 이벤트 카드 (v2.6) ─────────────────────────────────
+class _EventCard extends StatelessWidget {
+  final Event event;
+  final bool canManage;
+  final VoidCallback onJoin;
+  final VoidCallback onLeave;
+  final VoidCallback onCancel;
+
+  const _EventCard({
+    required this.event,
+    required this.canManage,
+    required this.onJoin,
+    required this.onLeave,
+    required this.onCancel,
+  });
+
+  static const _statusColors = {
+    'upcoming':  Color(0xFF6366F1),
+    'ongoing':   Color(0xFF10B981),
+    'ended':     Color(0xFF9CA3AF),
+    'cancelled': Color(0xFFEF4444),
+  };
+
+  String _formatDate(String raw) {
+    try {
+      final dt = DateTime.parse(raw).toLocal();
+      return '${dt.year}.${dt.month.toString().padLeft(2, '0')}.${dt.day.toString().padLeft(2, '0')} '
+          '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return raw;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor =
+        _statusColors[event.status] ?? AppColors.textTertiary;
+    final isCancelled = event.isCancelled;
+    final isActive    = event.isActive;
+    final isFull      = event.isFull;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isCancelled
+              ? AppColors.error.withValues(alpha: 0.25)
+              : event.isJoined
+                  ? const Color(0xFF6366F1).withValues(alpha: 0.4)
+                  : AppColors.border,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 상단: 상태 + 관리자 메뉴
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    event.statusLabel,
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: statusColor),
+                  ),
+                ),
+                if (event.isJoined && isActive) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      '참가중',
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF6366F1)),
+                    ),
+                  ),
+                ],
+                if (isFull && isActive) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      '정원 마감',
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.warning),
+                    ),
+                  ),
+                ],
+                const Spacer(),
+                if (canManage && isActive)
+                  PopupMenuButton<String>(
+                    onSelected: (v) {
+                      if (v == 'cancel') onCancel();
+                    },
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(
+                        value: 'cancel',
+                        child: Row(
+                          children: [
+                            Icon(Icons.cancel_outlined,
+                                size: 16, color: AppColors.error),
+                            SizedBox(width: 8),
+                            Text('이벤트 취소',
+                                style: TextStyle(color: AppColors.error)),
+                          ],
+                        ),
+                      ),
+                    ],
+                    child: const Icon(Icons.more_vert,
+                        size: 20, color: AppColors.textTertiary),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // 제목
+            Text(
+              event.title,
+              style: AppTextStyles.h4.copyWith(
+                decoration:
+                    isCancelled ? TextDecoration.lineThrough : null,
+                color: isCancelled ? AppColors.textTertiary : null,
+              ),
+            ),
+            const SizedBox(height: 6),
+
+            // 장소 + 일시
+            if (event.location != null) ...[
+              Row(
+                children: [
+                  const Icon(Icons.location_on_outlined,
+                      size: 13, color: AppColors.textTertiary),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(event.location!,
+                        style: AppTextStyles.caption,
+                        overflow: TextOverflow.ellipsis),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+            ],
+            Row(
+              children: [
+                const Icon(Icons.schedule,
+                    size: 13, color: AppColors.textTertiary),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(_formatDate(event.startsAt),
+                      style: AppTextStyles.caption,
+                      overflow: TextOverflow.ellipsis),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            // 참가 인원
+            Row(
+              children: [
+                const Icon(Icons.people_outline,
+                    size: 13, color: AppColors.textTertiary),
+                const SizedBox(width: 4),
+                Text(
+                  event.capacity != null
+                      ? '${event.participantCount}/${event.capacity}명'
+                          '  (남은 자리 ${event.remaining}석)'
+                      : '${event.participantCount}명 참가',
+                  style: AppTextStyles.caption,
+                ),
+              ],
+            ),
+            if (event.capacity != null) ...[
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: event.capacity! > 0
+                      ? event.participantCount / event.capacity!
+                      : 0,
+                  minHeight: 4,
+                  backgroundColor: AppColors.border,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    isFull
+                        ? AppColors.warning
+                        : const Color(0xFF6366F1),
+                  ),
+                ),
+              ),
+            ],
+
+            // 참가 신청/취소 버튼
+            if (isActive) ...[
+              const SizedBox(height: 12),
+              event.isJoined
+                  ? OutlinedButton.icon(
+                      onPressed: onLeave,
+                      icon: const Icon(Icons.event_busy, size: 15),
+                      label: const Text('참가 취소'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 36),
+                        foregroundColor: AppColors.error,
+                        side: const BorderSide(color: AppColors.error),
+                        textStyle: const TextStyle(fontSize: 13),
+                      ),
+                    )
+                  : ElevatedButton.icon(
+                      onPressed: isFull ? null : onJoin,
+                      icon: const Icon(Icons.how_to_reg, size: 15),
+                      label: Text(isFull ? '정원 마감' : '참가 신청'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 36),
+                        backgroundColor: const Color(0xFF6366F1),
+                        disabledBackgroundColor: AppColors.border,
+                        textStyle: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── 레슨 카드 (v2.6) ───────────────────────────────────
+class _LessonCard extends StatelessWidget {
+  final Lesson lesson;
+  final bool canManage;   // admin/sub_admin 여부 (레슨 취소 가능)
+  final VoidCallback onRegister;
+  final VoidCallback onCancel;             // 레슨 자체 취소 (관리자)
+  final VoidCallback onCancelRegistration; // 수강 신청 취소
+
+  const _LessonCard({
+    required this.lesson,
+    required this.canManage,
+    required this.onRegister,
+    required this.onCancel,
+    required this.onCancelRegistration,
+  });
+
+  static const _statusColors = {
+    'upcoming':  Color(0xFF3B82F6), // blue
+    'ongoing':   Color(0xFF10B981), // green
+    'ended':     Color(0xFF9CA3AF), // gray
+    'cancelled': Color(0xFFEF4444), // red
+  };
+
+  String _formatDate(String raw) {
+    try {
+      final dt = DateTime.parse(raw).toLocal();
+      return '${dt.year}.${dt.month.toString().padLeft(2,'0')}.${dt.day.toString().padLeft(2,'0')} '
+          '${dt.hour.toString().padLeft(2,'0')}:${dt.minute.toString().padLeft(2,'0')}';
+    } catch (_) {
+      return raw;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor =
+        _statusColors[lesson.status] ?? AppColors.textTertiary;
+    final isCancelled = lesson.isCancelled;
+    final isUpcoming  = lesson.isUpcoming;
+    final isFull      = lesson.isFull;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isCancelled
+              ? AppColors.error.withValues(alpha: 0.25)
+              : AppColors.border,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 상단: 상태 배지 + 관리자 메뉴
+            Row(
+              children: [
+                // 상태 배지
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    lesson.statusLabel,
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: statusColor),
+                  ),
+                ),
+                // 정원 가득 배지
+                if (isFull && isUpcoming) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      '정원 마감',
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.warning),
+                    ),
+                  ),
+                ],
+                const Spacer(),
+                // 관리자 전용: 레슨 취소 메뉴
+                if (canManage && isUpcoming)
+                  PopupMenuButton<String>(
+                    onSelected: (v) {
+                      if (v == 'cancel') onCancel();
+                    },
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(
+                        value: 'cancel',
+                        child: Row(
+                          children: [
+                            Icon(Icons.cancel_outlined,
+                                size: 16, color: AppColors.error),
+                            SizedBox(width: 8),
+                            Text('레슨 취소',
+                                style:
+                                    TextStyle(color: AppColors.error)),
+                          ],
+                        ),
+                      ),
+                    ],
+                    child: const Icon(Icons.more_vert,
+                        size: 20, color: AppColors.textTertiary),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // 제목
+            Text(lesson.title,
+                style: AppTextStyles.h4
+                    .copyWith(
+                      decoration: isCancelled
+                          ? TextDecoration.lineThrough
+                          : null,
+                      color: isCancelled
+                          ? AppColors.textTertiary
+                          : null,
+                    )),
+            const SizedBox(height: 6),
+
+            // 강사 + 일시
+            Row(
+              children: [
+                const Icon(Icons.person_outline,
+                    size: 13, color: AppColors.textTertiary),
+                const SizedBox(width: 4),
+                Text(lesson.instructorName,
+                    style: AppTextStyles.caption),
+                const SizedBox(width: 12),
+                const Icon(Icons.schedule,
+                    size: 13, color: AppColors.textTertiary),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(_formatDate(lesson.scheduledAt),
+                      style: AppTextStyles.caption,
+                      overflow: TextOverflow.ellipsis),
+                ),
+              ],
+            ),
+
+            // 장소
+            if (lesson.location != null) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(Icons.location_on_outlined,
+                      size: 13, color: AppColors.textTertiary),
+                  const SizedBox(width: 4),
+                  Text(lesson.location!,
+                      style: AppTextStyles.caption),
+                ],
+              ),
+            ],
+            const SizedBox(height: 10),
+
+            // 수강 인원 프로그레스
+            Row(
+              children: [
+                const Icon(Icons.people_outline,
+                    size: 13, color: AppColors.textTertiary),
+                const SizedBox(width: 4),
+                Text(
+                  '${lesson.registeredCount}/${lesson.capacity}명'
+                  '  (남은 자리 ${lesson.remaining}석)',
+                  style: AppTextStyles.caption,
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: lesson.capacity > 0
+                    ? lesson.registeredCount / lesson.capacity
+                    : 0,
+                minHeight: 4,
+                backgroundColor: AppColors.border,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  isFull ? AppColors.warning : const Color(0xFF10B981),
+                ),
+              ),
+            ),
+
+            // 수강 신청/취소 버튼 (upcoming 레슨만)
+            if (isUpcoming) ...[
+              const SizedBox(height: 12),
+              lesson.isRegistered
+                  ? OutlinedButton.icon(
+                      onPressed: onCancelRegistration,
+                      icon: const Icon(Icons.event_busy, size: 15),
+                      label: const Text('수강 취소'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 36),
+                        foregroundColor: AppColors.error,
+                        side: const BorderSide(color: AppColors.error),
+                        textStyle: const TextStyle(fontSize: 13),
+                      ),
+                    )
+                  : ElevatedButton.icon(
+                      onPressed: isFull ? null : onRegister,
+                      icon: const Icon(Icons.how_to_reg, size: 15),
+                      label: Text(isFull ? '정원 마감' : '수강 신청'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 36),
+                        backgroundColor: const Color(0xFF10B981),
+                        disabledBackgroundColor:
+                            AppColors.border,
+                        textStyle: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+            ],
+          ],
+        ),
       ),
     );
   }

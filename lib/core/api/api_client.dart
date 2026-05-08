@@ -147,9 +147,59 @@ class ApiClient {
           return MockUsers.joinGroup(accessToken!, gid, body ?? {});
         }
 
-        // 이벤트 참가 (행사 등록: 3,000P 차감 — insufficient_points 시뮬레이션)
-        if (path.endsWith('/join') && path.startsWith('/events')) {
-          return MockUsers.joinEvent(accessToken!);
+        // v2.6: 이벤트 참가 신청 POST /events/:id/join
+        if (path.startsWith('/events/') && path.endsWith('/join')) {
+          final parts = path.split('/');
+          final eid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
+          return MockUsers.joinGroupEvent(accessToken!, eid);
+        }
+
+        // v2.6: 이벤트 생성 POST /events/groups/:groupId/events
+        if (path.startsWith('/events/groups/') && path.endsWith('/events')) {
+          final parts = path.split('/');
+          final gid = int.tryParse(parts.length >= 4 ? parts[3] : '0') ?? 0;
+          return MockUsers.createGroupEvent(accessToken!, gid, body ?? {});
+        }
+
+        // v2.6: 레슨 수강 신청 POST /lessons/:id/register
+        if (path.startsWith('/lessons/') && path.endsWith('/register')) {
+          final parts = path.split('/');
+          final lid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
+          return MockUsers.registerLesson(accessToken!, lid);
+        }
+
+        // v2.6: 레슨 생성 POST /lessons/groups/:groupId/lessons
+        if (path.startsWith('/lessons/groups/') && path.endsWith('/lessons')) {
+          final parts = path.split('/');
+          final gid = int.tryParse(parts.length >= 4 ? parts[3] : '0') ?? 0;
+          return MockUsers.createLesson(accessToken!, gid, body ?? {});
+        }
+
+        // v2.6: 상품 생성 POST /products/groups/:groupId/products
+        if (path.startsWith('/products/groups/') && path.endsWith('/products')) {
+          final parts = path.split('/');
+          final gid = int.tryParse(parts.length >= 4 ? parts[3] : '0') ?? 0;
+          return MockUsers.createProduct(accessToken!, gid, body ?? {});
+        }
+
+        // v2.6: 주문 생성 POST /orders
+        if (path == '/orders') {
+          return MockUsers.createOrder(accessToken!, body ?? {});
+        }
+
+        // v2.6: 웹 결제 검증 POST /payments/verify-web
+        if (path == '/payments/verify-web') {
+          return MockUsers.verifyWebPayment(accessToken!, body ?? {});
+        }
+
+        // v2.6: 구독 결제 검증 POST /payments/subscription/verify
+        if (path == '/payments/subscription/verify') {
+          return MockUsers.verifySubscription(accessToken!, body ?? {});
+        }
+
+        // v2.7: 일회성 결제 토큰 발급 POST /payments/payment-token
+        if (path == '/payments/payment-token') {
+          return MockUsers.issuePaymentToken(accessToken!, body ?? {});
         }
 
         // 채팅 메시지 전송
@@ -202,6 +252,44 @@ class ApiClient {
           };
         }
         if (path == '/events') return _mockEvents();
+
+        // v2.6: 그룹 이벤트 목록 GET /events/groups/:groupId/events
+        if (path.startsWith('/events/groups/') && path.endsWith('/events')) {
+          final parts = path.split('/');
+          final gid = int.tryParse(parts.length >= 4 ? parts[3] : '0') ?? 0;
+          return MockUsers.getGroupEvents(gid);
+        }
+
+        // v2.6: 그룹 상품 목록 GET /products/groups/:groupId/products
+        if (path.startsWith('/products/groups/') && path.endsWith('/products')) {
+          final parts = path.split('/');
+          final gid = int.tryParse(parts.length >= 4 ? parts[3] : '0') ?? 0;
+          return MockUsers.getGroupProducts(gid);
+        }
+
+        // v2.6: 내 주문 내역 GET /orders/me
+        if (path == '/orders/me') {
+          return MockUsers.getMyOrders(accessToken!);
+        }
+
+        // v2.7: 결제 토큰 검증 GET /payments/payment-token/verify?token=xxx
+        if (path.startsWith('/payments/payment-token/verify')) {
+          final uri = Uri.parse('https://mock.local$path');
+          final token = uri.queryParameters['token'] ?? '';
+          return MockUsers.verifyPaymentToken(token);
+        }
+
+        // v2.7: 포인트 충전 상품 목록 GET /payments/point-charge-products
+        if (path == '/payments/point-charge-products') {
+          return MockUsers.getPointChargeProducts(accessToken!);
+        }
+
+        // v2.6: 레슨 목록 GET /lessons/groups/:groupId/lessons
+        if (path.startsWith('/lessons/groups/') && path.endsWith('/lessons')) {
+          final parts = path.split('/');
+          final gid = int.tryParse(parts.length >= 4 ? parts[3] : '0') ?? 0;
+          return MockUsers.getLessons(gid);
+        }
         if (path == '/chat') return {'success': true, 'data': []};
         if (path.startsWith('/chat/') && path.endsWith('/messages')) {
           return {'success': true, 'data': []};
@@ -222,6 +310,34 @@ class ApiClient {
         if (path.startsWith('/cards/')) {
           return {'success': true, 'data': body, 'message': '명함이 수정되었습니다.'};
         }
+
+        // v2.6: 멤버 역할 변경 — PATCH /groups/:gid/members/:mid/role
+        if (path.contains('/members/') && path.endsWith('/role')) {
+          final newRole = body?['role'] as String? ?? 'member';
+          // Mock: 실제 _mockMembers 데이터 업데이트
+          final parts = path.split('/');
+          // 경로: /groups/{gid}/members/{mid}/role
+          final midStr = parts.length >= 5 ? parts[4] : null;
+          final mid = int.tryParse(midStr ?? '');
+          if (mid != null) {
+            final idx = _mockMembers.indexWhere((m) => m['user_id'] == mid);
+            if (idx != -1) {
+              _mockMembers[idx] = Map<String, dynamic>.from(_mockMembers[idx])
+                ..['role'] = newRole;
+            }
+          }
+          const roleLabels = {
+            'sub_admin': '부관리자',
+            'instructor': '강사',
+            'member': '일반 멤버',
+          };
+          final label = roleLabels[newRole] ?? newRole;
+          return {
+            'success': true,
+            'data': {'role': newRole},
+            'message': '역할이 $label(으)로 변경되었습니다.',
+          };
+        }
       }
 
       // ── DELETE 라우팅 ──
@@ -231,6 +347,45 @@ class ApiClient {
         }
         if (path.contains('/invite-links/')) {
           return {'success': true, 'data': null, 'message': '초대 링크가 삭제되었습니다.'};
+        }
+        // v2.6: 구독 취소 DELETE /payments/subscription
+        if (path == '/payments/subscription') {
+          return MockUsers.cancelSubscription(accessToken!);
+        }
+
+        // v2.6: 이벤트 참가 취소 DELETE /events/:id/join
+        if (path.startsWith('/events/') && path.endsWith('/join')) {
+          final parts = path.split('/');
+          final eid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
+          return MockUsers.leaveGroupEvent(accessToken!, eid);
+        }
+        // v2.6: 이벤트 취소(삭제) DELETE /events/groups/:gid/events/:eid
+        if (path.startsWith('/events/groups/') && path.contains('/events/')) {
+          final parts = path.split('/');
+          final eid = int.tryParse(parts.isNotEmpty ? parts.last : '0') ?? 0;
+          return MockUsers.cancelGroupEvent(accessToken!, eid);
+        }
+        // v2.6: 레슨 수강 취소 DELETE /lessons/:id/register
+        if (path.startsWith('/lessons/') && path.endsWith('/register')) {
+          final parts = path.split('/');
+          final lid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
+          return MockUsers.cancelLessonRegistration(accessToken!, lid);
+        }
+        // v2.6: 레슨 취소(삭제) DELETE /lessons/:id
+        if (path.startsWith('/lessons/') && !path.endsWith('/register')) {
+          final parts = path.split('/');
+          final lid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
+          return MockUsers.cancelLesson(accessToken!, lid);
+        }
+      }
+
+      // ── 상품 PATCH 라우팅 (활성/비활성 토글) ──
+      if (method == 'PATCH') {
+        if (path.startsWith('/products/') && path.endsWith('/toggle')) {
+          final parts = path.split('/');
+          final pid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
+          final isActive = body?['is_active'] as bool? ?? true;
+          return MockUsers.toggleProductActive(accessToken!, pid, isActive);
         }
       }
 
@@ -274,7 +429,8 @@ class ApiClient {
     }
   }
 
-  List<Map<String, dynamic>> _mockGroupMembers() => [
+  // v2.6: instructor 역할 샘플 추가
+  static final List<Map<String, dynamic>> _mockMembers = [
     {
       'id': 1, 'user_id': 1, 'name': '홍길동', 'email': 'test@meti.app',
       'role': 'admin', 'status': 'active',
@@ -282,15 +438,23 @@ class ApiClient {
     },
     {
       'id': 2, 'user_id': 2, 'name': '김철수', 'email': 'chulsoo@meti.app',
-      'role': 'member', 'status': 'active',
+      'role': 'instructor', 'status': 'active',
       'joined_at': '2026-02-15T00:00:00Z',
     },
     {
       'id': 3, 'user_id': 3, 'name': '이영희', 'email': 'younghee@meti.app',
-      'role': 'member', 'status': 'active',
+      'role': 'sub_admin', 'status': 'active',
       'joined_at': '2026-03-10T00:00:00Z',
     },
+    {
+      'id': 4, 'user_id': 5, 'name': '박민준', 'email': 'minjun@meti.app',
+      'role': 'member', 'status': 'active',
+      'joined_at': '2026-04-01T00:00:00Z',
+    },
   ];
+
+  List<Map<String, dynamic>> _mockGroupMembers() =>
+      List<Map<String, dynamic>>.from(_mockMembers);
 
   List<Map<String, dynamic>> _mockInviteLinks() => [
     {
