@@ -59,7 +59,6 @@ class AuthProvider extends ChangeNotifier {
     required String email,
     required String password,
     required String name,
-    String accountType = 'personal',
   }) async {
     _setLoading();
     try {
@@ -67,7 +66,7 @@ class AuthProvider extends ChangeNotifier {
         'email': email,
         'password': password,
         'name': name,
-        'account_type': accountType,
+        // v2.8: account_type 서버 자동 고정 — 클라이언트 전송 제거
       }, auth: false);
 
       _status = AuthStatus.unauthenticated;

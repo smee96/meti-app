@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
@@ -115,15 +116,20 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
 
     setState(() => _isSubscribing = true);
     try {
-      // Mock: POST /payments/subscription/verify
-      // v2.7: platform 확정 — Apple IAP / Google Play Billing (Mock 환경에서는 'mock')
-      // 실서비스: iOS → platform: 'apple' / Android → platform: 'google'
+      // v2.8: 플랫폼 감지 후 Apple/Google 엔드포인트 분기
+      // iOS/macOS → verify-apple (Apple IAP receipt)
+      // Android   → verify-google (Google Play purchase token)
+      // Web/기타  → verify-apple (Mock 기본값)
+      final bool isAndroid = defaultTargetPlatform == TargetPlatform.android;
+      final String verifyEndpoint = isAndroid
+          ? '/payments/subscription/verify-google'
+          : '/payments/subscription/verify-apple';
+      final String receiptKey = isAndroid ? 'purchase_token' : 'receipt_data';
       final res = await _api.post(
-        '/payments/subscription/verify',
+        verifyEndpoint,
         body: {
           'plan': plan,
-          'platform': 'mock',  // 실서비스: 'apple' | 'google'
-          'receipt_data': 'mock-receipt-${DateTime.now().millisecondsSinceEpoch}',
+          receiptKey: 'mock-receipt-${DateTime.now().millisecondsSinceEpoch}',
         },
       );
       if (!mounted) return;

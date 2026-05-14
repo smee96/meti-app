@@ -214,7 +214,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
           Text(user.email, style: AppTextStyles.body2),
           const SizedBox(height: 4),
           Text(
-            user.accountType == 'headhunter' ? '헤드헌터' : '개인 회원',
+            '개인 회원', // v2.8: headhunter 타입 제거, 항상 개인 회원 고정
             style: AppTextStyles.caption,
           ),
         ],

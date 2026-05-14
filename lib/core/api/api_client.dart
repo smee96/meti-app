@@ -111,9 +111,11 @@ class ApiClient {
           return MockUsers.transferPoints(accessToken!, body ?? {});
         }
 
-        // 초대링크로 그룹 가입 — 인증 필요
-        if (path == '/auth/invite-join') {
-          final token = body?['token'] as String? ?? '';
+        // 초대링크로 그룹 가입 — 인증 필요 (v2.8: /auth/invite/:token/join)
+        if (path.startsWith('/auth/invite/') && path.endsWith('/join')) {
+          final parts = path.split('/');
+          // /auth/invite/{token}/join → parts[3]
+          final token = parts.length >= 4 ? parts[3] : '';
           return MockUsers.inviteJoin(accessToken!, token, body ?? {});
         }
 
@@ -192,9 +194,14 @@ class ApiClient {
           return MockUsers.verifyWebPayment(accessToken!, body ?? {});
         }
 
-        // v2.6: 구독 결제 검증 POST /payments/subscription/verify
-        if (path == '/payments/subscription/verify') {
-          return MockUsers.verifySubscription(accessToken!, body ?? {});
+        // v2.8: Apple IAP 구독 검증 POST /payments/subscription/verify-apple
+        if (path == '/payments/subscription/verify-apple') {
+          return MockUsers.verifySubscription(accessToken!, body ?? {}, platform: 'apple');
+        }
+
+        // v2.8: Google Play 구독 검증 POST /payments/subscription/verify-google
+        if (path == '/payments/subscription/verify-google') {
+          return MockUsers.verifySubscription(accessToken!, body ?? {}, platform: 'google');
         }
 
         // v2.7: 일회성 결제 토큰 발급 POST /payments/payment-token
@@ -221,9 +228,9 @@ class ApiClient {
       // ── GET 라우팅 ──
       if (method == 'GET') {
         if (path == '/auth/me') return MockUsers.getMe(accessToken!);
-        // 초대 미리보기 — 인증 불필요
-        if (path.startsWith('/auth/invite-preview/')) {
-          final token = path.replaceFirst('/auth/invite-preview/', '');
+        // 초대 미리보기 — 인증 불필요 (v2.8: /groups/invite/:token)
+        if (path.startsWith('/groups/invite/')) {
+          final token = path.replaceFirst('/groups/invite/', '');
           return MockUsers.invitePreview(token);
         }
         if (path == '/cards') return MockUsers.getCards();
@@ -294,14 +301,13 @@ class ApiClient {
         if (path.startsWith('/chat/') && path.endsWith('/messages')) {
           return {'success': true, 'data': []};
         }
-        // 포인트 API
-        if (path == '/points/me') return MockUsers.getPointWallet(accessToken!);
-        if (path == '/points/me/transactions') return MockUsers.getPointTransactions(accessToken!);
-        if (path.startsWith('/points/groups/') && path.endsWith('/wallet')) {
-          return {
-            'success': true,
-            'data': {'balance': 0, 'total_earned': 0, 'total_spent': 0},
-          };
+        // 포인트 API (v2.8 경로)
+        if (path == '/points/balance') return MockUsers.getPointWallet(accessToken!);
+        if (path == '/points/history') return MockUsers.getPointTransactions(accessToken!);
+        if (path.startsWith('/points/groups/') && path.endsWith('/balance')) {
+          final parts = path.split('/');
+          final gid = int.tryParse(parts.length >= 4 ? parts[3] : '0') ?? 0;
+          return MockUsers.getGroupPointBalance(gid);
         }
       }
 

@@ -25,7 +25,7 @@ class PointProvider extends ChangeNotifier {
   Future<void> loadWallet() async {
     _setLoading(true);
     try {
-      final res = await _api.get('/points/me');
+      final res = await _api.get('/points/balance');  // v2.8
       if (res['success'] == true) {
         _wallet = PointWallet.fromJson(res['data'] as Map<String, dynamic>);
         _error = null;
@@ -42,7 +42,7 @@ class PointProvider extends ChangeNotifier {
   // ─── 거래 내역 조회 ───────────────────────────────────
   Future<void> loadTransactions() async {
     try {
-      final res = await _api.get('/points/me/transactions');
+      final res = await _api.get('/points/history');  // v2.8
       if (res['success'] == true) {
         final list = res['data'] as List<dynamic>? ?? [];
         _transactions = list
@@ -59,7 +59,7 @@ class PointProvider extends ChangeNotifier {
   // ─── 그룹 지갑 조회 (어드민용) ───────────────────────
   Future<PointWallet?> loadGroupWallet(int groupId) async {
     try {
-      final res = await _api.get('/points/groups/$groupId/wallet');
+      final res = await _api.get('/points/groups/$groupId/balance');  // v2.8
       if (res['success'] == true) {
         return PointWallet.fromJson(res['data'] as Map<String, dynamic>);
       }

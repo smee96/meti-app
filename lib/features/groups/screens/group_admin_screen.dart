@@ -166,7 +166,7 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
     if (gid == null) return;
     setState(() => _isWalletLoading = true);
     try {
-      final res = await _api.get('/points/groups/$gid/wallet');
+      final res = await _api.get('/points/groups/$gid/balance');  // v2.8
       if (res['success'] == true && mounted) {
         setState(() {
           _groupWallet = PointWallet.fromJson(
@@ -1796,24 +1796,7 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
                             letterSpacing: -1,
                           ),
                         ),
-                  const SizedBox(height: 12),
-                  const Divider(color: Colors.white24),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      _WalletStatItem(
-                        label: '총 적립',
-                        value:
-                            '${_formatNumber(_groupWallet?.totalEarned ?? 0)}P',
-                      ),
-                      const SizedBox(width: 24),
-                      _WalletStatItem(
-                        label: '총 사용',
-                        value:
-                            '${_formatNumber(_groupWallet?.totalSpent ?? 0)}P',
-                      ),
-                    ],
-                  ),
+                  // v2.8: totalEarned/totalSpent 필드 제거됨 — balance만 표시
                 ],
               ),
             ),
@@ -2605,28 +2588,7 @@ class _InviteLinkTile extends StatelessWidget {
   }
 }
 
-// ── 지갑 통계 항목 (포인트 탭용) ──────────────────────
-class _WalletStatItem extends StatelessWidget {
-  final String label;
-  final String value;
-  const _WalletStatItem({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: const TextStyle(color: Colors.white60, fontSize: 12)),
-        Text(value,
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-                fontWeight: FontWeight.w600)),
-      ],
-    );
-  }
-}
+// v2.8: _WalletStatItem 제거 — totalEarned/totalSpent 필드 삭제됨
 
 // ── 카운트 배지 ────────────────────────────────────────
 class _CountBadge extends StatelessWidget {

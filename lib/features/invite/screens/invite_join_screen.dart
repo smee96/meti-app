@@ -49,7 +49,7 @@ class _InviteJoinScreenState extends State<InviteJoinScreen> {
     });
     try {
       final res = await _api.get(
-        '/auth/invite-preview/${widget.token}',
+        '/groups/invite/${widget.token}',  // v2.8
         auth: false,
       );
       if (res['success'] == true) {
@@ -80,11 +80,12 @@ class _InviteJoinScreenState extends State<InviteJoinScreen> {
 
     setState(() => _isJoining = true);
     try {
-      final body = <String, dynamic>{'token': widget.token};
+      final body = <String, dynamic>{};
       if (_birthDateCtrl.text.isNotEmpty) {
         body['birth_date'] = _birthDateCtrl.text.trim();
       }
-      final res = await _api.post('/auth/invite-join', body: body);
+      // v2.8: 토큰은 path param으로 전달 (body에서 제거)
+      final res = await _api.post('/auth/invite/${widget.token}/join', body: body);
       if (!mounted) return;
       if (res['success'] == true) {
         // 가입 성공 → pending 토큰 삭제 후 메인으로
@@ -258,14 +259,14 @@ class _InviteJoinScreenState extends State<InviteJoinScreen> {
 
   // ── 미리보기 뷰 ───────────────────────────────────────────
   Widget _buildPreview() {
-    final group = _previewData?['group'] as Map<String, dynamic>? ?? {};
-    final groupName = group['name'] as String? ?? '알 수 없는 그룹';
-    final description = group['description'] as String? ?? '';
-    final memberCount = group['member_count'] as int? ?? 0;
-    final purpose = group['purpose'] as String? ?? '';
+    // v2.8: flat 구조 (group 중첩 없음)
+    final groupName = _previewData?['group_name'] as String? ?? '알 수 없는 그룹';
+    final description = '';   // v2.8 응답에 미포함
+    final memberCount = 0;    // v2.8 응답에 미포함
+    final purpose = '';       // v2.8 응답에 미포함
     final expiresAt = _previewData?['expires_at'] as String?;
     final maxUses = _previewData?['max_uses'] as int?;
-    final useCount = _previewData?['use_count'] as int? ?? 0;
+    final useCount = _previewData?['used_count'] as int? ?? 0;  // use_count → used_count
     final label = _previewData?['label'] as String? ?? '초대';
 
     final auth = context.watch<AuthProvider>();

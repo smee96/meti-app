@@ -69,7 +69,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       email: _emailCtrl.text.trim(),
       password: _passwordCtrl.text,
       name: _nameCtrl.text.trim(),
-      accountType: 'personal',
+      // v2.8: accountType 파라미터 제거 — 서버 자동 고정
     );
 
     if (!mounted) return;

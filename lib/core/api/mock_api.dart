@@ -45,7 +45,7 @@ class MockUsers {
       'password': password,
       'name': name,
       'role': 'user',
-      'account_type': body['account_type'] ?? 'personal',
+      'account_type': 'personal', // v2.8: 서버 자동 고정 — body 값 무시
       'plan': 'free',
       'is_verified': 0,
       'avatar_url': null,
@@ -167,6 +167,7 @@ class MockUsers {
   }
 
   // ── Mock 포인트 지갑 ──────────────────────────────────
+  // v2.8: expiring_soon 구조 추가 (곧 만료 예정 포인트 안내)
   static Map<String, dynamic> getPointWallet(String accessToken) {
     final email = _accessTokens[accessToken];
     if (email == null) throw MockApiException('인증이 필요합니다.', 401);
@@ -175,15 +176,31 @@ class MockUsers {
       'success': true,
       'data': {
         'balance': user['point_balance'] ?? 3500,
-        'total_earned': 10000,
-        'total_spent': 6500,
-        'updated_at': DateTime.now().toIso8601String(),
+        'expiring_soon': {
+          'amount': 2000,
+          'expires_at': '2026-06-01T00:00:00.000Z',
+        },
+      },
+    };
+  }
+
+  /// 그룹 포인트 잔액 — GET /points/groups/:groupId/balance [v2.8]
+  static Map<String, dynamic> getGroupPointBalance(int groupId) {
+    final balance = _groupPointBalance[groupId] ?? 0;
+    return {
+      'success': true,
+      'data': {
+        'group_id': groupId,
+        'group_name': 'METI 개발자 모임',
+        'balance': balance,
       },
     };
   }
 
   // ── Mock 포인트 거래내역 ──────────────────────────────
-  // point_type: subscription(갱신일 만료) / charged(90일) / reward(90일) / transfer(90일) [v2.7]
+  // v2.8 type 값: charge_subscription | charge_web | charge_admin
+  //               use_event | use_admin | transfer_out | transfer_in
+  // v2.8 point_type: subscription | charged | reward
   static Map<String, dynamic> getPointTransactions(String accessToken) {
     final email = _accessTokens[accessToken];
     if (email == null) throw MockApiException('인증이 필요합니다.', 401);
@@ -192,52 +209,57 @@ class MockUsers {
       'data': [
         {
           'id': 1,
-          'type': 'earn',
-          'point_type': 'subscription',  // v2.7: 구독 지급 — 다음 갱신일 만료
+          'type': 'charge_subscription',  // v2.8: 구독으로 지급된 포인트
+          'point_type': 'subscription',    // 다음 갱신일 만료
           'amount': 10000,
           'balance_after': 10000,
+          'ref_type': 'subscription',
+          'ref_id': null,
           'description': 'Pro 플랜 구독 포인트 지급',
-          'expires_at': '2026-04-01T00:00:00Z',
           'created_at': '2026-03-01T10:00:00Z',
         },
         {
           'id': 2,
-          'type': 'earn',
-          'point_type': 'charged',       // v2.7: 직접 충전 — 90일 후 만료
+          'type': 'charge_web',           // v2.8: 웹 결제로 직접 충전
+          'point_type': 'charged',         // 90일 후 만료
           'amount': 5000,
           'balance_after': 15000,
+          'ref_type': 'payment',
+          'ref_id': 'pay_mock_001',
           'description': '포인트 직접 충전',
-          'expires_at': '2026-05-29T10:01:00Z',
           'created_at': '2026-02-28T10:01:00Z',
         },
         {
           'id': 3,
-          'type': 'earn',
-          'point_type': 'reward',        // v2.7: 행사 환불·보상 — 90일 후 만료
+          'type': 'charge_admin',         // v2.8: 관리자 지급 (보상·환불)
+          'point_type': 'reward',          // 90일 후 만료
           'amount': 2000,
           'balance_after': 17000,
+          'ref_type': null,
+          'ref_id': null,
           'description': '행사 취소 환불 포인트',
-          'expires_at': '2026-07-14T14:30:00Z',
           'created_at': '2026-04-15T14:30:00Z',
         },
         {
           'id': 4,
-          'type': 'earn',
-          'point_type': 'transfer',      // v2.7: 이전·환불 — 90일 후 만료
-          'amount': 1000,
-          'balance_after': 18000,
+          'type': 'transfer_out',         // v2.8: 그룹으로 포인트 이전
+          'point_type': null,
+          'amount': -1000,
+          'balance_after': 16000,
+          'ref_type': 'group',
+          'ref_id': '1',
           'description': '그룹 포인트 이전',
-          'expires_at': '2026-07-20T09:00:00Z',
           'created_at': '2026-04-21T09:00:00Z',
         },
         {
           'id': 5,
-          'type': 'spend',
+          'type': 'use_event',            // v2.8: 행사 참가비 차감
           'point_type': null,
-          'amount': -14500,
+          'amount': -13500,
           'balance_after': 3500,
+          'ref_type': 'event',
+          'ref_id': '10',
           'description': '그룹 명함 발급',
-          'expires_at': null,
           'created_at': '2026-04-25T14:30:00Z',
         },
       ],
@@ -396,32 +418,26 @@ class MockUsers {
   }
 
   /// 초대링크 미리보기 — 인증 불필요, 그룹 정보 반환
+  /// v2.8: GET /groups/invite/:token
   static Map<String, dynamic> invitePreview(String token) {
-    // Mock: 토큰이 존재하면 그룹 정보 반환
     if (token.isEmpty) {
       throw MockApiException('유효하지 않은 초대 링크입니다.', 404);
     }
     return {
       'success': true,
       'data': {
-        'token': token,
+        'group_id': 1,
+        'group_name': 'METI 개발자 모임',
         'label': '일반 초대',
-        'group': {
-          'id': 1,
-          'name': 'METI 개발자 모임',
-          'description': 'Flutter & Dart 개발자 커뮤니티',
-          'purpose': 'study',
-          'visibility': 'public',
-          'member_count': 24,
-        },
-        'expires_at': null,
         'max_uses': 100,
-        'use_count': 3,
+        'used_count': 3,
+        'expires_at': null,
       },
     };
   }
 
-  /// 초대링크로 즉시 가입 — 인증 필요, birth_date 포함
+  /// 초대링크로 즉시 가입 — 인증 필요
+  /// v2.8: POST /auth/invite/:token/join (토큰은 path param, body 불필요)
   static Map<String, dynamic> inviteJoin(
       String accessToken, String token, Map<String, dynamic> body) {
     final email = _accessTokens[accessToken];
@@ -431,7 +447,7 @@ class MockUsers {
     }
     return {
       'success': true,
-      'data': {'group_id': 1, 'status': 'active'},
+      'data': {'group_id': 1, 'group_name': 'METI 개발자 모임'},
       'message': '그룹에 가입되었습니다.',
     };
   }
@@ -1220,13 +1236,21 @@ class MockUsers {
 
   // ── 구독 결제 (Apple/Google) ──────────────────────────
   /// 구독 영수증 검증 — POST /payments/subscription/verify
+  /// 구독 영수증 검증 [v2.8]
+  /// - Apple IAP: POST /payments/subscription/verify-apple
+  /// - Google Play: POST /payments/subscription/verify-google
   static Map<String, dynamic> verifySubscription(
-      String accessToken, Map<String, dynamic> body) {
+      String accessToken, Map<String, dynamic> body,
+      {String platform = 'apple'}) {
     final email = _accessTokens[accessToken];
     if (email == null) throw MockApiException('인증이 필요합니다.', 401);
     final user = _users.firstWhere((u) => u['email'] == email);
 
-    final plan = body['plan'] as String? ?? 'pro';
+    // Apple: receipt_data 필드 / Google: purchase_token + product_id 필드
+    final plan = platform == 'google'
+        ? _planFromProductId(body['product_id'] as String? ?? '')
+        : (body['plan'] as String? ?? 'pro');
+
     final pointsMap = {'pro': 10000, 'business': 500000};
     final points = pointsMap[plan] ?? 10000;
 
@@ -1239,6 +1263,7 @@ class MockUsers {
       'success': true,
       'data': {
         'plan': plan,
+        'platform': platform,
         'points_granted': points,
         'new_balance': user['point_balance'],
         'expires_at': DateTime.now()
@@ -1247,6 +1272,12 @@ class MockUsers {
       },
       'message': '구독이 활성화되었습니다. ${points}P가 지급되었습니다.',
     };
+  }
+
+  /// Google Play product_id → plan 변환 헬퍼
+  static String _planFromProductId(String productId) {
+    if (productId.contains('business')) return 'business';
+    return 'pro';
   }
 
   /// 구독 취소 — DELETE /payments/subscription

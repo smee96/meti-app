@@ -126,25 +126,43 @@ class _PointScreenState extends State<PointScreen> {
               letterSpacing: -1,
             ),
           ),
-          const SizedBox(height: 16),
-          const Divider(color: Colors.white24),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _WalletStat(
-                label: '총 적립',
-                value: '${_formatNumber(wallet?.totalEarned ?? 0)}P',
-              ),
-              const SizedBox(width: 24),
-              _WalletStat(
-                label: '총 사용',
-                value: '${_formatNumber(wallet?.totalSpent ?? 0)}P',
-              ),
-            ],
-          ),
+          // v2.8: expiring_soon 안내
+          if (wallet?.expiringSoon != null) ..._buildExpiringSoon(wallet!.expiringSoon!),
         ],
       ),
     );
+  }
+
+  List<Widget> _buildExpiringSoon(PointExpiringSoon expiring) {
+    final days = expiring.daysUntilExpiry;
+    final daysText = days != null ? '($days일 후)' : '';
+    return [
+      const SizedBox(height: 12),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.orange.withValues(alpha: 0.25),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.schedule, color: Colors.orange, size: 16),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '곧 만료 예정: ${_formatNumber(expiring.amount)}P $daysText',
+                style: const TextStyle(
+                  color: Colors.orange,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ];
   }
 
   Widget _buildInfoBanner() {
@@ -234,25 +252,6 @@ class _PointScreenState extends State<PointScreen> {
   }
 }
 
-// ── 지갑 통계 항목 ─────────────────────────────────────
-class _WalletStat extends StatelessWidget {
-  final String label;
-  final String value;
-  const _WalletStat({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(color: Colors.white60, fontSize: 12)),
-        Text(value,
-            style: const TextStyle(
-                color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
-      ],
-    );
-  }
-}
 
 // ── 거래내역 타일 ──────────────────────────────────────
 class _TransactionTile extends StatelessWidget {
@@ -303,8 +302,33 @@ class _TransactionTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(tx.description, style: AppTextStyles.body1),
-                if (dateStr.isNotEmpty)
-                  Text(dateStr, style: AppTextStyles.caption),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    // v2.8: 거래 타입 레이블 배지
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: (isEarn ? AppColors.success : AppColors.error)
+                            .withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        tx.typeLabel,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isEarn ? AppColors.success : AppColors.error,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    if (dateStr.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      Text(dateStr, style: AppTextStyles.caption),
+                    ],
+                  ],
+                ),
               ],
             ),
           ),
