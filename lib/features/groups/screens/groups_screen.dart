@@ -1018,7 +1018,7 @@ class _CreateGroupSheetState extends State<_CreateGroupSheet> {
             // 그룹명
             TextField(
               controller: _nameCtrl,
-              autofocus: true,
+              // autofocus 제거 — BottomSheet 내 한글 IME 입력 방해 방지
               textInputAction: TextInputAction.next,
               decoration: const InputDecoration(
                 labelText: '그룹명 *',

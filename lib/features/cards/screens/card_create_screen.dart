@@ -252,7 +252,7 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
             // 타이틀 (필수)
             TextFormField(
               controller: titleCtrl,
-              autofocus: true,
+              // autofocus 제거 — BottomSheet 내 한글 IME 입력 방해 방지
               textInputAction: TextInputAction.next,
               decoration: const InputDecoration(
                 labelText: '타이틀 *',
