@@ -99,8 +99,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           prefixIcon: Icon(Icons.email_outlined),
                         ),
                         validator: (v) {
-                          if (v == null || v.isEmpty) return '이메일을 입력해주세요';
-                          if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) {
+                          if (v == null || v.trim().isEmpty) return '이메일을 입력해주세요';
+                          if (!v.contains('@')) return '이메일에 @가 포함되어야 합니다';
+                          final emailRegex = RegExp(
+                            r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$',
+                          );
+                          if (!emailRegex.hasMatch(v.trim())) {
                             return '올바른 이메일 형식이 아닙니다';
                           }
                           return null;
