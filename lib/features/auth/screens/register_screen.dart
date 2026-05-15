@@ -21,6 +21,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
 
+  // 한글 IME 버그 방지: textInputAction.next 대신 FocusNode 수동 이동
+  final _nameFocus = FocusNode();
+  final _emailFocus = FocusNode();
+  final _passwordFocus = FocusNode();
+  final _confirmFocus = FocusNode();
+
   // 실시간 상태 추적
   String _password = '';
   String _confirm = '';
@@ -56,6 +62,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     _confirmCtrl.dispose();
+    _nameFocus.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
+    _confirmFocus.dispose();
     super.dispose();
   }
 
@@ -118,16 +128,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       // ── 이름 ────────────────────────────
                       TextFormField(
                         controller: _nameCtrl,
-                        textInputAction: TextInputAction.next,
+                        focusNode: _nameFocus,
+                        // keyboardType.name: 한글 IME 조합 보존
+                        keyboardType: TextInputType.name,
+                        // textInputAction.next 제거 → onEditingComplete로 수동 이동
+                        // (Android 한글 IME: next 액션이 조합 중 커밋 강제 → 입력 깨짐)
+                        textInputAction: TextInputAction.done,
+                        onEditingComplete: () {
+                          _nameFocus.unfocus();
+                          FocusScope.of(context).requestFocus(_emailFocus);
+                        },
                         decoration: const InputDecoration(
                           labelText: '이름',
                           hintText: '홍길동',
                           prefixIcon: Icon(Icons.badge_outlined),
                         ),
                         validator: (v) {
-                          if (v == null || v.isEmpty) return '이름을 입력해주세요';
-                          if (v.length < 2) return '이름은 2자 이상이어야 합니다';
-                          if (v.length > 50) return '이름은 50자 이하여야 합니다';
+                          if (v == null || v.trim().isEmpty) return '이름을 입력해주세요';
+                          if (v.trim().length < 2) return '이름은 2자 이상이어야 합니다';
+                          if (v.trim().length > 50) return '이름은 50자 이하여야 합니다';
                           return null;
                         },
                       ),
@@ -136,18 +155,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       // ── 이메일 ──────────────────────────
                       TextFormField(
                         controller: _emailCtrl,
+                        focusNode: _emailFocus,
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.next,
+                        onEditingComplete: () {
+                          _emailFocus.unfocus();
+                          FocusScope.of(context).requestFocus(_passwordFocus);
+                        },
                         decoration: const InputDecoration(
                           labelText: '이메일',
                           hintText: 'example@email.com',
                           prefixIcon: Icon(Icons.email_outlined),
                         ),
                         validator: (v) {
-                          if (v == null || v.isEmpty) return '이메일을 입력해주세요';
-                          if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$')
-                              .hasMatch(v)) {
-                            return '올바른 이메일 형식이 아닙니다';
+                          if (v == null || v.trim().isEmpty) {
+                            return '이메일을 입력해주세요';
+                          }
+                          // @ 포함 여부 먼저 체크 (명확한 에러 메시지)
+                          if (!v.contains('@')) {
+                            return '이메일에 @가 포함되어야 합니다';
+                          }
+                          // 엄격한 이메일 형식 검사
+                          final emailRegex = RegExp(
+                            r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$',
+                          );
+                          if (!emailRegex.hasMatch(v.trim())) {
+                            return '올바른 이메일 형식이 아닙니다 (예: user@example.com)';
                           }
                           return null;
                         },
@@ -157,8 +190,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       // ── 비밀번호 ─────────────────────────
                       TextFormField(
                         controller: _passwordCtrl,
+                        focusNode: _passwordFocus,
                         obscureText: _obscurePassword,
                         textInputAction: TextInputAction.next,
+                        onEditingComplete: () {
+                          _passwordFocus.unfocus();
+                          FocusScope.of(context).requestFocus(_confirmFocus);
+                        },
                         decoration: InputDecoration(
                           labelText: '비밀번호',
                           hintText: '8자 이상 영문+숫자 조합',
@@ -195,6 +233,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       // ── 비밀번호 확인 ─────────────────────
                       TextFormField(
                         controller: _confirmCtrl,
+                        focusNode: _confirmFocus,
                         obscureText: _obscureConfirm,
                         textInputAction: TextInputAction.done,
                         onFieldSubmitted: (_) => _handleRegister(),
