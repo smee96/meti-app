@@ -35,74 +35,48 @@ const List<_IntroPage> _kPages = [
     badgeIcon: Icons.public,
     tag: 'GLOBAL BUSINESS CARD',
     title: '세계 어디서나\n통하는 내 명함',
-    description: '종이 명함의 시대는 끝났습니다.\nMETI 디지털 명함 하나로 언어·국경을 넘어\n전 세계 비즈니스 파트너에게 나를 소개하세요.',
-    exampleLabel: '이런 분들께 딱 맞아요',
-    exampleText: '해외 컨퍼런스에서 만난 바이어에게\nQR 하나로 내 명함·포트폴리오 즉시 전달',
-    bullets: ['이름·직책·연락처·SNS 한 곳에', '다국어 지원 & 글로벌 공유', '실시간 수정 — 항상 최신 정보'],
+    description: 'QR·NFC 하나로 언어와 국경을 넘어\n전 세계 파트너에게 나를 소개하세요.',
+    exampleLabel: '활용 예시',
+    exampleText: '해외 컨퍼런스에서 QR 하나로\n명함·포트폴리오 즉시 전달',
+    bullets: ['이름·직책·연락처 한 곳에', '실시간 수정 — 항상 최신 정보'],
     gradient: [Color(0xFF0f2460), Color(0xFF1e3a8a)],
   ),
 
-  // 2. QR & NFC
-  _IntroPage(
-    icon: Icons.nfc_rounded,
-    badgeIcon: Icons.bolt,
-    tag: 'ONE TOUCH SHARING',
-    title: '터치 한 번,\n명함 교환 완료',
-    description: 'QR 스캔 또는 NFC 태그 한 번으로\n명함이 즉시 상대방 앱에 저장됩니다.\n앱 설치 없이도 웹으로 바로 확인 가능.',
-    exampleLabel: '현장에서 이렇게 쓰세요',
-    exampleText: '네트워킹 행사에서 명함 100장 인쇄 대신\nNFC 카드 1장으로 전원에게 내 정보 전달',
-    bullets: ['NFC 카드 태그로 즉시 공유', 'QR 스캔 — 카메라 앱으로 바로 인식', '링크 공유 — 카톡·메일·SNS 전송'],
-    gradient: [Color(0xFF0f2460), Color(0xFF0369a1)],
-  ),
-
-  // 3. 그룹 & 커뮤니티
+  // 2. 그룹 & 레슨
   _IntroPage(
     icon: Icons.groups_rounded,
     badgeIcon: Icons.verified,
-    tag: 'COMMUNITY & GROUP',
-    title: '동호회부터 팀까지\n그룹으로 묶다',
-    description: '업종별 모임, 사내 팀, 동창회, 동호회까지\n목적에 맞는 그룹을 만들고 멤버를 초대하세요.\n그룹 내 명함 공유와 채팅이 한 번에.',
-    exampleLabel: '활용 사례',
-    exampleText: '테니스 동호회 개설 → 초대 링크 발송 →\n멤버 명함 자동 공유 → 그룹 채팅으로 일정 조율',
-    bullets: ['초대 링크 한 번으로 멤버 모집', '그룹 내 명함 일괄 열람', '멤버 간 1:1 채팅 즉시 시작'],
+    tag: 'GROUP & LESSON',
+    title: '동호회, 팀, 레슨\n그룹으로 한 번에',
+    description: '초대 링크 하나로 멤버를 모으고\n명함 공유·채팅·일정을 함께 관리하세요.',
+    exampleLabel: '활용 예시',
+    exampleText: '테니스 동호회 · 필라테스 클래스 · 사내 팀\n초대 링크 → 멤버 명함 자동 공유',
+    bullets: ['초대 링크로 간편 멤버 모집', '그룹 채팅 & 명함 일괄 열람'],
     gradient: [Color(0xFF0f2460), Color(0xFF4338ca)],
   ),
 
-  // 4. 레슨 & 클래스
-  _IntroPage(
-    icon: Icons.school_rounded,
-    badgeIcon: Icons.star,
-    tag: 'LESSON & CLASS',
-    title: '강사·전문가를 위한\n스마트 운영 도구',
-    description: '레슨, 코칭, 클래스를 운영하는 모든 전문가에게.\n수강생에게 명함과 일정을 한 번에 전달하고\n포인트로 간편하게 수업료를 처리하세요.',
-    exampleLabel: '활용 사례',
-    exampleText: '필라테스 강사가 신규 수강생에게\nNFC 카드 태그 → 내 명함 + 수업 일정 + 결제 링크 전달',
-    bullets: ['명함에 레슨 일정·가격 정보 포함', '그룹으로 수강생 멤버 관리', '포인트 결제로 수업료 간소화'],
-    gradient: [Color(0xFF0f2460), Color(0xFF065f46)],
-  ),
-
-  // 5. 행사 & 이벤트
+  // 3. 행사 & NFC
   _IntroPage(
     icon: Icons.event_rounded,
     badgeIcon: Icons.nfc,
     tag: 'EVENT & NFC CHECK-IN',
-    title: '행사 입장부터\n명함 교환까지 한 번에',
-    description: '행사를 개설하고 참가자를 모집하세요.\nNFC 카드로 입장 체크인은 물론,\n현장에서 명함 교환까지 동시에 해결됩니다.',
-    exampleLabel: '현장에서 이렇게 쓰세요',
-    exampleText: 'B2B 전시회 입장 시 NFC 태그 →\n참가 확인 + 주최자 명함 자동 수신 + 네트워킹 시작',
-    bullets: ['행사 개설·참가 신청 원스톱', 'NFC 입장 체크인 & 명함 교환 동시', '참가자 명함 목록 자동 저장'],
-    gradient: [Color(0xFF0f2460), Color(0xFF92400e)],
+    title: 'NFC 태그 하나로\n입장 + 명함 교환',
+    description: '행사 개설부터 참가 신청, NFC 체크인까지\n모든 과정이 METI 안에 있습니다.',
+    exampleLabel: '활용 예시',
+    exampleText: 'B2B 전시회 NFC 태그 →\n입장 확인 + 주최자 명함 자동 수신',
+    bullets: ['행사 개설·참가 신청 원스톱', 'NFC 체크인 & 명함 교환 동시'],
+    gradient: [Color(0xFF0f2460), Color(0xFF065f46)],
   ),
 
-  // 6. 시작 페이지
+  // 4. 시작
   _IntroPage(
     icon: Icons.rocket_launch_rounded,
     tag: 'GET STARTED',
     title: '지금 바로\n첫 명함을 만드세요',
-    description: '무료로 시작하고, 필요할 때 확장하세요.\n전 세계 비즈니스 네트워크가\n당신의 손안에 있습니다.',
-    exampleLabel: 'METI와 함께하는 변화',
-    exampleText: '종이 명함 0장 · 분실 걱정 0% · 업데이트 즉시 반영\n글로벌 네트워크는 지금 이 순간도 연결 중',
-    bullets: ['Free 플랜으로 무료 시작', '3분이면 첫 명함 완성', '언제든 플랜 업그레이드'],
+    description: '3분이면 완성, 무료로 시작하세요.\n전 세계 네트워크가 손안에 있습니다.',
+    exampleLabel: 'METI와 함께',
+    exampleText: '종이 명함 0장 · 분실 걱정 0%\n글로벌 네트워크는 지금도 연결 중',
+    bullets: ['무료로 즉시 시작', '언제든 플랜 업그레이드'],
     gradient: [Color(0xFF0f2460), Color(0xFF1e3a8a)],
   ),
 ];
