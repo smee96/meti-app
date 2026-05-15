@@ -5,8 +5,8 @@ class MockUsers {
   static final List<Map<String, dynamic>> _users = [
     {
       'id': 1,
-      'email': 'test@meti.app',
-      'password': 'Test1234!',
+      'email': 'test@meti.dev',
+      'password': 'MetiTest1234!',
       'name': '홍길동',
       'role': 'user',
       'account_type': 'personal',
@@ -278,9 +278,9 @@ class MockUsers {
       'name': '홍길동',
       'title': '시니어 개발자',
       'company': 'METI Corp',
-      'email': 'test@meti.app',
+      'email': 'test@meti.dev',
       'phone': '010-1234-5678',
-      'website': 'https://meti.app',
+      'website': 'https://meti.dev',
       'bio': 'Flutter & Dart 개발자입니다.',
       'avatar_url': null,
       'template_id': 'modern_blue',
