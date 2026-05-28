@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/card_model.dart';
 import '../providers/cards_provider.dart';
 import '../widgets/business_card_widget.dart';
@@ -24,6 +25,30 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
   void initState() {
     super.initState();
     _card = widget.card;
+  }
+
+  // ── 명함 사진 변경 (v2.9) ────────────────────────────────
+  Future<void> _handleChangeAvatar() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 85,
+    );
+    if (picked == null) return;
+    if (!mounted) return;
+
+    final provider = context.read<CardsProvider>();
+    final newUrl =
+        await provider.uploadCardAvatar(_card.id, picked.path);
+    if (!mounted) return;
+    if (newUrl != null) {
+      setState(() => _card = _card.copyWith(avatarUrl: newUrl));
+      showSuccessSnackBar(context, '명함 사진이 업데이트되었습니다.');
+    } else {
+      showErrorSnackBar(context, '사진 업로드에 실패했습니다.');
+    }
   }
 
   Future<void> _handleDelete() async {
@@ -127,15 +152,49 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 명함 카드
+            // ── 명함 사진 (avatar_url) ──────────────────────
+            if (_card.avatarUrl != null && _card.avatarUrl!.isNotEmpty) ...[
+              Center(
+                child: Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    CircleAvatar(
+                      radius: 48,
+                      backgroundColor:
+                          AppColors.primary.withValues(alpha: 0.12),
+                      backgroundImage: NetworkImage(_card.avatarUrl!),
+                    ),
+                    // 사진 변경 버튼
+                    GestureDetector(
+                      onTap: () => _handleChangeAvatar(),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                          border:
+                              Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(Icons.camera_alt,
+                            size: 14, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // ── 명함 카드 ───────────────────────────────────
             BusinessCardWidget(card: _card),
             const SizedBox(height: 24),
 
-            // QR 버튼
+            // ── QR 버튼 ─────────────────────────────────────
             OutlinedButton.icon(
               onPressed: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => QrShowScreen(card: _card)),
+                MaterialPageRoute(
+                    builder: (_) => QrShowScreen(card: _card)),
               ),
               icon: const Icon(Icons.qr_code),
               label: const Text('QR 코드 표시'),
@@ -145,17 +204,24 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
             ),
             const SizedBox(height: 24),
 
-            // 상세 정보
+            // ── 기본 정보 ────────────────────────────────────
             _InfoSection(
               title: '기본 정보',
               items: [
                 if (_card.title != null)
-                  _InfoItem(icon: Icons.work_outline, label: '직책', value: _card.title!),
+                  _InfoItem(
+                      icon: Icons.work_outline,
+                      label: '직책',
+                      value: _card.title!),
                 if (_card.company != null)
-                  _InfoItem(icon: Icons.business_outlined, label: '회사', value: _card.company!),
+                  _InfoItem(
+                      icon: Icons.business_outlined,
+                      label: '회사',
+                      value: _card.company!),
               ],
             ),
 
+            // ── 연락처 ───────────────────────────────────────
             _InfoSection(
               title: '연락처',
               items: [
@@ -165,7 +231,8 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                     label: '이메일',
                     value: _card.email!,
                     onTap: () {
-                      Clipboard.setData(ClipboardData(text: _card.email!));
+                      Clipboard.setData(
+                          ClipboardData(text: _card.email!));
                       showSuccessSnackBar(context, '이메일이 복사되었습니다.');
                     },
                   ),
@@ -175,7 +242,8 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                     label: '전화',
                     value: _card.phone!,
                     onTap: () {
-                      Clipboard.setData(ClipboardData(text: _card.phone!));
+                      Clipboard.setData(
+                          ClipboardData(text: _card.phone!));
                       showSuccessSnackBar(context, '전화번호가 복사되었습니다.');
                     },
                   ),
@@ -184,10 +252,16 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                     icon: Icons.language_outlined,
                     label: '웹사이트',
                     value: _card.website!,
+                    onTap: () {
+                      Clipboard.setData(
+                          ClipboardData(text: _card.website!));
+                      showSuccessSnackBar(context, 'URL이 복사되었습니다.');
+                    },
                   ),
               ],
             ),
 
+            // ── 자기소개 ─────────────────────────────────────
             if (_card.bio != null && _card.bio!.isNotEmpty) ...[
               const Text('자기소개', style: AppTextStyles.h4),
               const SizedBox(height: 8),
@@ -203,24 +277,121 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
               const SizedBox(height: 20),
             ],
 
-            // SNS 링크
-            if (_card.snsLinks.isNotEmpty) ...[
-              const Text('SNS', style: AppTextStyles.h4),
+            // ── 태그 (tags[]) ────────────────────────────────
+            if (_card.tags.isNotEmpty) ...[
+              const Text('태그', style: AppTextStyles.h4),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: _card.snsLinks
-                    .map((sns) => Chip(
-                          label: Text(sns.platform),
-                          avatar: const Icon(Icons.link, size: 14),
-                        ))
-                    .toList(),
+                children: _card.tags.map((tag) {
+                  final label = tag.tagValue.isNotEmpty
+                      ? tag.tagValue
+                      : tag.tagType;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color:
+                              AppColors.primary.withValues(alpha: 0.25)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (tag.tagType.isNotEmpty) ...[
+                          Text(
+                            tag.tagType,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: AppColors.primary
+                                  .withValues(alpha: 0.7),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Container(
+                            width: 1,
+                            height: 10,
+                            color:
+                                AppColors.primary.withValues(alpha: 0.3),
+                          ),
+                          const SizedBox(width: 4),
+                        ],
+                        Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
               ),
               const SizedBox(height: 20),
             ],
 
-            // 공개 상태
+            // ── SNS 링크 (sns_links[]) ───────────────────────
+            if (_card.snsLinks.isNotEmpty) ...[
+              const Text('SNS 링크', style: AppTextStyles.h4),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  children: _card.snsLinks
+                      .asMap()
+                      .entries
+                      .map((entry) {
+                        final sns = entry.value;
+                        final isLast =
+                            entry.key == _card.snsLinks.length - 1;
+                        return Column(
+                          children: [
+                            ListTile(
+                              leading: _SnsDetailIcon(
+                                  platform: sns.platform),
+                              title: Text(sns.platform,
+                                  style: AppTextStyles.body1),
+                              subtitle: Text(
+                                sns.url,
+                                style: AppTextStyles.caption,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              trailing: IconButton(
+                                icon: const Icon(Icons.copy,
+                                    size: 16,
+                                    color: AppColors.textTertiary),
+                                onPressed: () {
+                                  Clipboard.setData(
+                                      ClipboardData(text: sns.url));
+                                  showSuccessSnackBar(
+                                      context, 'URL이 복사되었습니다.');
+                                },
+                              ),
+                              dense: true,
+                            ),
+                            if (!isLast)
+                              const Divider(height: 1, indent: 56),
+                          ],
+                        );
+                      })
+                      .toList(),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+
+            // ── 공개 상태 ────────────────────────────────────
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -237,7 +408,9 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
               child: Row(
                 children: [
                   Icon(
-                    _card.isPublicCard ? Icons.public : Icons.lock_outline,
+                    _card.isPublicCard
+                        ? Icons.public
+                        : Icons.lock_outline,
                     color: _card.isPublicCard
                         ? AppColors.success
                         : AppColors.textTertiary,
@@ -318,4 +491,38 @@ class _InfoItem {
     required this.value,
     this.onTap,
   });
+}
+
+// ── SNS 아이콘 (card_detail 전용) ──────────────────────────
+class _SnsDetailIcon extends StatelessWidget {
+  final String platform;
+  const _SnsDetailIcon({required this.platform});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.1),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(_iconFor(platform), size: 18, color: AppColors.primary),
+    );
+  }
+
+  IconData _iconFor(String p) {
+    switch (p.toLowerCase()) {
+      case 'instagram':  return Icons.camera_alt_outlined;
+      case 'linkedin':   return Icons.business_center_outlined;
+      case 'github':     return Icons.code_outlined;
+      case 'twitter/x': return Icons.flutter_dash;
+      case 'facebook':   return Icons.facebook_outlined;
+      case 'youtube':    return Icons.play_circle_outline;
+      case 'tiktok':     return Icons.music_video_outlined;
+      case 'blog':       return Icons.article_outlined;
+      case 'kakao':      return Icons.chat_bubble_outline;
+      default:           return Icons.link;
+    }
+  }
 }

@@ -41,6 +41,29 @@ class UserModel {
     );
   }
 
+  // v2.9: 부분 업데이트용 copyWith
+  UserModel copyWith({
+    String? name,
+    String? avatarUrl,
+    String? plan,
+    String? planExpiresAt,
+    int?    pointBalance,
+  }) {
+    return UserModel(
+      id:             id,
+      email:          email,
+      name:           name          ?? this.name,
+      role:           role,
+      accountType:    accountType,
+      plan:           plan          ?? this.plan,
+      planExpiresAt:  planExpiresAt ?? this.planExpiresAt,
+      avatarUrl:      avatarUrl     ?? this.avatarUrl,
+      isVerified:     isVerified,
+      createdAt:      createdAt,
+      pointBalance:   pointBalance  ?? this.pointBalance,
+    );
+  }
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'email': email,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../providers/cards_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
@@ -7,6 +8,20 @@ import '../../../core/constants/app_constants.dart';
 import '../../../routes/app_router.dart';
 import '../widgets/business_card_widget.dart';
 import '../models/card_model.dart';
+
+// ── SNS 플랫폼 목록 ─────────────────────────────────────
+const _snsPlatforms = [
+  'Instagram',
+  'LinkedIn',
+  'GitHub',
+  'Twitter/X',
+  'Facebook',
+  'YouTube',
+  'TikTok',
+  'Blog',
+  'Kakao',
+  'Other',
+];
 
 class CardCreateScreen extends StatefulWidget {
   final CardModel? existingCard;
@@ -16,45 +31,59 @@ class CardCreateScreen extends StatefulWidget {
   State<CardCreateScreen> createState() => _CardCreateScreenState();
 }
 
-class _CardCreateScreenState extends State<CardCreateScreen> {
+class _CardCreateScreenState extends State<CardCreateScreen>
+    with SingleTickerProviderStateMixin {
+  // ── 탭 ──────────────────────────────────────────────────
+  late final TabController _tabCtrl;
+
+  // ── 기본 정보 폼 컨트롤러 ────────────────────────────────
   final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
-  final _titleCtrl = TextEditingController();
+  final _nameCtrl    = TextEditingController();
+  final _titleCtrl   = TextEditingController();
   final _companyCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
+  final _emailCtrl   = TextEditingController();
+  final _phoneCtrl   = TextEditingController();
   final _websiteCtrl = TextEditingController();
-  final _bioCtrl = TextEditingController();
+  final _bioCtrl     = TextEditingController();
 
   String _selectedTemplate = 'modern_blue';
-  bool _isPublic = false; // v2.2: 기본값 비공개(0)
+  bool   _isPublic         = false;
 
-  // 경력/약력 목록 (최대 10개)
-  final List<CareerItem> _careers = [];
-  static const int _maxCareers = 10;
+  // ── 명함 사진 (avatar) ──────────────────────────────────
+  String? _pendingAvatarPath; // 로컬 선택 경로 (미업로드)
+
+  // ── 태그 목록 — tags[] ──────────────────────────────────
+  final List<CardTag> _tags = [];
+
+  // ── SNS 링크 목록 — sns_links[] ─────────────────────────
+  final List<SnsLink> _snsLinks = [];
 
   bool get _isEditing => widget.existingCard != null;
 
   @override
   void initState() {
     super.initState();
+    _tabCtrl = TabController(length: 2, vsync: this);
+
     if (_isEditing) {
       final c = widget.existingCard!;
-      _nameCtrl.text = c.name;
-      _titleCtrl.text = c.title ?? '';
-      _companyCtrl.text = c.company ?? '';
-      _emailCtrl.text = c.email ?? '';
-      _phoneCtrl.text = c.phone ?? '';
-      _websiteCtrl.text = c.website ?? '';
-      _bioCtrl.text = c.bio ?? '';
+      _nameCtrl.text    = c.name;
+      _titleCtrl.text   = c.title    ?? '';
+      _companyCtrl.text = c.company  ?? '';
+      _emailCtrl.text   = c.email    ?? '';
+      _phoneCtrl.text   = c.phone    ?? '';
+      _websiteCtrl.text = c.website  ?? '';
+      _bioCtrl.text     = c.bio      ?? '';
       _selectedTemplate = c.templateId;
-      _isPublic = c.isPublic == 1;
-      _careers.addAll(c.careers);
+      _isPublic         = c.isPublic == 1;
+      _tags.addAll(c.tags);
+      _snsLinks.addAll(c.snsLinks);
     }
   }
 
   @override
   void dispose() {
+    _tabCtrl.dispose();
     _nameCtrl.dispose();
     _titleCtrl.dispose();
     _companyCtrl.dispose();
@@ -65,6 +94,7 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
     super.dispose();
   }
 
+  // ── 미리보기용 CardModel ────────────────────────────────
   CardModel get _previewCard => CardModel(
         id: 0,
         userId: 0,
@@ -79,42 +109,58 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
         isPrimary: 0,
         isPublic: _isPublic ? 1 : 0,
         isActive: 1,
-        careers: List.from(_careers),
+        snsLinks: List.from(_snsLinks),
+        tags: List.from(_tags),
       );
 
+  // ── 저장 ────────────────────────────────────────────────
   Future<void> _handleSave() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      // 유효성 오류가 탭 1에 있으면 탭 1로 이동
+      _tabCtrl.animateTo(0);
+      return;
+    }
 
     final provider = context.read<CardsProvider>();
-    final data = {
-      'name': _nameCtrl.text.trim(),
-      if (_titleCtrl.text.isNotEmpty) 'title': _titleCtrl.text.trim(),
+    final data = <String, dynamic>{
+      'name':        _nameCtrl.text.trim(),
+      if (_titleCtrl.text.isNotEmpty)   'title':   _titleCtrl.text.trim(),
       if (_companyCtrl.text.isNotEmpty) 'company': _companyCtrl.text.trim(),
-      if (_emailCtrl.text.isNotEmpty) 'email': _emailCtrl.text.trim(),
-      if (_phoneCtrl.text.isNotEmpty) 'phone': _phoneCtrl.text.trim(),
+      if (_emailCtrl.text.isNotEmpty)   'email':   _emailCtrl.text.trim(),
+      if (_phoneCtrl.text.isNotEmpty)   'phone':   _phoneCtrl.text.trim(),
       if (_websiteCtrl.text.isNotEmpty) 'website': _websiteCtrl.text.trim(),
-      if (_bioCtrl.text.isNotEmpty) 'bio': _bioCtrl.text.trim(),
+      if (_bioCtrl.text.isNotEmpty)     'bio':     _bioCtrl.text.trim(),
       'template_id': _selectedTemplate,
-      'is_public': _isPublic ? 1 : 0,
-      if (_careers.isNotEmpty)
-        'careers': _careers.map((c) => c.toJson()).toList(),
+      'is_public':   _isPublic ? 1 : 0,
+      // v2.9: full-replace 방식
+      'tags':      _tags.map((t) => t.toJson()).toList(),
+      'sns_links': _snsLinks.map((s) => s.toJson()).toList(),
     };
 
     bool success;
+    int? createdCardId;
+
     if (_isEditing) {
       success = await provider.updateCard(widget.existingCard!.id, data);
+      createdCardId = widget.existingCard!.id;
     } else {
       final result = await provider.createCard(data);
       success = result != null;
+      createdCardId = result?.id;
     }
 
     if (!mounted) return;
+
     if (success) {
-      showSuccessSnackBar(
-          context, _isEditing ? '명함이 수정되었습니다.' : '명함이 생성되었습니다.');
+      // 명함 사진 업로드 (선택한 경우)
+      if (_pendingAvatarPath != null && createdCardId != null) {
+        await provider.uploadCardAvatar(createdCardId, _pendingAvatarPath!);
+      }
+      if (!mounted) return;
+      final msg = _isEditing ? '명함이 수정되었습니다.' : '명함이 생성되었습니다.';
+      showSuccessSnackBar(context, msg);
       Navigator.pop(context, true);
     } else {
-      // v2.5: 명함 한도 초과 시 업그레이드 유도 다이얼로그
       if (provider.upgradeRequired &&
           provider.errorCode == 'card_limit_exceeded') {
         _showCardLimitDialog(provider.errorMessage ?? '명함 생성 한도를 초과했습니다.');
@@ -124,20 +170,17 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
     }
   }
 
-  /// 명함 한도 초과 업그레이드 유도 다이얼로그 (v2.5)
+  // ── 명함 한도 초과 다이얼로그 ────────────────────────────
   void _showCardLimitDialog(String message) {
-    final user = context.read<CardsProvider>();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Text('📋', style: TextStyle(fontSize: 20)),
-            SizedBox(width: 8),
-            Text('명함 한도 초과'),
-          ],
-        ),
+        title: const Row(children: [
+          Text('📋', style: TextStyle(fontSize: 20)),
+          SizedBox(width: 8),
+          Text('명함 한도 초과'),
+        ]),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,8 +197,7 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('플랜 업그레이드 혜택',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 13)),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                   SizedBox(height: 6),
                   Text('• Free → Pro: 최대 10개 명함',
                       style: TextStyle(fontSize: 12)),
@@ -174,13 +216,10 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
-              Navigator.pushNamed(
-                context,
-                AppRoutes.upgrade,
-                arguments: {
-                  'fromContext': 'Free 플랜은 명함을 최대 3장까지 만들 수 있습니다. 더 많은 명함을 원하시면 업그레이드하세요.',
-                },
-              );
+              Navigator.pushNamed(context, AppRoutes.upgrade, arguments: {
+                'fromContext':
+                    'Free 플랜은 명함을 최대 3장까지 만들 수 있습니다. 더 많은 명함을 원하시면 업그레이드하세요.',
+              });
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
@@ -191,144 +230,100 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
         ],
       ),
     );
-    // suppress unused variable warning
-    user.toString();
   }
 
-  // 경력 항목 추가 다이얼로그
-  void _showAddCareerDialog({int? editIndex}) {
-    final titleCtrl = TextEditingController(
-      text: editIndex != null ? _careers[editIndex].title : '',
+  // ── 명함 사진 선택 ───────────────────────────────────────
+  Future<void> _pickCardAvatar() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 85,
     );
-    final periodCtrl = TextEditingController(
-      text: editIndex != null ? (_careers[editIndex].period ?? '') : '',
+    if (picked != null) {
+      setState(() => _pendingAvatarPath = picked.path);
+    }
+  }
+
+  // ── 태그 추가 다이얼로그 ─────────────────────────────────
+  void _showAddTagDialog({int? editIndex}) {
+    final typeCtrl = TextEditingController(
+      text: editIndex != null ? _tags[editIndex].tagType : '',
     );
-    final detailCtrl = TextEditingController(
-      text: editIndex != null ? (_careers[editIndex].detail ?? '') : '',
+    final valueCtrl = TextEditingController(
+      text: editIndex != null ? _tags[editIndex].tagValue : '',
     );
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 24,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 핸들
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Text(
-              editIndex != null ? '약력 수정' : '약력 추가',
-              style: AppTextStyles.h3,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '학력, 경력, 자격증, 수상 등 자유롭게 입력하세요.',
-              style: AppTextStyles.body2,
-            ),
-            const SizedBox(height: 20),
-
-            // 타이틀 (필수)
-            TextFormField(
-              controller: titleCtrl,
-              // autofocus 제거 — BottomSheet 내 한글 IME 입력 방해 방지
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: '타이틀 *',
-                hintText: '예) 서울대학교 경영학과, 삼성전자 부장',
-                prefixIcon: Icon(Icons.title),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // 기간
-            TextFormField(
-              controller: periodCtrl,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: '기간',
-                hintText: '예) 2010 - 2014, 2015.03 ~ 현재',
-                prefixIcon: Icon(Icons.calendar_today_outlined),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // 상세
-            TextFormField(
-              controller: detailCtrl,
-              textInputAction: TextInputAction.done,
-              decoration: const InputDecoration(
-                labelText: '상세',
-                hintText: '예) 졸업, 마케팅팀, 우수상',
-                prefixIcon: Icon(Icons.notes_outlined),
-              ),
-              onFieldSubmitted: (_) {
-                _saveCareer(ctx, editIndex, titleCtrl, periodCtrl, detailCtrl);
-              },
-            ),
-            const SizedBox(height: 24),
-
-            ElevatedButton(
-              onPressed: () {
-                _saveCareer(ctx, editIndex, titleCtrl, periodCtrl, detailCtrl);
-              },
-              child: Text(editIndex != null ? '수정 완료' : '추가'),
-            ),
-          ],
-        ),
+      builder: (ctx) => _TagInputSheet(
+        typeCtrl: typeCtrl,
+        valueCtrl: valueCtrl,
+        isEdit: editIndex != null,
+        onSave: (type, value) {
+          setState(() {
+            final tag = CardTag(tagType: type, tagValue: value);
+            if (editIndex != null) {
+              _tags[editIndex] = tag;
+            } else {
+              _tags.add(tag);
+            }
+          });
+        },
       ),
     );
   }
 
-  void _saveCareer(
-    BuildContext ctx,
-    int? editIndex,
-    TextEditingController titleCtrl,
-    TextEditingController periodCtrl,
-    TextEditingController detailCtrl,
-  ) {
-    if (titleCtrl.text.trim().isEmpty) return;
-    final item = CareerItem(
-      title: titleCtrl.text.trim(),
-      period: periodCtrl.text.trim().isEmpty ? null : periodCtrl.text.trim(),
-      detail: detailCtrl.text.trim().isEmpty ? null : detailCtrl.text.trim(),
+  // ── SNS 링크 추가 다이얼로그 ─────────────────────────────
+  void _showAddSnsDialog({int? editIndex}) {
+    String selectedPlatform =
+        editIndex != null ? _snsLinks[editIndex].platform : _snsPlatforms[0];
+    final urlCtrl = TextEditingController(
+      text: editIndex != null ? _snsLinks[editIndex].url : '',
     );
-    setState(() {
-      if (editIndex != null) {
-        _careers[editIndex] = item;
-      } else {
-        _careers.add(item);
-      }
-    });
-    Navigator.pop(ctx);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _SnsInputSheet(
+        initialPlatform: selectedPlatform,
+        urlCtrl: urlCtrl,
+        isEdit: editIndex != null,
+        onSave: (platform, url) {
+          setState(() {
+            final link = SnsLink(
+              platform: platform,
+              url: url,
+              sortOrder: editIndex ?? _snsLinks.length,
+            );
+            if (editIndex != null) {
+              _snsLinks[editIndex] = link;
+            } else {
+              _snsLinks.add(link);
+            }
+          });
+        },
+      ),
+    );
   }
 
+  // ────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEditing ? '명함 수정' : '명함 만들기'),
+        bottom: TabBar(
+          controller: _tabCtrl,
+          tabs: const [
+            Tab(text: '기본 정보'),
+            Tab(text: '태그 · SNS'),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed:
@@ -344,399 +339,717 @@ class _CardCreateScreenState extends State<CardCreateScreen> {
         ],
       ),
       body: Consumer<CardsProvider>(
-        builder: (context, provider, _) {
-          return LoadingOverlay(
-            isLoading: provider.isLoading,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        builder: (context, provider, _) => LoadingOverlay(
+          isLoading: provider.isLoading,
+          child: Form(
+            key: _formKey,
+            child: TabBarView(
+              controller: _tabCtrl,
+              children: [
+                _buildTab1(),
+                _buildTab2(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════════════════
+  // 탭 1: 기본 정보
+  // ════════════════════════════════════════════════════════
+  Widget _buildTab1() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── 명함 미리보기
+          const Text('미리보기', style: AppTextStyles.label),
+          const SizedBox(height: 8),
+          BusinessCardWidget(card: _previewCard),
+          const SizedBox(height: 24),
+
+          // ── 명함 사진 (avatar)
+          const Text('명함 사진', style: AppTextStyles.label),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: _pickCardAvatar,
+            child: Container(
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceVariant,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _pendingAvatarPath != null
+                      ? AppColors.primary
+                      : AppColors.border,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    _pendingAvatarPath != null
+                        ? Icons.check_circle_outline
+                        : Icons.add_photo_alternate_outlined,
+                    color: _pendingAvatarPath != null
+                        ? AppColors.primary
+                        : AppColors.textSecondary,
+                    size: 28,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    _pendingAvatarPath != null ? '사진 선택됨 (저장 시 업로드)' : '사진 추가',
+                    style: TextStyle(
+                      color: _pendingAvatarPath != null
+                          ? AppColors.primary
+                          : AppColors.textSecondary,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // ── 템플릿 선택
+          const Text('템플릿', style: AppTextStyles.label),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 40,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: AppConstants.cardTemplates.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, i) {
+                final tmpl = AppConstants.cardTemplates[i];
+                final isSelected = _selectedTemplate == tmpl['id'];
+                return GestureDetector(
+                  onTap: () =>
+                      setState(() => _selectedTemplate = tmpl['id']!),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primary
+                          : AppColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.border,
+                      ),
+                    ),
+                    child: Text(
+                      tmpl['name']!,
+                      style: TextStyle(
+                        color: isSelected
+                            ? Colors.white
+                            : AppColors.textSecondary,
+                        fontSize: 13,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 28),
+
+          // ── 기본 정보
+          const Text('기본 정보', style: AppTextStyles.h4),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _nameCtrl,
+            onChanged: (_) => setState(() {}),
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(
+              labelText: '이름 *',
+              prefixIcon: Icon(Icons.person_outline),
+            ),
+            validator: (v) =>
+                (v == null || v.isEmpty) ? '이름을 입력해주세요' : null,
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _titleCtrl,
+            onChanged: (_) => setState(() {}),
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(
+              labelText: '직책',
+              prefixIcon: Icon(Icons.work_outline),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _companyCtrl,
+            onChanged: (_) => setState(() {}),
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(
+              labelText: '회사명',
+              prefixIcon: Icon(Icons.business_outlined),
+            ),
+          ),
+          const SizedBox(height: 28),
+
+          // ── 연락처
+          const Text('연락처', style: AppTextStyles.h4),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _emailCtrl,
+            onChanged: (_) => setState(() {}),
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(
+              labelText: '이메일',
+              prefixIcon: Icon(Icons.email_outlined),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _phoneCtrl,
+            onChanged: (_) => setState(() {}),
+            keyboardType: TextInputType.phone,
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(
+              labelText: '전화번호',
+              prefixIcon: Icon(Icons.phone_outlined),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _websiteCtrl,
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(
+              labelText: '웹사이트',
+              prefixIcon: Icon(Icons.language_outlined),
+              hintText: 'https://',
+            ),
+          ),
+          const SizedBox(height: 28),
+
+          // ── 자기소개
+          const Text('자기소개', style: AppTextStyles.h4),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _bioCtrl,
+            onChanged: (_) => setState(() {}),
+            maxLines: 3,
+            maxLength: 500,
+            decoration: const InputDecoration(
+              labelText: '자기소개',
+              hintText: '간단한 자기소개를 작성해보세요.',
+              alignLabelWithHint: true,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // ── 공개 설정
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
                   children: [
-                    // ── 미리보기 ──────────────────────────
-                    const Text('미리보기', style: AppTextStyles.label),
-                    const SizedBox(height: 8),
-                    BusinessCardWidget(card: _previewCard),
-                    const SizedBox(height: 24),
-
-                    // ── 템플릿 선택 ───────────────────────
-                    const Text('템플릿', style: AppTextStyles.label),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 40,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: AppConstants.cardTemplates.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 8),
-                        itemBuilder: (context, i) {
-                          final tmpl = AppConstants.cardTemplates[i];
-                          final isSelected = _selectedTemplate == tmpl['id'];
-                          return GestureDetector(
-                            onTap: () => setState(
-                                () => _selectedTemplate = tmpl['id']!),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : AppColors.surfaceVariant,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? AppColors.primary
-                                      : AppColors.border,
-                                ),
-                              ),
-                              child: Text(
-                                tmpl['name']!,
-                                style: TextStyle(
-                                  color: isSelected
-                                      ? Colors.white
-                                      : AppColors.textSecondary,
-                                  fontSize: 13,
-                                  fontWeight: isSelected
-                                      ? FontWeight.w600
-                                      : FontWeight.w400,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-
-                    // ── 기본 정보 ─────────────────────────
-                    const Text('기본 정보', style: AppTextStyles.h4),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _nameCtrl,
-                      onChanged: (_) => setState(() {}),
-                      decoration: const InputDecoration(
-                        labelText: '이름 *',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? '이름을 입력해주세요' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _titleCtrl,
-                      onChanged: (_) => setState(() {}),
-                      decoration: const InputDecoration(
-                        labelText: '직책',
-                        prefixIcon: Icon(Icons.work_outline),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _companyCtrl,
-                      onChanged: (_) => setState(() {}),
-                      decoration: const InputDecoration(
-                        labelText: '회사명',
-                        prefixIcon: Icon(Icons.business_outlined),
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-
-                    // ── 연락처 ────────────────────────────
-                    const Text('연락처', style: AppTextStyles.h4),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _emailCtrl,
-                      onChanged: (_) => setState(() {}),
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: '이메일',
-                        prefixIcon: Icon(Icons.email_outlined),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _phoneCtrl,
-                      onChanged: (_) => setState(() {}),
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: '전화번호',
-                        prefixIcon: Icon(Icons.phone_outlined),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _websiteCtrl,
-                      decoration: const InputDecoration(
-                        labelText: '웹사이트',
-                        prefixIcon: Icon(Icons.language_outlined),
-                        hintText: 'https://',
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-
-                    // ── 약력/경력 ─────────────────────────
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    const Icon(Icons.public,
+                        size: 20, color: AppColors.textSecondary),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('약력 / 경력', style: AppTextStyles.h4),
-                        Row(
-                          children: [
-                            Text(
-                              '${_careers.length}/$_maxCareers',
-                              style: AppTextStyles.caption,
-                            ),
-                            const SizedBox(width: 8),
-                            if (_careers.length < _maxCareers)
-                              GestureDetector(
-                                onTap: _showAddCareerDialog,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.add,
-                                          size: 14, color: Colors.white),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        '추가',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                          ],
+                        const Text('공개 명함', style: AppTextStyles.body1),
+                        Text(
+                          _isPublic ? 'QR 코드로 공유 가능' : '비공개 상태',
+                          style: AppTextStyles.caption,
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '학력, 경력, 자격증, 수상 등 최대 $_maxCareers개',
-                      style: AppTextStyles.caption,
-                    ),
-                    const SizedBox(height: 12),
-
-                    // 경력 목록
-                    if (_careers.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceVariant,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.border,
-                            style: BorderStyle.solid,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.add_circle_outline,
-                                color: AppColors.textSecondary, size: 20),
-                            const SizedBox(width: 8),
-                            Text(
-                              '+ 추가 버튼으로 약력을 입력하세요',
-                              style: AppTextStyles.body2,
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      ReorderableListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _careers.length,
-                        onReorder: (oldIndex, newIndex) {
-                          setState(() {
-                            if (newIndex > oldIndex) newIndex--;
-                            final item = _careers.removeAt(oldIndex);
-                            _careers.insert(newIndex, item);
-                          });
-                        },
-                        itemBuilder: (context, index) {
-                          final career = _careers[index];
-                          return _CareerListTile(
-                            key: ValueKey('career_$index'),
-                            career: career,
-                            index: index,
-                            onEdit: () =>
-                                _showAddCareerDialog(editIndex: index),
-                            onDelete: () =>
-                                setState(() => _careers.removeAt(index)),
-                          );
-                        },
-                      ),
-                    const SizedBox(height: 28),
-
-                    // ── 자기소개 ──────────────────────────
-                    const Text('자기소개', style: AppTextStyles.h4),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _bioCtrl,
-                      onChanged: (_) => setState(() {}),
-                      maxLines: 3,
-                      maxLength: 500,
-                      decoration: const InputDecoration(
-                        labelText: '자기소개',
-                        hintText: '간단한 자기소개를 작성해보세요.',
-                        alignLabelWithHint: true,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // ── 공개 설정 ─────────────────────────
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.public,
-                                  size: 20,
-                                  color: AppColors.textSecondary),
-                              const SizedBox(width: 12),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('공개 명함',
-                                      style: AppTextStyles.body1),
-                                  Text(
-                                    _isPublic ? 'QR 코드로 공유 가능' : '비공개 상태',
-                                    style: AppTextStyles.caption,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          Switch(
-                            value: _isPublic,
-                            onChanged: (v) => setState(() => _isPublic = v),
-                            activeThumbColor: AppColors.primary,
-                            activeTrackColor: AppColors.primary.withValues(alpha: 0.4),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: provider.isLoading ? null : _handleSave,
-                        child: Text(_isEditing ? '수정 완료' : '명함 생성'),
-                      ),
-                    ),
-                    const SizedBox(height: 40),
                   ],
                 ),
-              ),
+                Switch(
+                  value: _isPublic,
+                  onChanged: (v) => setState(() => _isPublic = v),
+                  activeThumbColor: AppColors.primary,
+                  activeTrackColor:
+                      AppColors.primary.withValues(alpha: 0.4),
+                ),
+              ],
             ),
-          );
-        },
+          ),
+          const SizedBox(height: 32),
+
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: context.read<CardsProvider>().isLoading
+                  ? null
+                  : _handleSave,
+              child: Text(_isEditing ? '수정 완료' : '명함 생성'),
+            ),
+          ),
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════════════════
+  // 탭 2: 태그 · SNS
+  // ════════════════════════════════════════════════════════
+  Widget _buildTab2() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── 태그 섹션
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('태그', style: AppTextStyles.h4),
+              TextButton.icon(
+                onPressed: () => _showAddTagDialog(),
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('추가'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                ),
+              ),
+            ],
+          ),
+          Text(
+            '전문 분야, 관심사, 키워드 등을 태그로 추가하세요.',
+            style: AppTextStyles.caption,
+          ),
+          const SizedBox(height: 12),
+
+          if (_tags.isEmpty)
+            _EmptyHint(
+              icon: Icons.label_outline,
+              text: '아직 태그가 없습니다.\n+ 추가 버튼을 눌러 태그를 추가하세요.',
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _tags.asMap().entries.map((entry) {
+                final i = entry.key;
+                final tag = entry.value;
+                return Chip(
+                  label: Text(
+                    tag.tagValue.isNotEmpty
+                        ? tag.tagValue
+                        : tag.tagType,
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                  avatar: tag.tagType.isNotEmpty && tag.tagValue.isNotEmpty
+                      ? Text(
+                          tag.tagType[0].toUpperCase(),
+                          style: const TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.w700),
+                        )
+                      : null,
+                  deleteIcon: const Icon(Icons.close, size: 14),
+                  onDeleted: () => setState(() => _tags.removeAt(i)),
+                  backgroundColor:
+                      AppColors.primary.withValues(alpha: 0.08),
+                  side: BorderSide(
+                      color: AppColors.primary.withValues(alpha: 0.25)),
+                  labelStyle: TextStyle(color: AppColors.primary),
+                );
+              }).toList(),
+            ),
+          const SizedBox(height: 28),
+
+          // ── SNS 링크 섹션
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('SNS 링크', style: AppTextStyles.h4),
+              TextButton.icon(
+                onPressed: () => _showAddSnsDialog(),
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('추가'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                ),
+              ),
+            ],
+          ),
+          Text(
+            'SNS, 포트폴리오, 블로그 등의 링크를 추가하세요.',
+            style: AppTextStyles.caption,
+          ),
+          const SizedBox(height: 12),
+
+          if (_snsLinks.isEmpty)
+            _EmptyHint(
+              icon: Icons.link_outlined,
+              text: '아직 SNS 링크가 없습니다.\n+ 추가 버튼을 눌러 링크를 추가하세요.',
+            )
+          else
+            Column(
+              children: _snsLinks.asMap().entries.map((entry) {
+                final i = entry.key;
+                final sns = entry.value;
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: ListTile(
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                    leading: _SnsIcon(platform: sns.platform),
+                    title: Text(sns.platform, style: AppTextStyles.body1),
+                    subtitle: Text(
+                      sns.url,
+                      style: AppTextStyles.caption,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined,
+                              size: 18, color: AppColors.textSecondary),
+                          onPressed: () => _showAddSnsDialog(editIndex: i),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline,
+                              size: 18, color: Colors.red),
+                          onPressed: () =>
+                              setState(() => _snsLinks.removeAt(i)),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          const SizedBox(height: 40),
+        ],
       ),
     );
   }
 }
 
-// ── 경력 항목 타일 ─────────────────────────────────────
+// ════════════════════════════════════════════════════════════
+// 태그 입력 바텀시트
+// ════════════════════════════════════════════════════════════
+class _TagInputSheet extends StatelessWidget {
+  final TextEditingController typeCtrl;
+  final TextEditingController valueCtrl;
+  final bool isEdit;
+  final void Function(String type, String value) onSave;
 
-class _CareerListTile extends StatelessWidget {
-  final CareerItem career;
-  final int index;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-
-  const _CareerListTile({
-    super.key,
-    required this.career,
-    required this.index,
-    required this.onEdit,
-    required this.onDelete,
+  const _TagInputSheet({
+    required this.typeCtrl,
+    required this.valueCtrl,
+    required this.isEdit,
+    required this.onSave,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-        leading: Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Text(
-              '${index + 1}',
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 핸들
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
           ),
-        ),
-        title: Text(
-          career.title,
-          style: AppTextStyles.body1,
-        ),
-        subtitle: (career.period != null || career.detail != null)
-            ? Text(
-                [career.period, career.detail]
-                    .where((s) => s != null && s.isNotEmpty)
-                    .map((s) => s as String)
-                    .join(' \u00b7 '),
-                style: AppTextStyles.caption,
-              )
-            : null,
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 드래그 핸들
-            const Icon(Icons.drag_handle,
-                color: AppColors.textSecondary, size: 20),
-            const SizedBox(width: 4),
-            // 수정
-            IconButton(
-              icon: const Icon(Icons.edit_outlined,
-                  size: 18, color: AppColors.textSecondary),
-              onPressed: onEdit,
-              visualDensity: VisualDensity.compact,
+          Text(isEdit ? '태그 수정' : '태그 추가', style: AppTextStyles.h3),
+          const SizedBox(height: 6),
+          Text(
+            '유형(예: 전문분야)과 값(예: UX디자인)을 입력하세요.',
+            style: AppTextStyles.body2,
+          ),
+          const SizedBox(height: 20),
+          TextField(
+            controller: typeCtrl,
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(
+              labelText: '태그 유형',
+              hintText: '예) 전문분야, 관심사, 자격증',
+              prefixIcon: Icon(Icons.category_outlined),
             ),
-            // 삭제
-            IconButton(
-              icon: const Icon(Icons.delete_outline,
-                  size: 18, color: Colors.red),
-              onPressed: onDelete,
-              visualDensity: VisualDensity.compact,
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: valueCtrl,
+            textInputAction: TextInputAction.done,
+            decoration: const InputDecoration(
+              labelText: '태그 값 *',
+              hintText: '예) UX디자인, Flutter, AWS',
+              prefixIcon: Icon(Icons.label_outline),
             ),
-          ],
-        ),
+            onSubmitted: (_) {
+              final v = valueCtrl.text.trim();
+              if (v.isEmpty) return;
+              onSave(typeCtrl.text.trim(), v);
+              Navigator.pop(context);
+            },
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () {
+              final v = valueCtrl.text.trim();
+              if (v.isEmpty) return;
+              onSave(typeCtrl.text.trim(), v);
+              Navigator.pop(context);
+            },
+            child: Text(isEdit ? '수정 완료' : '추가'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// SNS 입력 바텀시트
+// ════════════════════════════════════════════════════════════
+class _SnsInputSheet extends StatefulWidget {
+  final String initialPlatform;
+  final TextEditingController urlCtrl;
+  final bool isEdit;
+  final void Function(String platform, String url) onSave;
+
+  const _SnsInputSheet({
+    required this.initialPlatform,
+    required this.urlCtrl,
+    required this.isEdit,
+    required this.onSave,
+  });
+
+  @override
+  State<_SnsInputSheet> createState() => _SnsInputSheetState();
+}
+
+class _SnsInputSheetState extends State<_SnsInputSheet> {
+  late String _platform;
+
+  @override
+  void initState() {
+    super.initState();
+    _platform = widget.initialPlatform;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 핸들
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Text(widget.isEdit ? 'SNS 수정' : 'SNS 추가', style: AppTextStyles.h3),
+          const SizedBox(height: 20),
+
+          // 플랫폼 선택
+          const Text('플랫폼', style: AppTextStyles.label),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _snsPlatforms.map((p) {
+              final selected = p == _platform;
+              return GestureDetector(
+                onTap: () => setState(() => _platform = p),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? AppColors.primary
+                        : AppColors.surfaceVariant,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: selected
+                          ? AppColors.primary
+                          : AppColors.border,
+                    ),
+                  ),
+                  child: Text(
+                    p,
+                    style: TextStyle(
+                      color: selected ? Colors.white : AppColors.textSecondary,
+                      fontSize: 13,
+                      fontWeight: selected
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 20),
+
+          // URL 입력
+          TextField(
+            controller: widget.urlCtrl,
+            keyboardType: TextInputType.url,
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(
+              labelText: '$_platform URL',
+              hintText: 'https://',
+              prefixIcon: const Icon(Icons.link),
+            ),
+            onSubmitted: (_) {
+              final url = widget.urlCtrl.text.trim();
+              if (url.isEmpty) return;
+              widget.onSave(_platform, url);
+              Navigator.pop(context);
+            },
+          ),
+          const SizedBox(height: 24),
+
+          ElevatedButton(
+            onPressed: () {
+              final url = widget.urlCtrl.text.trim();
+              if (url.isEmpty) return;
+              widget.onSave(_platform, url);
+              Navigator.pop(context);
+            },
+            child: Text(widget.isEdit ? '수정 완료' : '추가'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// SNS 아이콘 위젯
+// ════════════════════════════════════════════════════════════
+class _SnsIcon extends StatelessWidget {
+  final String platform;
+  const _SnsIcon({required this.platform});
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = _iconFor(platform);
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.1),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(icon, size: 18, color: AppColors.primary),
+    );
+  }
+
+  IconData _iconFor(String p) {
+    switch (p.toLowerCase()) {
+      case 'instagram':   return Icons.camera_alt_outlined;
+      case 'linkedin':    return Icons.business_center_outlined;
+      case 'github':      return Icons.code_outlined;
+      case 'twitter/x':  return Icons.flutter_dash;
+      case 'facebook':    return Icons.facebook_outlined;
+      case 'youtube':     return Icons.play_circle_outline;
+      case 'tiktok':      return Icons.music_video_outlined;
+      case 'blog':        return Icons.article_outlined;
+      case 'kakao':       return Icons.chat_bubble_outline;
+      default:            return Icons.link;
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// 빈 힌트 위젯
+// ════════════════════════════════════════════════════════════
+class _EmptyHint extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const _EmptyHint({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: AppColors.textSecondary, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(text, style: AppTextStyles.body2),
+          ),
+        ],
       ),
     );
   }

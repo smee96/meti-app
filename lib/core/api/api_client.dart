@@ -124,6 +124,23 @@ class ApiClient {
           return MockUsers.createCard(accessToken!, body!);
         }
 
+        // v2.9: 프로필 사진 업로드 POST /auth/me/avatar
+        if (path == '/auth/me/avatar') {
+          return MockUsers.uploadAvatar(accessToken!);
+        }
+
+        // v2.9: 명함 사진 업로드 POST /cards/:id/avatar
+        if (path.startsWith('/cards/') && path.endsWith('/avatar')) {
+          final parts = path.split('/');
+          final cid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
+          return MockUsers.uploadCardAvatar(accessToken!, cid);
+        }
+
+        // v2.9: 그룹 개설 POST /groups
+        if (path == '/groups') {
+          return MockUsers.createGroup(accessToken!, body ?? {});
+        }
+
         // QR 토큰 생성
         if (path.endsWith('/qr-token')) {
           return {
@@ -233,12 +250,15 @@ class ApiClient {
           final token = path.replaceFirst('/groups/invite/', '');
           return MockUsers.invitePreview(token);
         }
-        if (path == '/cards') return MockUsers.getCards();
+        if (path == '/cards') return MockUsers.getCards(accessToken);
         if (path == '/cards/contacts/list') {
           return {'success': true, 'data': [], 'pagination': {'page': 1, 'limit': 20, 'total': 0}};
         }
         if (path == '/groups') return _mockGroups();
-        if (path == '/groups/me') return MockUsers.getMyGroups(accessToken!);
+        // v2.9: /groups/mine (기존 /groups/me 대체)
+        if (path == '/groups/mine') return MockUsers.getMyGroupsMine(accessToken!);
+        // 하위 호환: /groups/me 도 동일하게 처리
+        if (path == '/groups/me') return MockUsers.getMyGroupsMine(accessToken!);
         if (path.startsWith('/groups/') && path.endsWith('/members')) {
           return {'success': true, 'data': _mockGroupMembers()};
         }
@@ -313,7 +333,14 @@ class ApiClient {
 
       // ── PATCH 라우팅 ──
       if (method == 'PATCH') {
-        if (path.startsWith('/cards/')) {
+        // v2.9: 프로필 수정 PATCH /auth/me
+        if (path == '/auth/me') {
+          return MockUsers.updateProfile(accessToken!, body ?? {});
+        }
+        if (path.startsWith('/cards/') && !path.contains('/members/') && !path.contains('/toggle')) {
+          final parts = path.split('/');
+          final cid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
+          if (cid > 0) return MockUsers.updateCard(accessToken!, cid, body ?? {});
           return {'success': true, 'data': body, 'message': '명함이 수정되었습니다.'};
         }
 
@@ -348,6 +375,12 @@ class ApiClient {
 
       // ── DELETE 라우팅 ──
       if (method == 'DELETE') {
+        // v2.9: 그룹 탈퇴 / pending 신청 취소 DELETE /groups/:id/leave
+        if (path.startsWith('/groups/') && path.endsWith('/leave')) {
+          final parts = path.split('/');
+          final gid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
+          return MockUsers.leaveGroup(accessToken!, gid);
+        }
         if (path.startsWith('/cards/')) {
           return {'success': true, 'data': null, 'message': '명함이 삭제되었습니다.'};
         }
@@ -647,6 +680,41 @@ class ApiClient {
     return _handleResponse(response, retryRequest: () async {
       final h = await _getHeaders(auth: auth);
       return _client.patch(uri, headers: h, body: body != null ? jsonEncode(body) : null);
+    });
+  }
+
+  // ─── Multipart Upload (v2.9) ─────────────────────────
+  /// 파일 업로드 (multipart/form-data)
+  /// [path]     : API 경로 (예: '/auth/me/avatar', '/cards/1/avatar')
+  /// [filePath] : 로컬 파일 경로
+  /// [fieldName]: form-data 필드명 (기본값 'avatar')
+  Future<Map<String, dynamic>> uploadFile(
+    String path,
+    String filePath, {
+    String fieldName = 'avatar',
+  }) async {
+    // Mock 모드: 실제 파일 없이 바로 mock dispatch
+    if (AppConstants.useMock) {
+      return _mockDispatch('POST', path);
+    }
+
+    final accessToken = await _getAccessToken();
+    final uri = Uri.parse('${AppConstants.baseUrl}$path');
+    final request = http.MultipartRequest('POST', uri);
+    if (accessToken != null) {
+      request.headers['Authorization'] = 'Bearer $accessToken';
+    }
+    request.files.add(
+      await http.MultipartFile.fromPath(fieldName, filePath),
+    );
+    final streamedResponse = await _client.send(request);
+    final response = await http.Response.fromStream(streamedResponse);
+    return _handleResponse(response, retryRequest: () async {
+      final newToken = await _getAccessToken();
+      final r = http.MultipartRequest('POST', uri);
+      if (newToken != null) r.headers['Authorization'] = 'Bearer $newToken';
+      r.files.add(await http.MultipartFile.fromPath(fieldName, filePath));
+      return http.Response.fromStream(await _client.send(r));
     });
   }
 

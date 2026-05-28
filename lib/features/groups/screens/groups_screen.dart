@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
-import '../../../core/constants/app_constants.dart';
 import '../../../routes/app_router.dart';
 import 'group_admin_screen.dart';
 
@@ -60,7 +59,7 @@ class _GroupsScreenState extends State<GroupsScreen>
   Future<void> _loadMyGroups() async {
     setState(() => _isMyGroupsLoading = true);
     try {
-      final response = await _api.get('/groups/me');
+      final response = await _api.get('/groups/mine'); // v2.9: /groups/mine
       if (response['success'] == true) {
         setState(() => _myGroups = response['data'] as List);
       }
@@ -167,8 +166,37 @@ class _GroupsScreenState extends State<GroupsScreen>
         separatorBuilder: (_, __) => const SizedBox(height: 10),
         itemBuilder: (_, i) {
           final g = _myGroups[i];
-          final myRole = g['my_role'] as String? ?? 'member';
-          final isAdmin = myRole == 'admin' || myRole == 'owner';
+          final myRole   = g['my_role']   as String? ?? 'member';
+          final myStatus = g['my_status'] as String? ?? 'active'; // v2.9
+          final isAdmin  = myRole == 'admin' || myRole == 'owner';
+
+          // v2.9: pending 상태 — 신청 중 카드 (취소 버튼 표시)
+          if (myStatus == 'pending' || myStatus == 'group_pending') {
+            return _PendingGroupCard(
+              group: g,
+              myStatus: myStatus,
+              onCancel: () async {
+                final gid = g['id'] as int? ?? 0;
+                try {
+                  await _api.delete('/groups/$gid/leave');
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('가입 신청이 취소되었습니다.')),
+                    );
+                    await _loadMyGroups();
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(e.toString())),
+                    );
+                  }
+                }
+              },
+            );
+          }
+
+          // active 상태 — 기존 카드
           return _GroupCard(
             group: g,
             showRole: true,
@@ -455,12 +483,8 @@ class _PurposeBadge extends StatelessWidget {
   final String purpose;
   const _PurposeBadge({required this.purpose});
 
-  String get _label {
-    final found = AppConstants.groupPurposes
-        .where((p) => p['value'] == purpose)
-        .toList();
-    return found.isNotEmpty ? found.first['label']! : purpose;
-  }
+  // v2.9: purpose는 자유 텍스트 — 바로 표시
+  String get _label => purpose.isNotEmpty ? purpose : '막연';
 
   @override
   Widget build(BuildContext context) {
@@ -960,9 +984,9 @@ class _CreateGroupSheet extends StatefulWidget {
 }
 
 class _CreateGroupSheetState extends State<_CreateGroupSheet> {
-  final _nameCtrl = TextEditingController();
-  final _descCtrl = TextEditingController();
-  String _selectedPurpose = 'networking';
+  final _nameCtrl    = TextEditingController();
+  final _descCtrl    = TextEditingController();
+  final _purposeCtrl = TextEditingController(); // v2.9: 자유 텍스트
   String _visibility = 'public';
   int _maxMembers = 100;
   bool _isLoading = false;
@@ -973,6 +997,7 @@ class _CreateGroupSheetState extends State<_CreateGroupSheet> {
   void dispose() {
     _nameCtrl.dispose();
     _descCtrl.dispose();
+    _purposeCtrl.dispose();
     super.dispose();
   }
 
@@ -1041,47 +1066,20 @@ class _CreateGroupSheetState extends State<_CreateGroupSheet> {
             ),
             const SizedBox(height: 16),
 
-            // 목적 선택
+            // v2.9: 목적 자유 텍스트 (5자 이상 필수)
             const Text('그룹 목적 *', style: AppTextStyles.label),
+            const SizedBox(height: 4),
+            const Text('5자 이상 자유롭게 작성해주세요',
+                style: TextStyle(fontSize: 12, color: Colors.grey)),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: AppConstants.groupPurposes.map((p) {
-                final isSelected = _selectedPurpose == p['value'];
-                return GestureDetector(
-                  onTap: () =>
-                      setState(() => _selectedPurpose = p['value']!),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.surfaceVariant,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isSelected
-                            ? AppColors.primary
-                            : AppColors.border,
-                      ),
-                    ),
-                    child: Text(
-                      p['label']!,
-                      style: TextStyle(
-                        color: isSelected
-                            ? Colors.white
-                            : AppColors.textSecondary,
-                        fontSize: 13,
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
+            TextField(
+              controller: _purposeCtrl,
+              maxLength: 100,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                hintText: '예) 플러터 개발자 지식 공유 및 네트워킹 스터디',
+                counterText: '',
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -1178,11 +1176,11 @@ class _CreateGroupSheetState extends State<_CreateGroupSheet> {
                         );
                         return;
                       }
-                      // H4: purpose 5자 이상 검사 (value 기준)
-                      if (_selectedPurpose.length < 5) {
+                      // v2.9: purpose 5자 이상 검사 (자유 텍스트)
+                      if (_purposeCtrl.text.trim().length < 5) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('그룹 목적을 선택해주세요.'),
+                            content: Text('그룹 목적을 5자 이상 입력해주세요.'),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
@@ -1193,7 +1191,7 @@ class _CreateGroupSheetState extends State<_CreateGroupSheet> {
                         'name': _nameCtrl.text.trim(),
                         if (_descCtrl.text.trim().isNotEmpty)
                           'description': _descCtrl.text.trim(),
-                        'purpose': _selectedPurpose,
+                        'purpose': _purposeCtrl.text.trim(),
                         'visibility': _visibility,
                         'max_members': _maxMembers,
                       });
@@ -1270,6 +1268,158 @@ class _VisibilityOption extends StatelessWidget {
                     fontSize: 11, color: AppColors.textTertiary)),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ── v2.9: pending 신청 중 그룹 카드 ─────────────────────────────
+class _PendingGroupCard extends StatelessWidget {
+  final Map<String, dynamic> group;
+  final String myStatus;       // 'pending' | 'group_pending'
+  final VoidCallback onCancel;
+
+  const _PendingGroupCard({
+    required this.group,
+    required this.myStatus,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final name        = group['name']        as String? ?? '';
+    final description = group['description'] as String? ?? '';
+    final adminName   = group['admin_name']  as String? ?? '';
+    final memberCount = group['member_count'] as int?   ?? 0;
+
+    final isPending      = myStatus == 'pending';
+    final statusLabel    = isPending ? '승인 대기 중' : '초대 수락 대기';
+    final statusColor    = isPending ? Colors.orange : Colors.blue;
+    final cancelLabel    = isPending ? '신청 취소' : '초대 거절';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: statusColor.withValues(alpha: 0.35)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 상단: 상태 뱃지 + 이름
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.hourglass_top_rounded,
+                        size: 12, color: statusColor),
+                    const SizedBox(width: 4),
+                    Text(statusLabel,
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: statusColor)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  name,
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w700),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          if (description.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(description,
+                style: const TextStyle(
+                    fontSize: 13, color: AppColors.textSecondary),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis),
+          ],
+          const SizedBox(height: 8),
+          // 하단: 관리자 / 멤버 수 / 취소 버튼
+          Row(
+            children: [
+              Icon(Icons.person_outline,
+                  size: 13, color: AppColors.textTertiary),
+              const SizedBox(width: 3),
+              Text('관리자: $adminName',
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.textTertiary)),
+              const SizedBox(width: 10),
+              Icon(Icons.group_outlined,
+                  size: 13, color: AppColors.textTertiary),
+              const SizedBox(width: 3),
+              Text('$memberCount명',
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.textTertiary)),
+              const Spacer(),
+              OutlinedButton(
+                onPressed: () => _confirmCancel(context),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: statusColor,
+                  side: BorderSide(color: statusColor.withValues(alpha: 0.6)),
+                  minimumSize: const Size(0, 30),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                  textStyle: const TextStyle(fontSize: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+                child: Text(cancelLabel),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmCancel(BuildContext context) {
+    final isPending = myStatus == 'pending';
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(isPending ? '신청 취소' : '초대 거절'),
+        content: Text(isPending
+            ? '"${group['name']}" 그룹 가입 신청을 취소할까요?'
+            : '"${group['name']}" 그룹 초대를 거절할까요?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('아니오'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              onCancel();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: Text(isPending ? '취소하기' : '거절하기'),
+          ),
+        ],
       ),
     );
   }

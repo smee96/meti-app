@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../points/providers/point_provider.dart';
 import '../../points/screens/point_screen.dart';
@@ -21,6 +22,193 @@ class _MyPageScreenState extends State<MyPageScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PointProvider>().loadWallet();
     });
+  }
+
+  // ── 프로필 수정 바텀시트 (T7 v2.9) ──────────────────────
+  void _showEditProfileSheet(BuildContext context) {
+    final auth = context.read<AuthProvider>();
+    final user = auth.user;
+    if (user == null) return;
+
+    final nameCtrl = TextEditingController(text: user.name);
+    final picker = ImagePicker();
+    String? pendingAvatarPath; // 업로드 전 로컬 경로
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            // ── 사진 선택 핸들러
+            Future<void> pickImage() async {
+              final picked = await picker.pickImage(
+                source: ImageSource.gallery,
+                maxWidth: 800,
+                maxHeight: 800,
+                imageQuality: 85,
+              );
+              if (picked != null) {
+                setSheetState(() => pendingAvatarPath = picked.path);
+              }
+            }
+
+            // ── 저장 핸들러
+            Future<void> handleSave() async {
+              final newName = nameCtrl.text.trim();
+              if (newName.isEmpty) return;
+
+              bool ok = true;
+
+              // 1) 이름 변경 (현재 이름과 다를 때만)
+              if (newName != user.name) {
+                ok = await auth.updateProfile(name: newName);
+              }
+
+              // 2) 사진 업로드 (선택한 경우)
+              if (ok && pendingAvatarPath != null) {
+                ok = await auth.uploadAvatar(pendingAvatarPath!);
+              }
+
+              if (!ctx.mounted) return;
+              Navigator.pop(ctx);
+              if (!mounted) return;
+              if (ok) {
+                showSuccessSnackBar(context, '프로필이 업데이트되었습니다.');
+              } else {
+                showErrorSnackBar(
+                    context, auth.errorMessage ?? '프로필 업데이트에 실패했습니다.');
+              }
+            }
+
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 32,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 핸들
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+
+                  const Text('프로필 수정', style: AppTextStyles.h3),
+                  const SizedBox(height: 24),
+
+                  // ── 아바타 영역
+                  GestureDetector(
+                    onTap: pickImage,
+                    child: Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        // 아바타 원형 이미지
+                        CircleAvatar(
+                          radius: 44,
+                          backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                          // 로컬 파일 선택 후: 체크 아이콘 표시 (web 호환)
+                          // 네트워크 URL 있을 때: NetworkImage
+                          // 없을 때: 이니셜
+                          backgroundImage: (pendingAvatarPath == null &&
+                                  user.avatarUrl != null &&
+                                  user.avatarUrl!.isNotEmpty)
+                              ? NetworkImage(user.avatarUrl!)
+                              : null,
+                          child: pendingAvatarPath != null
+                              ? const Icon(Icons.check_circle,
+                                  color: AppColors.primary, size: 36)
+                              : (user.avatarUrl == null || user.avatarUrl!.isEmpty
+                                  ? Text(
+                                      user.initials,
+                                      style: const TextStyle(
+                                        color: AppColors.primary,
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    )
+                                  : null),
+                        ),
+                        // 카메라 아이콘 뱃지
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Icon(Icons.camera_alt,
+                              size: 14, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: pickImage,
+                    icon: const Icon(Icons.photo_library_outlined, size: 16),
+                    label: const Text('사진 변경'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      textStyle: const TextStyle(fontSize: 13),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // ── 이름 필드
+                  TextField(
+                    controller: nameCtrl,
+                    textInputAction: TextInputAction.done,
+                    decoration: const InputDecoration(
+                      labelText: '이름',
+                      prefixIcon: Icon(Icons.person_outline),
+                    ),
+                    onSubmitted: (_) => handleSave(),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // ── 저장 버튼
+                  Consumer<AuthProvider>(
+                    builder: (_, authProv, __) => SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: authProv.isLoading ? null : handleSave,
+                        child: authProv.isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('저장'),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _handleLogout() async {
@@ -89,7 +277,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                 _MenuItem(
                   icon: Icons.person_outline,
                   label: '프로필 수정',
-                  onTap: () {},
+                  onTap: () => _showEditProfileSheet(context),
                 ),
                 _MenuItem(
                   icon: Icons.lock_outline,

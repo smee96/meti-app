@@ -159,5 +159,44 @@ class CardModel {
       );
 
   bool get isPrimaryCard => isPrimary == 1;
-  bool get isPublicCard => isPublic == 1;
+  bool get isPublicCard  => isPublic  == 1;
+
+  // v2.9: 부분 업데이트용 copyWith
+  CardModel copyWith({
+    String?          avatarUrl,
+    String?          name,
+    String?          title,
+    String?          company,
+    String?          email,
+    String?          phone,
+    String?          website,
+    String?          bio,
+    List<SnsLink>?   snsLinks,
+    List<CardTag>?   tags,
+  }) {
+    return CardModel(
+      id:          id,
+      userId:      userId,
+      groupId:     groupId,
+      cardType:    cardType,
+      name:        name      ?? this.name,
+      title:       title     ?? this.title,
+      company:     company   ?? this.company,
+      email:       email     ?? this.email,
+      phone:       phone     ?? this.phone,
+      website:     website   ?? this.website,
+      bio:         bio       ?? this.bio,
+      avatarUrl:   avatarUrl ?? this.avatarUrl,
+      templateId:  templateId,
+      isPrimary:   isPrimary,
+      isPublic:    isPublic,
+      isActive:    isActive,
+      createdAt:   createdAt,
+      updatedAt:   updatedAt,
+      snsCount:    snsLinks != null ? snsLinks.length : snsCount,
+      snsLinks:    snsLinks  ?? this.snsLinks,
+      tags:        tags      ?? this.tags,
+      careers:     careers,
+    );
+  }
 }

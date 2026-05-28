@@ -87,10 +87,25 @@ class AppConstants {
   static const String categoryClub        = 'club';
   static const String categoryOther       = 'other';
 
-  // Plan Card Limits (기획서 v1.5)
-  static const int freeCardLimit     = 1;
-  static const int proCardLimit      = 3;
-  static const int businessCardLimit = 10;
+  // Plan Card Limits (기획서 v1.6)
+  static const int freeCardLimit     = 3;
+  static const int proCardLimit      = 10;
+  static const int businessCardLimit = -1; // 무제한
+
+  /// 플랜별 명함 한도 반환 (-1 = 무제한)
+  static int cardLimit(String plan) {
+    switch (plan) {
+      case planPro:      return proCardLimit;
+      case planBusiness: return businessCardLimit;
+      default:           return freeCardLimit;
+    }
+  }
+
+  /// 플랜별 명함 한도 표시 문자열
+  static String cardLimitLabel(String plan) {
+    final limit = cardLimit(plan);
+    return limit == -1 ? '무제한' : '$limit장';
+  }
 
   // Plan Group Member Limits
   static const int freeGroupMemberLimit     = 2;
@@ -112,16 +127,9 @@ class AppConstants {
     return limit == -1 ? '무제한' : '$limit명';
   }
 
-  // Group Purpose Types
-  static const List<Map<String, String>> groupPurposes = [
-    {'value': 'networking', 'label': '네트워킹'},
-    {'value': 'business',   'label': '비즈니스'},
-    {'value': 'study',      'label': '스터디'},
-    {'value': 'hobby',      'label': '취미/동호회'},
-    {'value': 'alumni',     'label': '동문/동창'},
-    {'value': 'association','label': '협회/단체'},
-    {'value': 'other',      'label': '기타'},
-  ];
+  // Group Purpose (v2.9: 드롭다운 → 자유 텍스트, 5자 이상 필수)
+  // groupPurposes 목록 제거됨 — groups_screen.dart 에서 TextField 로 대체
+  static const int groupPurposeMinLength = 5;
 
   // Visibility
   static const String visibilityPublic  = 'public';

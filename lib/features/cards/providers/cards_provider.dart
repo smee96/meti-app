@@ -105,6 +105,31 @@ class CardsProvider extends ChangeNotifier {
     return false;
   }
 
+  // ─── 명함 사진 업로드 — POST /cards/:id/avatar (v2.9) ──
+  /// [filePath]: 로컬 이미지 파일 경로 (image_picker 결과)
+  /// 성공 시 _myCards 내 해당 카드의 avatar_url을 즉시 갱신
+  Future<String?> uploadCardAvatar(int cardId, String filePath) async {
+    try {
+      final response = await _api.uploadFile('/cards/$cardId/avatar', filePath);
+      if (response['success'] == true) {
+        final data = response['data'] as Map<String, dynamic>?;
+        final newUrl = data?['avatar_url'] as String?;
+        if (newUrl != null) {
+          // 로컬 목록 즉시 갱신
+          final idx = _myCards.indexWhere((c) => c.id == cardId);
+          if (idx != -1) {
+            _myCards[idx] = _myCards[idx].copyWith(avatarUrl: newUrl);
+            notifyListeners();
+          }
+        }
+        return newUrl;
+      }
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+    }
+    return null;
+  }
+
   // ─── QR 토큰 생성 ──────────────────────────────────────
   Future<Map<String, dynamic>?> generateQrToken(int cardId) async {
     try {

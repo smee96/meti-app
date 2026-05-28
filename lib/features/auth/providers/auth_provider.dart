@@ -189,6 +189,59 @@ class AuthProvider extends ChangeNotifier {
     } catch (_) {}
   }
 
+  // ─── 프로필 수정 — PATCH /auth/me (v2.9) ──────────────
+  /// [name]: 변경할 이름 (null이면 변경 안 함)
+  Future<bool> updateProfile({String? name}) async {
+    if (name != null && name.trim().isEmpty) return false;
+    try {
+      final body = <String, dynamic>{};
+      if (name != null) body['name'] = name.trim();
+      if (body.isEmpty) return true;
+
+      final response = await _api.patch('/auth/me', body: body);
+      if (response['success'] == true) {
+        // 로컬 _user 즉시 반영
+        final data = response['data'] as Map<String, dynamic>?;
+        if (data != null && _user != null) {
+          _user = _user!.copyWith(
+            name:      data['name']       as String? ?? _user!.name,
+            avatarUrl: data['avatar_url'] as String? ?? _user!.avatarUrl,
+          );
+          // SharedPreferences 이름 동기화
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(AppConstants.keyUserName, _user!.name);
+        }
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } on ApiException catch (e) {
+      _setError(e.message);
+      return false;
+    }
+  }
+
+  // ─── 프로필 사진 업로드 — POST /auth/me/avatar (v2.9) ──
+  /// [filePath]: 로컬 이미지 파일 경로 (image_picker 결과)
+  Future<bool> uploadAvatar(String filePath) async {
+    try {
+      final response = await _api.uploadFile('/auth/me/avatar', filePath);
+      if (response['success'] == true) {
+        final data = response['data'] as Map<String, dynamic>?;
+        final newUrl = data?['avatar_url'] as String?;
+        if (newUrl != null && _user != null) {
+          _user = _user!.copyWith(avatarUrl: newUrl);
+          notifyListeners();
+        }
+        return true;
+      }
+      return false;
+    } on ApiException catch (e) {
+      _setError(e.message);
+      return false;
+    }
+  }
+
   // ─── Helpers ──────────────────────────────────────────
   void _setLoading() {
     _status = AuthStatus.loading;
