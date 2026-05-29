@@ -3,12 +3,14 @@
 // api_client.dart 가 참조하는 MockUsers / MockApiException 이름을
 // 그대로 유지해 api_client.dart 수정을 최소화합니다.
 
-export 'mock/mock_data.dart';     // MockApiException, MockStore
-export 'mock/mock_auth.dart';     // MockAuth
-export 'mock/mock_cards.dart';    // MockCards
-export 'mock/mock_groups.dart';   // MockGroups
-export 'mock/mock_lessons.dart';  // MockLessons
-export 'mock/mock_payments.dart'; // MockPayments
+export 'mock/mock_data.dart';       // MockApiException, MockStore
+export 'mock/mock_auth.dart';      // MockAuth
+export 'mock/mock_cards.dart';     // MockCards
+export 'mock/mock_groups.dart';    // MockGroups
+export 'mock/mock_lessons.dart';   // MockLessons
+export 'mock/mock_payments.dart';  // MockPayments
+export 'mock/mock_guardians.dart'; // MockGuardians  — v3.0
+export 'mock/mock_schedules.dart'; // MockSchedules  — v3.0
 
 // ── MockUsers 호환 어댑터 ───────────────────────────────────────
 // api_client.dart 가 MockUsers.xxx() 형식으로 호출하므로
@@ -20,6 +22,8 @@ import 'mock/mock_cards.dart';
 import 'mock/mock_groups.dart';
 import 'mock/mock_lessons.dart';
 import 'mock/mock_payments.dart';
+import 'mock/mock_guardians.dart'; // v3.0
+import 'mock/mock_schedules.dart'; // v3.0
 
 // ignore_for_file: non_constant_identifier_names
 class MockUsers {
@@ -198,4 +202,60 @@ class MockUsers {
 
   static Map<String, dynamic> getPointChargeProducts(String accessToken) =>
       MockPayments.getPointChargeProducts(accessToken);
+
+  // ── 보호자 연결 (v3.0) ───────────────────────────────────────
+  /// GET /guardians/my-guardians
+  static Map<String, dynamic> getMyGuardians(String accessToken) =>
+      MockGuardians.getMyGuardians(accessToken);
+
+  /// GET /guardians/my-students
+  static Map<String, dynamic> getMyStudents(String accessToken) =>
+      MockGuardians.getMyStudents(accessToken);
+
+  /// POST /guardians/invite
+  static Map<String, dynamic> inviteGuardian(
+          String accessToken, Map<String, dynamic> body) =>
+      MockGuardians.invite(accessToken, body);
+
+  /// PUT /guardians/:id/accept
+  static Map<String, dynamic> acceptGuardian(String accessToken, int linkId) =>
+      MockGuardians.accept(accessToken, linkId);
+
+  /// PUT /guardians/:id/reject
+  static Map<String, dynamic> rejectGuardian(String accessToken, int linkId) =>
+      MockGuardians.reject(accessToken, linkId);
+
+  /// DELETE /guardians/:id/cancel
+  static Map<String, dynamic> cancelGuardian(String accessToken, int linkId) =>
+      MockGuardians.cancel(accessToken, linkId);
+
+  /// DELETE /guardians/:id
+  static Map<String, dynamic> removeGuardian(String accessToken, int linkId) =>
+      MockGuardians.remove(accessToken, linkId);
+
+  // ── 레슨 일정 / 출석 (v3.0) ─────────────────────────────────
+  /// GET /schedules?group_id=
+  static Map<String, dynamic> getSchedules(
+          String accessToken, int groupId, {String? status}) =>
+      MockSchedules.getSchedules(accessToken, groupId, status: status);
+
+  /// GET /schedules/:id
+  static Map<String, dynamic> getScheduleDetail(
+          String accessToken, int scheduleId) =>
+      MockSchedules.getScheduleDetail(accessToken, scheduleId);
+
+  /// POST /schedules
+  static Map<String, dynamic> createSchedule(
+          String accessToken, Map<String, dynamic> body) =>
+      MockSchedules.createSchedule(accessToken, body);
+
+  /// GET /schedules/:id/attendances
+  static Map<String, dynamic> getAttendances(
+          String accessToken, int scheduleId) =>
+      MockSchedules.getAttendances(accessToken, scheduleId);
+
+  /// PUT /schedules/:id/attendances
+  static Map<String, dynamic> recordAttendances(
+          String accessToken, int scheduleId, Map<String, dynamic> body) =>
+      MockSchedules.recordAttendances(accessToken, scheduleId, body);
 }
