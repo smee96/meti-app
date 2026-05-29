@@ -16,7 +16,6 @@ class EmailVerificationScreen extends StatefulWidget {
 class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   final _tokenCtrl = TextEditingController();
   String? _email;
-  String? _devToken; // 개발환경에서만 표시
 
   @override
   void didChangeDependencies() {
@@ -24,7 +23,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     final args = ModalRoute.of(context)?.settings.arguments as Map?;
     if (args != null) {
       _email = args['email'] as String?;
-      _devToken = args['verify_token'] as String?;
+      // v3.0 보안패치: verify_token 수신 제거
     }
   }
 
@@ -97,61 +96,6 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                       style: AppTextStyles.body2,
                       textAlign: TextAlign.center,
                     ),
-
-                    // 개발 환경 토큰 표시
-                    if (_devToken != null) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.warning.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: AppColors.warning.withValues(alpha: 0.4),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.developer_mode,
-                                    size: 16, color: AppColors.warning),
-                                const SizedBox(width: 6),
-                                const Text(
-                                  '개발 환경 - 인증 토큰',
-                                  style: TextStyle(
-                                    color: AppColors.warning,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            GestureDetector(
-                              onTap: () => _tokenCtrl.text = _devToken!,
-                              child: Text(
-                                _devToken!,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.textSecondary,
-                                  fontFamily: 'monospace',
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              '(탭하면 자동 입력)',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: AppColors.textTertiary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
 
                     const SizedBox(height: 32),
                     TextFormField(

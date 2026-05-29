@@ -74,6 +74,95 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     setState(() => _isSending = false);
   }
 
+  /// 첸부 메뉴 표시
+  void _showAttachBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: AppColors.primary,
+                  child: Icon(Icons.image_outlined, color: Colors.white),
+                ),
+                title: const Text('이미지 첨부'),
+                subtitle: const Text('사진 또는 이미지 파일 선택'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _sendAttachment(type: 'image', label: '이미지');
+                },
+              ),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: AppColors.accent,
+                  child: Icon(Icons.attach_file, color: Colors.white),
+                ),
+                title: const Text('파일 첨부'),
+                subtitle: const Text('문서, PDF, 스프레드시트 등'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _sendAttachment(type: 'file', label: '파일');
+                },
+              ),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: AppColors.success,
+                  child: Icon(Icons.videocam_outlined, color: Colors.white),
+                ),
+                title: const Text('동영상 첨부'),
+                subtitle: const Text('동영상 파일 선택'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _sendAttachment(type: 'video', label: '동영상');
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: AppColors.textTertiary,
+                  child: Icon(Icons.close, color: Colors.white, size: 18),
+                ),
+                title: const Text('취소'),
+                onTap: () => Navigator.pop(ctx),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Mock 파일 첨부 전송 (Web 호환 — 실제 파일 선택 없이 더미 메시지 전송)
+  Future<void> _sendAttachment(
+      {required String type, required String label}) async {
+    if (_isSending) return;
+    setState(() => _isSending = true);
+    try {
+      // Mock: 직접 첨부파일명 생성
+      final now = DateTime.now();
+      final fakeFileName =
+          '${label}_${now.millisecondsSinceEpoch}.${type == 'image' ? 'jpg' : type == 'video' ? 'mp4' : 'pdf'}';
+      final response = await _api.post('/chat/${widget.roomId}/messages', body: {
+        'content': fakeFileName,
+        'message_type': type,
+        'file_name': fakeFileName,
+        'file_size': 1024 * (type == 'image' ? 256 : 512),
+      });
+      if (response['success'] == true) {
+        final msg = response['data'] as Map<String, dynamic>;
+        setState(() => _messages.add(msg));
+        _scrollToBottom();
+      }
+    } catch (_) {}
+    setState(() => _isSending = false);
+  }
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollCtrl.hasClients) {
@@ -137,6 +226,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             isMe: isMe,
                             time: _formatTime(msg['created_at'] as String?),
                             senderName: msg['sender_name'] as String?,
+                            messageType:
+                                msg['message_type'] as String? ?? 'text',
                           );
                         },
                       ),
@@ -145,7 +236,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           // 입력창
           Container(
             padding: EdgeInsets.only(
-              left: 16,
+              left: 8,
               right: 8,
               top: 8,
               bottom: MediaQuery.of(context).viewInsets.bottom + 8,
@@ -157,7 +248,31 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             child: SafeArea(
               top: false,
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  // 첨부 버튼
+                  Tooltip(
+                    message: '파일 첨부',
+                    child: InkWell(
+                      onTap: _showAttachBottomSheet,
+                      borderRadius: BorderRadius.circular(22),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        margin: const EdgeInsets.only(bottom: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceVariant,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.add,
+                          color: AppColors.textSecondary,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: TextField(
                       controller: _messageCtrl,
@@ -186,7 +301,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   GestureDetector(
                     onTap: _isSending ? null : _sendMessage,
                     child: AnimatedContainer(
@@ -217,13 +332,44 @@ class _MessageBubble extends StatelessWidget {
   final bool isMe;
   final String time;
   final String? senderName;
+  final String messageType;
 
   const _MessageBubble({
     required this.content,
     required this.isMe,
     required this.time,
     this.senderName,
+    this.messageType = 'text',
   });
+
+  /// 첨부 타입에 따른 아이콘
+  IconData get _attachIcon {
+    switch (messageType) {
+      case 'image':
+        return Icons.image_outlined;
+      case 'video':
+        return Icons.videocam_outlined;
+      case 'file':
+      default:
+        return Icons.insert_drive_file_outlined;
+    }
+  }
+
+  /// 첨부 타입 레이블
+  String get _attachLabel {
+    switch (messageType) {
+      case 'image':
+        return '이미지';
+      case 'video':
+        return '동영상';
+      case 'file':
+      default:
+        return '파일';
+    }
+  }
+
+  bool get _isAttachment =>
+      messageType == 'image' || messageType == 'file' || messageType == 'video';
 
   @override
   Widget build(BuildContext context) {
@@ -261,7 +407,9 @@ class _MessageBubble extends StatelessWidget {
                 constraints: BoxConstraints(
                   maxWidth: MediaQuery.of(context).size.width * 0.65,
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: _isAttachment
+                    ? const EdgeInsets.symmetric(horizontal: 12, vertical: 10)
+                    : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
                   color: isMe ? AppColors.primary : AppColors.surface,
                   borderRadius: BorderRadius.only(
@@ -274,13 +422,20 @@ class _MessageBubble extends StatelessWidget {
                       ? null
                       : Border.all(color: AppColors.border),
                 ),
-                child: Text(
-                  content,
-                  style: TextStyle(
-                    color: isMe ? Colors.white : AppColors.textPrimary,
-                    fontSize: 14,
-                  ),
-                ),
+                child: _isAttachment
+                    ? _AttachmentPreview(
+                        fileName: content,
+                        icon: _attachIcon,
+                        label: _attachLabel,
+                        isMe: isMe,
+                      )
+                    : Text(
+                        content,
+                        style: TextStyle(
+                          color: isMe ? Colors.white : AppColors.textPrimary,
+                          fontSize: 14,
+                        ),
+                      ),
               ),
               const SizedBox(height: 2),
               Padding(
@@ -293,6 +448,71 @@ class _MessageBubble extends StatelessWidget {
           if (isMe) const SizedBox(width: 4),
         ],
       ),
+    );
+  }
+}
+
+/// 첨부파일 미리보기 위젯
+class _AttachmentPreview extends StatelessWidget {
+  final String fileName;
+  final IconData icon;
+  final String label;
+  final bool isMe;
+
+  const _AttachmentPreview({
+    required this.fileName,
+    required this.icon,
+    required this.label,
+    required this.isMe,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = isMe ? Colors.white : AppColors.textPrimary;
+    final subColor = isMe
+        ? Colors.white.withValues(alpha: 0.7)
+        : AppColors.textSecondary;
+    final iconBg = isMe
+        ? Colors.white.withValues(alpha: 0.2)
+        : AppColors.primary.withValues(alpha: 0.1);
+    final iconColor = isMe ? Colors.white : AppColors.primary;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: iconBg,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: iconColor, size: 22),
+        ),
+        const SizedBox(width: 10),
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                fileName,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: TextStyle(color: subColor, fontSize: 11),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

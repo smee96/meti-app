@@ -9,6 +9,10 @@ import '../features/intro/screens/intro_screen.dart';
 import '../features/points/screens/point_screen.dart';
 import '../features/invite/screens/invite_join_screen.dart';
 import '../features/upgrade/screens/upgrade_screen.dart';
+import '../features/guardians/screens/guardians_screen.dart';
+import '../features/schedules/screens/lesson_schedules_screen.dart';
+import '../features/schedules/screens/schedule_detail_screen.dart';
+import '../features/schedules/models/schedule_model.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -49,6 +53,13 @@ class AppRoutes {
   // Invite deep-link
   static const String inviteJoin = '/invite';
 
+  // Guardians
+  static const String guardians = '/guardians';
+
+  // Schedules
+  static const String lessonSchedules = '/schedules';
+  static const String scheduleDetail = '/schedules/detail';
+
   // Upgrade
   static const String upgrade = '/upgrade';
 
@@ -75,6 +86,28 @@ class AppRoutes {
         final args = settings.arguments as Map<String, dynamic>?;
         final token = args?['token'] as String? ?? '';
         return _slide(InviteJoinScreen(token: token), settings);
+      case guardians:
+        return _slide(const GuardiansScreen(), settings);
+      case lessonSchedules:
+        // arguments: {'group_id': int, 'group_name': String}
+        final lsArgs = settings.arguments as Map<String, dynamic>?;
+        final groupId = lsArgs?['group_id'] as int? ?? 0;
+        final groupName = lsArgs?['group_name'] as String? ?? '레슨 일정';
+        return _slide(
+            LessonSchedulesScreen(groupId: groupId, groupName: groupName),
+            settings);
+      case scheduleDetail:
+        // arguments: {'schedule': LessonSchedule}
+        final sdArgs = settings.arguments as Map<String, dynamic>?;
+        final schedule = sdArgs?['schedule'] as LessonSchedule?;
+        if (schedule == null) {
+          return _fade(
+            const Scaffold(
+                body: Center(child: Text('일정 정보가 없습니다.'))),
+            settings,
+          );
+        }
+        return _slide(ScheduleDetailScreen(schedule: schedule), settings);
       case upgrade:
         // arguments: {'fromContext': String?}
         final upgradeArgs = settings.arguments as Map<String, dynamic>?;

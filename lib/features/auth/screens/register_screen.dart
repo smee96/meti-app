@@ -89,7 +89,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         AppRoutes.emailVerification,
         arguments: {
           'email': _emailCtrl.text.trim(),
-          'verify_token': result['verify_token'],
+          // v3.0 보안패치: verify_token 서버 응답에서 제거됨
         },
       );
     } else {
