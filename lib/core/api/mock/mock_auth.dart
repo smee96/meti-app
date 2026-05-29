@@ -21,6 +21,8 @@ class MockAuth {
     }
 
     final userId      = MockStore.users.length + 1;
+    // v3.0 보안패치: verifyToken은 내부 MockStore 저장용으로만 사용
+    // 서버 응답에 포함하지 않음 (실서버와 동일하게 이메일로만 전달)
     final verifyToken = 'mock-verify-${DateTime.now().millisecondsSinceEpoch}';
     MockStore.users.add({
       'id': userId,
@@ -42,7 +44,7 @@ class MockAuth {
       'data': {
         'user_id': userId,
         'email': email,
-        'verify_token': verifyToken,
+        // verify_token 제거 (v3.0 보안패치: 서버는 토큰을 이메일로만 전달)
       },
       'message': '회원가입이 완료되었습니다. 이메일을 확인해주세요.',
     };
