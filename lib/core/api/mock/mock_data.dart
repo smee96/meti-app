@@ -345,4 +345,84 @@ class MockStore {
     {'id': 4, 'title': '직접 입력',       'amount_krw': 0,      'points': 0,      'is_custom': 1,
      'min_amount': 10000},
   ];
+
+  // ── 보호자 연결 (Guardian) ────────────────────────────────────
+  // guardianLinks: user_guardians 테이블 Mock
+  // - status: 'pending' | 'accepted' | 'rejected'
+  // - user_id: 학생, guardian_user_id: 보호자
+  static final List<Map<String, dynamic>> guardianLinks = [
+    {
+      'id': 1,
+      'user_id': 1,              // 학생: test@meti.dev (id=1)
+      'guardian_user_id': 2,     // 보호자: mock user id=2
+      'relation': 'parent',
+      'status': 'pending',       // 수락 대기 중 → 앱에서 수락/거절 테스트 가능
+      'invited_at': '2026-05-28T09:00:00Z',
+      'accepted_at': null,
+    },
+  ];
+  static int guardianLinkIdSeq = 10;
+
+  // ── 레슨 일정 (Schedule) ─────────────────────────────────────
+  // lessonSchedules: lesson_schedules 테이블 Mock (groupId → List<Schedule>)
+  // - status: 'scheduled' | 'completed' | 'cancelled'
+  static final Map<int, List<Map<String, dynamic>>> lessonSchedules = {
+    1: [
+      {
+        'id': 1,
+        'group_id': 1,
+        'instructor_id': 1,
+        'instructor_name': '홍길동',
+        'title': '5월 4주차 수영 수업',
+        'description': '자유형 집중 훈련',
+        'scheduled_at': '2026-05-28T10:00:00Z',
+        'duration_minutes': 60,
+        'location': '실내수영장 A레인',
+        'capacity': 5,
+        'status': 'completed',
+        'attendance_count': 2,
+        'created_at': '2026-05-25T09:00:00Z',
+      },
+      {
+        'id': 2,
+        'group_id': 1,
+        'instructor_id': 1,
+        'instructor_name': '홍길동',
+        'title': '6월 1주차 수영 수업',
+        'description': null,
+        'scheduled_at': '2026-06-04T10:00:00Z',
+        'duration_minutes': 60,
+        'location': '실내수영장 A레인',
+        'capacity': 5,
+        'status': 'scheduled',
+        'attendance_count': 0,
+        'created_at': '2026-05-30T09:00:00Z',
+      },
+    ],
+  };
+  static int scheduleIdSeq = 10;
+
+  // ── 출석 (Attendance) ─────────────────────────────────────────
+  // lessonAttendances: lesson_attendances 테이블 Mock (scheduleId → List<Attendance>)
+  // - status: 'present' | 'absent' | 'late' | 'excused'
+  static final Map<int, List<Map<String, dynamic>>> lessonAttendances = {
+    1: [   // scheduleId=1 (5월 4주차 수업 - completed)의 출석 기록
+      {
+        'student_id': 1,
+        'student_name': '홍길동',
+        'avatar_url': null,
+        'status': 'present',
+        'note': null,
+        'recorded_at': '2026-05-28T10:05:00Z',
+      },
+      {
+        'student_id': 3,
+        'student_name': '이영희',
+        'avatar_url': null,
+        'status': 'absent',
+        'note': '병결',
+        'recorded_at': '2026-05-28T10:10:00Z',
+      },
+    ],
+  };
 }
