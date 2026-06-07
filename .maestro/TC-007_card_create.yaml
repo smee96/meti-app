@@ -1,0 +1,37 @@
+appId: com.meti.meti_app
+tags:
+  - cards
+  - p0
+---
+# BUG-AOS-001 수정됨: test@meti.dev 초기 명함 3→2장 (Free 한도: 3장)
+# Happy Path: 3번째 명함 생성 성공 검증
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+- waitForAnimationToEnd
+
+# 명함 만들기 폼 진입
+- tapOn: "명함 만들기"
+- waitForAnimationToEnd
+
+# 폼 UI 확인
+- assertVisible: "이름 \\*"
+- assertVisible: "직책"
+- assertVisible: "회사명"
+- assertVisible: "저장"
+
+# 폼 유효성 검사: 이름 미입력 상태로 저장 시도
+- tapOn: "저장"
+- waitForAnimationToEnd
+- assertVisible: "이름을 입력해주세요"
+
+# 이름 입력 후 저장 — Happy Path (3번째 명함 생성 성공)
+- tapOn: "이름 \\*"
+- inputText: "CardTest"
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn: "저장"
+- waitForAnimationToEnd:
+    timeout: 3000
+# 성공 시 Navigator.pop → 카드 홈으로 복귀
+- assertVisible: "내 명함"

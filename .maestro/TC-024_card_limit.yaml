@@ -1,0 +1,42 @@
+appId: com.meti.meti_app
+tags:
+  - cards
+  - p2
+---
+# BUG-AOS-001 수정 후: test@meti.dev 초기 명함 2장 (Free 한도: 3장)
+# 한도 초과 트리거: 3번째 명함 먼저 생성(성공) → 4번째 생성 시도 → 한도 초과 다이얼로그
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+- waitForAnimationToEnd
+
+# 1단계: 3번째 명함 생성 (성공)
+- tapOn: "명함 만들기"
+- waitForAnimationToEnd
+- tapOn: "이름 \\*"
+- inputText: "Card3"
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn: "저장"
+- waitForAnimationToEnd:
+    timeout: 3000
+# 성공 → 카드 홈 복귀
+- assertVisible: "내 명함"
+# loadMyCards() 완료 대기
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# 2단계: 4번째 명함 생성 시도 → 한도 초과 다이얼로그 확인
+- tapOn: "명함 만들기"
+- waitForAnimationToEnd
+- tapOn: "이름 \\*"
+- inputText: "OverCard"
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn: "저장"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# 명함 한도 초과 다이얼로그 확인 후 닫기
+- tapOn: "나중에"
+- waitForAnimationToEnd
