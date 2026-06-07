@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../points/providers/point_provider.dart';
 import '../../points/screens/point_screen.dart';
@@ -306,12 +307,18 @@ class _MyPageScreenState extends State<MyPageScreen> {
                 _MenuItem(
                   icon: Icons.description_outlined,
                   label: '이용약관',
-                  onTap: () {},
+                  onTap: () => launchUrl(
+                    Uri.parse('https://the-meti.pages.dev/terms'),
+                    mode: LaunchMode.externalApplication,
+                  ),
                 ),
                 _MenuItem(
                   icon: Icons.privacy_tip_outlined,
                   label: '개인정보처리방침',
-                  onTap: () {},
+                  onTap: () => launchUrl(
+                    Uri.parse('https://the-meti.pages.dev/privacy'),
+                    mode: LaunchMode.externalApplication,
+                  ),
                 ),
               ]),
 
