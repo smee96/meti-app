@@ -13,6 +13,7 @@ import '../features/guardians/screens/guardians_screen.dart';
 import '../features/schedules/screens/lesson_schedules_screen.dart';
 import '../features/schedules/screens/schedule_detail_screen.dart';
 import '../features/schedules/models/schedule_model.dart';
+import '../features/cards/screens/public_card_screen.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -63,6 +64,9 @@ class AppRoutes {
   // Upgrade
   static const String upgrade = '/upgrade';
 
+  // Public card viewer (QR 스캔 결과 / 딥링크)
+  static const String publicCard = '/cards/public';
+
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
       case splash:
@@ -108,6 +112,11 @@ class AppRoutes {
           );
         }
         return _slide(ScheduleDetailScreen(schedule: schedule), settings);
+      case publicCard:
+        // arguments: {'card_id': int}
+        final pcArgs = settings.arguments as Map<String, dynamic>?;
+        final cardId = pcArgs?['card_id'] as int? ?? 0;
+        return _slide(PublicCardScreen(cardId: cardId), settings);
       case upgrade:
         // arguments: {'fromContext': String?}
         final upgradeArgs = settings.arguments as Map<String, dynamic>?;

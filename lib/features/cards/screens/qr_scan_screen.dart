@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/cards_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
+import '../../../routes/app_router.dart';
 
 class QrScanScreen extends StatefulWidget {
   const QrScanScreen({super.key});
@@ -96,6 +97,14 @@ class _QrScanScreenState extends State<QrScanScreen> {
               // ignore: use_build_context_synchronously
               showErrorSnackBar(context, '명함 저장에 실패했습니다.');
             }
+          },
+          onViewDetail: () {
+            Navigator.pop(context);
+            Navigator.pushNamed(
+              context,
+              AppRoutes.publicCard,
+              arguments: {'card_id': card.id},
+            );
           },
         ),
       );
@@ -234,8 +243,13 @@ class _ScanOverlayPainter extends CustomPainter {
 class _CardScanResultDialog extends StatelessWidget {
   final dynamic card;
   final VoidCallback onSave;
+  final VoidCallback onViewDetail;
 
-  const _CardScanResultDialog({required this.card, required this.onSave});
+  const _CardScanResultDialog({
+    required this.card,
+    required this.onSave,
+    required this.onViewDetail,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -259,6 +273,10 @@ class _CardScanResultDialog extends StatelessWidget {
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: const Text('취소'),
+        ),
+        TextButton(
+          onPressed: onViewDetail,
+          child: const Text('자세히 보기'),
         ),
         ElevatedButton(
           onPressed: onSave,

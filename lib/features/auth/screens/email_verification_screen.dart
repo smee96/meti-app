@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../../../core/api/mock/mock_data.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../routes/app_router.dart';
@@ -106,6 +108,24 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                         prefixIcon: Icon(Icons.vpn_key_outlined),
                       ),
                     ),
+                    if (AppConfig.useMock) ...[
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          final token = MockStore.verifyTokens.entries
+                              .where((e) => e.value == _email)
+                              .map((e) => e.key)
+                              .firstOrNull;
+                          if (token != null) {
+                            _tokenCtrl.text = token;
+                          } else {
+                            showErrorSnackBar(context, '발급된 토큰이 없습니다. 회원가입을 다시 시도해주세요.');
+                          }
+                        },
+                        icon: const Icon(Icons.developer_mode, size: 16),
+                        label: const Text('[Mock] 토큰 자동 입력'),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     ElevatedButton(
                       onPressed: auth.isLoading ? null : _handleVerify,

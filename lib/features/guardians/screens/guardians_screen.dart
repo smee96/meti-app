@@ -119,8 +119,8 @@ class _GuardiansScreenState extends State<GuardiansScreen>
   Future<void> _doInvite(String email, String relation) async {
     final p = context.read<GuardianProvider>();
     final ok = await p.inviteGuardian(
-      guardianEmail: email,
-      relation:      relation,
+      minorEmail: email,
+      relation:   relation,
     );
     if (!mounted) return;
     if (ok) {
@@ -152,7 +152,7 @@ class _GuardiansScreenState extends State<GuardiansScreen>
     if (confirmed != true || !mounted) return;
 
     final p  = context.read<GuardianProvider>();
-    final ok = await p.cancelGuardian(link.id);
+    final ok = await p.removeGuardian(link.id);
     if (!mounted) return;
     if (ok) {
       showSuccessSnackBar(context, '초대가 취소되었습니다.');

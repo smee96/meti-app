@@ -43,7 +43,33 @@ class MockStore {
       'avatar_url': null,
       'created_at': '2026-01-01 00:00:00',
       'point_balance': 3500,
-    }
+    },
+    {
+      'id': 2,
+      'email': 'pro@meti.dev',
+      'password': 'ProTest1234!',
+      'name': '김프로',
+      'role': 'user',
+      'account_type': 'personal',
+      'plan': 'pro',
+      'is_verified': 1,
+      'avatar_url': null,
+      'created_at': '2026-01-01 00:00:00',
+      'point_balance': 15000,
+    },
+    {
+      'id': 3,
+      'email': 'admin@meti.dev',
+      'password': 'AdminTest1234!',
+      'name': '이어드민',
+      'role': 'admin',
+      'account_type': 'personal',
+      'plan': 'business',
+      'is_verified': 1,
+      'avatar_url': null,
+      'created_at': '2026-01-01 00:00:00',
+      'point_balance': 50000,
+    },
   ];
 
   // ── 토큰 ─────────────────────────────────────────────────────
@@ -108,29 +134,6 @@ class MockStore {
       'created_at': '2026-02-01 00:00:00',
       'updated_at': '2026-02-01 00:00:00',
       'sns_count': 2,
-    },
-    {
-      'id': 3,
-      'user_id': 1,
-      'group_id': null,
-      'card_type': 'personal',
-      'name': '홍길동 (다크)',
-      'title': 'Tech Lead',
-      'company': null,
-      'email': 'tech@meti.app',
-      'phone': '010-0000-0000',
-      'website': null,
-      'bio': null,
-      'avatar_url': null,
-      'template_id': 'dark',
-      'is_primary': 0,
-      'is_public': 0,
-      'is_active': 1,
-      'tags': [],
-      'sns_links': [],
-      'created_at': '2026-03-01 00:00:00',
-      'updated_at': '2026-03-01 00:00:00',
-      'sns_count': 0,
     },
   ];
 
@@ -354,8 +357,17 @@ class MockStore {
     {
       'id': 1,
       'user_id': 1,              // 학생: test@meti.dev (id=1)
-      'guardian_user_id': 2,     // 보호자: mock user id=2
+      'guardian_user_id': 2,     // 보호자: pro@meti.dev (id=2)
       'relation': 'parent',
+      'status': 'accepted',
+      'invited_at': '2026-05-01T09:00:00Z',
+      'accepted_at': '2026-05-02T10:00:00Z',
+    },
+    {
+      'id': 2,
+      'user_id': 1,              // 학생: test@meti.dev (id=1)
+      'guardian_user_id': 3,     // 보호자: admin@meti.dev (id=3)
+      'relation': 'teacher',
       'status': 'pending',       // 수락 대기 중 → 앱에서 수락/거절 테스트 가능
       'invited_at': '2026-05-28T09:00:00Z',
       'accepted_at': null,

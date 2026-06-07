@@ -142,6 +142,61 @@ class MockCards {
     return {'success': true, 'data': card, 'message': '명함이 수정되었습니다.'};
   }
 
+  // ── 공개 명함 조회 — GET /cards/public/:id (인증 불필요) ──────
+  static Map<String, dynamic> getPublicCard(int cardId) {
+    try {
+      final card = MockStore.cards.firstWhere((c) => c['id'] == cardId);
+      if ((card['is_public'] as int? ?? 0) == 0) {
+        throw MockApiException('비공개 명함입니다.', 403);
+      }
+      // 소유자 이름 포함
+      final userId = card['user_id'] as int;
+      final user = MockStore.users.firstWhere(
+        (u) => u['id'] == userId,
+        orElse: () => <String, dynamic>{},
+      );
+      final result = Map<String, dynamic>.from(card);
+      result['owner_name'] = user['name'] ?? card['name'];
+      return {'success': true, 'data': result};
+    } catch (e) {
+      if (e is MockApiException) rethrow;
+      // 명함 없음 — 데모용 더미 데이터 반환
+      return {
+        'success': true,
+        'data': {
+          'id': cardId,
+          'user_id': 1,
+          'card_type': 'personal',
+          'name': '홍길동',
+          'title': '시니어 개발자',
+          'company': 'METI Corp',
+          'email': 'test@meti.dev',
+          'phone': '010-1234-5678',
+          'website': 'https://meti.dev',
+          'bio': 'Flutter & Dart 개발자입니다. 모바일 앱과 백엔드를 함께 개발합니다.',
+          'avatar_url': null,
+          'template_id': 'default',
+          'is_primary': 1,
+          'is_public': 1,
+          'is_active': 1,
+          'tags': [
+            {'tag_type': 'career',    'tag_value': 'METI Corp · 시니어 개발자 · 2024~현재'},
+            {'tag_type': 'education', 'tag_value': '서울대학교 컴퓨터공학과 · 2018 졸업'},
+            {'tag_type': 'skill',     'tag_value': 'Flutter'},
+            {'tag_type': 'skill',     'tag_value': 'Dart'},
+            {'tag_type': 'skill',     'tag_value': 'TypeScript'},
+            {'tag_type': 'keyword',   'tag_value': '모바일 개발'},
+            {'tag_type': 'keyword',   'tag_value': '스타트업'},
+          ],
+          'sns_links': [
+            {'platform': 'github',   'url': 'https://github.com/example', 'sort_order': 0},
+            {'platform': 'linkedin', 'url': 'https://linkedin.com/in/example', 'sort_order': 1},
+          ],
+        },
+      };
+    }
+  }
+
   // ── 명함 사진 업로드 — POST /cards/:id/avatar ────────────────
   // v2.9 신규: multipart/form-data, field name = avatar
   // Mock: 실제 파일 처리 없이 더미 URL 반환

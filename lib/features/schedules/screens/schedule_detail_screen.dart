@@ -37,7 +37,7 @@ class _ScheduleDetailScreenState extends State<ScheduleDetailScreen> {
 
   Future<void> _loadAttendances() async {
     final p = context.read<ScheduleProvider>();
-    await p.loadAttendances(widget.schedule.id);
+    await p.loadAttendances(widget.schedule.groupId, widget.schedule.id);
     if (!mounted) return;
     // Provider 목록을 로컬 편집용으로 복사
     setState(() {
@@ -104,6 +104,7 @@ class _ScheduleDetailScreenState extends State<ScheduleDetailScreen> {
   Future<void> _saveAttendances() async {
     final p = context.read<ScheduleProvider>();
     final summary = await p.recordAttendances(
+      widget.schedule.groupId,
       widget.schedule.id,
       _editableAttendances,
     );

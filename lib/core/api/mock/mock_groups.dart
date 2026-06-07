@@ -65,29 +65,11 @@ class MockGroups {
   }
 
   // ── 그룹 가입 신청 — POST /groups/:id/join ───────────────────
-  // v2.5: 플랜별 멤버 한도 체크
+  // 한도 체크는 관리자 승인 단계에서만 적용 (신청 단계는 무조건 허용)
   static Map<String, dynamic> joinGroup(
       String accessToken, int groupId, Map<String, dynamic> body) {
     final email = MockStore.accessTokens[accessToken];
     if (email == null) throw MockApiException('인증이 필요합니다.', 401);
-
-    final user  = MockStore.users.firstWhere((u) => u['email'] == email);
-    final plan  = user['plan'] as String? ?? 'free';
-
-    // Mock: 그룹 관리자 플랜 기준 한도 체크
-    const memberLimits = {'free': 2, 'pro': 10, 'business': -1};
-    final limit = memberLimits[plan] ?? 2;
-
-    // Mock 시나리오: free 플랜 → 이미 한도 도달(2/2)
-    if (limit != -1 && groupId == 1 && plan == 'free') {
-      throw MockApiException(
-        '플랜 멤버 한도에 도달했습니다. 플랜을 업그레이드해주세요.',
-        422,
-        errorCode: 'plan_member_limit_reached',
-        upgradeRequired: true,
-        extra: {'current': limit, 'limit': limit},
-      );
-    }
 
     return {
       'success': true,

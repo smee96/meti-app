@@ -227,14 +227,37 @@ class ApiClient {
           return MockUsers.issuePaymentToken(accessToken!, body ?? {});
         }
 
-        // v3.0: 보호자 초대 POST /guardians/invite
-        if (path == '/guardians/invite') {
+        // v3.0: 보호자 연결 요청 POST /guardians/link
+        if (path == '/guardians/link') {
           return MockUsers.inviteGuardian(accessToken!, body ?? {});
         }
 
-        // v3.0: 레슨 일정 생성 POST /schedules
-        if (path == '/schedules') {
-          return MockUsers.createSchedule(accessToken!, body ?? {});
+        // v3.0: 보호자 연결 수락 POST /guardians/link/:id/accept
+        if (path.startsWith('/guardians/link/') && path.endsWith('/accept')) {
+          final parts = path.split('/');
+          final lid = int.tryParse(parts.length >= 4 ? parts[3] : '0') ?? 0;
+          return MockUsers.acceptGuardian(accessToken!, lid);
+        }
+
+        // v3.0: 보호자 연결 거절 POST /guardians/link/:id/reject
+        if (path.startsWith('/guardians/link/') && path.endsWith('/reject')) {
+          final parts = path.split('/');
+          final lid = int.tryParse(parts.length >= 4 ? parts[3] : '0') ?? 0;
+          return MockUsers.rejectGuardian(accessToken!, lid);
+        }
+
+        // v3.0: 레슨 일정 생성 POST /lessons/:groupId/schedules
+        if (path.startsWith('/lessons/') && path.endsWith('/schedules')) {
+          final parts = path.split('/');
+          final gid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
+          return MockUsers.createSchedule(accessToken!, body ?? {}, groupId: gid);
+        }
+
+        // v3.0: 레슨 출석 배치 처리 POST /lessons/:groupId/schedules/:id/attendance
+        if (path.startsWith('/lessons/') && path.endsWith('/attendance')) {
+          final parts = path.split('/');
+          final sid = int.tryParse(parts.length >= 5 ? parts[4] : '0') ?? 0;
+          return MockUsers.recordAttendances(accessToken!, sid, body ?? {});
         }
 
         // 채팅 메시지 전송
@@ -262,6 +285,14 @@ class ApiClient {
           return MockUsers.invitePreview(token);
         }
         if (path == '/cards') return MockUsers.getCards(accessToken);
+
+        // 공개 명함 조회 GET /cards/public/:id (인증 불필요)
+        if (path.startsWith('/cards/public/')) {
+          final parts = path.split('/');
+          final cid = int.tryParse(parts.length >= 4 ? parts[3] : '0') ?? 0;
+          return MockUsers.getPublicCard(cid);
+        }
+
         if (path == '/cards/contacts/list') {
           return {'success': true, 'data': [], 'pagination': {'page': 1, 'limit': 20, 'total': 0}};
         }
@@ -328,39 +359,44 @@ class ApiClient {
           final gid = int.tryParse(parts.length >= 4 ? parts[3] : '0') ?? 0;
           return MockUsers.getLessons(gid);
         }
-        // v3.0: 보호자 목록 GET /guardians/my-guardians
-        if (path == '/guardians/my-guardians') {
+        // v3.0: 보호자 목록 GET /guardians?role=mine|students
+        if (path == '/guardians') {
+          return MockUsers.getMyGuardians(accessToken!);
+        }
+        if (path.startsWith('/guardians?')) {
+          final uri = Uri.parse('https://mock.local$path');
+          final role = uri.queryParameters['role'] ?? 'mine';
+          if (role == 'students') return MockUsers.getMyStudents(accessToken!);
           return MockUsers.getMyGuardians(accessToken!);
         }
 
-        // v3.0: 학생 목록 GET /guardians/my-students
-        if (path == '/guardians/my-students') {
-          return MockUsers.getMyStudents(accessToken!);
+        // v3.0: 대기 중인 연결 요청 GET /guardians/pending
+        if (path == '/guardians/pending') {
+          return {'success': true, 'data': []};
         }
 
-        // v3.0: 레슨 일정 목록 GET /schedules?group_id=
-        if (path == '/schedules') {
-          // queryParams는 _mockDispatch에서 path로 전달되지 않으므로
-          // group_id=0 기본값으로 처리 (실제 호출 시 경로에 포함)
-          return MockUsers.getSchedules(accessToken!, 0);
+        // v3.0: 내 학생들의 레슨 그룹 GET /guardians/lesson-groups
+        if (path == '/guardians/lesson-groups') {
+          return {'success': true, 'data': []};
         }
 
-        // v3.0: 레슨 일정 목록 (group_id 포함 경로) GET /schedules?group_id=:gid
-        // api_client.get('/schedules', queryParams: {'group_id': '$gid'}) 호출 시
-        // _mockDispatch에 path만 전달 → 별도 처리 필요
-        // → GET /schedules/:gid 형식도 지원
-        if (path.startsWith('/schedules/') && !path.contains('/attendances')) {
+        // v3.0: 레슨 일정 목록 GET /lessons/:groupId/schedules
+        if (path.startsWith('/lessons/') && path.endsWith('/schedules')) {
           final parts = path.split('/');
-          final sid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
-          // 순수 숫자면 상세 조회, 아니면 그룹별 목록
-          if (sid > 0) return MockUsers.getScheduleDetail(accessToken!, sid);
+          final gid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
+          return MockUsers.getSchedules(accessToken!, gid);
         }
 
-        // v3.0: 출석 목록 GET /schedules/:id/attendances
-        if (path.startsWith('/schedules/') && path.endsWith('/attendances')) {
+        // v3.0: 레슨 일정 상세 GET /lessons/:groupId/schedules/:id
+        if (path.startsWith('/lessons/') && path.contains('/schedules/')) {
           final parts = path.split('/');
-          final sid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
-          return MockUsers.getAttendances(accessToken!, sid);
+          final sid = int.tryParse(parts.length >= 5 ? parts[4] : '0') ?? 0;
+          return MockUsers.getScheduleDetail(accessToken!, sid);
+        }
+
+        // v3.0: 학생 목록 GET /lessons/:groupId/students
+        if (path.startsWith('/lessons/') && path.endsWith('/students')) {
+          return {'success': true, 'data': []};
         }
 
         if (path == '/chat') return {'success': true, 'data': []};
@@ -419,44 +455,15 @@ class ApiClient {
         }
       }
 
-      // ── PUT 라우팅 ──
+      // ── PUT 라우팅 (현재 미사용 — Guardian/Schedule은 POST로 처리) ──
       if (method == 'PUT') {
-        // v3.0: 초대 수락 PUT /guardians/:id/accept
-        if (path.startsWith('/guardians/') && path.endsWith('/accept')) {
-          final parts = path.split('/');
-          final lid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
-          return MockUsers.acceptGuardian(accessToken!, lid);
-        }
-
-        // v3.0: 초대 거절 PUT /guardians/:id/reject
-        if (path.startsWith('/guardians/') && path.endsWith('/reject')) {
-          final parts = path.split('/');
-          final lid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
-          return MockUsers.rejectGuardian(accessToken!, lid);
-        }
-
-        // v3.0: 출석 일괄 기록 PUT /schedules/:id/attendances
-        if (path.startsWith('/schedules/') && path.endsWith('/attendances')) {
-          final parts = path.split('/');
-          final sid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
-          return MockUsers.recordAttendances(accessToken!, sid, body ?? {});
-        }
+        // 추후 필요 시 여기에 추가
       }
 
       // ── DELETE 라우팅 ──
       if (method == 'DELETE') {
-        // v3.0: 초대 취소 DELETE /guardians/:id/cancel
-        if (path.startsWith('/guardians/') && path.endsWith('/cancel')) {
-          final parts = path.split('/');
-          final lid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
-          return MockUsers.cancelGuardian(accessToken!, lid);
-        }
-
-        // v3.0: 연결 삭제 DELETE /guardians/:id
-        if (path.startsWith('/guardians/') &&
-            !path.endsWith('/cancel') &&
-            !path.endsWith('/accept') &&
-            !path.endsWith('/reject')) {
+        // v3.0: 보호자 연결 해제 DELETE /guardians/:guardianUserId
+        if (path.startsWith('/guardians/')) {
           final parts = path.split('/');
           final lid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
           if (lid > 0) return MockUsers.removeGuardian(accessToken!, lid);

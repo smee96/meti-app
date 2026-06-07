@@ -1,6 +1,11 @@
 // guardian_provider.dart — 보호자 연결 상태 관리
-// API: /guardians/my-guardians, /guardians/my-students,
-//      /guardians/invite, /guardians/:id/accept|reject|cancel|remove
+// API: v1.7 스펙 기준
+//   GET  /guardians?role=mine|students
+//   GET  /guardians/pending
+//   POST /guardians/link
+//   POST /guardians/link/:id/accept
+//   POST /guardians/link/:id/reject
+//   DELETE /guardians/:guardianUserId
 // v3.0 신규
 
 import 'package:flutter/foundation.dart';
@@ -13,24 +18,24 @@ class GuardianProvider extends ChangeNotifier {
   // ── 상태 ────────────────────────────────────────────────────────
   List<GuardianLink> _myGuardians = [];   // 내 보호자 목록 (학생 시점)
   List<GuardianLink> _myStudents  = [];   // 내 학생 목록  (보호자 시점)
+  List<GuardianLink> _pending     = [];   // 대기 중인 연결 요청
   bool   _isLoading     = false;
   String? _errorMessage;
 
   // ── getter ───────────────────────────────────────────────────────
   List<GuardianLink> get myGuardians   => _myGuardians;
   List<GuardianLink> get myStudents    => _myStudents;
+  List<GuardianLink> get pending       => _pending;
   bool   get isLoading     => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  /// pending 상태인 내 보호자 초대 건수 (배지 표시용)
-  int get pendingGuardianCount =>
-      _myGuardians.where((l) => l.isPending).length;
+  int get pendingCount => _pending.length;
 
-  // ── 내 보호자 목록 — GET /guardians/my-guardians ───────────────
+  // ── 내 보호자 목록 — GET /guardians?role=mine ──────────────────
   Future<void> loadMyGuardians() async {
     _setLoading(true);
     try {
-      final res = await _api.get('/guardians/my-guardians');
+      final res = await _api.get('/guardians', queryParams: {'role': 'mine'});
       if (res['success'] == true) {
         _myGuardians = (res['data'] as List)
             .map((e) => GuardianLink.fromJson(e as Map<String, dynamic>))
@@ -43,11 +48,11 @@ class GuardianProvider extends ChangeNotifier {
     }
   }
 
-  // ── 내 학생 목록 — GET /guardians/my-students ─────────────────
+  // ── 내 학생 목록 — GET /guardians?role=students ───────────────
   Future<void> loadMyStudents() async {
     _setLoading(true);
     try {
-      final res = await _api.get('/guardians/my-students');
+      final res = await _api.get('/guardians', queryParams: {'role': 'students'});
       if (res['success'] == true) {
         _myStudents = (res['data'] as List)
             .map((e) => GuardianLink.fromJson(e as Map<String, dynamic>))
@@ -60,29 +65,47 @@ class GuardianProvider extends ChangeNotifier {
     }
   }
 
-  // ── 보호자 초대 — POST /guardians/invite ──────────────────────
-  /// 반환: 성공 시 true, 실패 시 false (_errorMessage 설정됨)
+  // ── 대기 중인 요청 — GET /guardians/pending ───────────────────
+  Future<void> loadPending() async {
+    _setLoading(true);
+    try {
+      final res = await _api.get('/guardians/pending');
+      if (res['success'] == true) {
+        _pending = (res['data'] as List)
+            .map((e) => GuardianLink.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // ── 보호자 연결 요청 — POST /guardians/link ───────────────────
   Future<bool> inviteGuardian({
-    required String guardianEmail,
+    String? minorEmail,
+    int? minorUserId,
     required String relation,
+    int? groupId,
   }) async {
     _setLoading(true);
     try {
-      final res = await _api.post('/guardians/invite', body: {
-        'guardian_email': guardianEmail,
-        'relation':       relation,
-      });
+      final body = <String, dynamic>{'relation': relation};
+      if (minorEmail != null) body['minor_email'] = minorEmail;
+      if (minorUserId != null) body['minor_user_id'] = minorUserId;
+      if (groupId != null) body['group_id'] = groupId;
+
+      final res = await _api.post('/guardians/link', body: body);
       if (res['success'] == true) {
-        // 서버 응답의 새 링크를 목록에 즉시 추가
         final data = res['data'] as Map<String, dynamic>?;
         if (data != null) {
-          _myGuardians.add(GuardianLink.fromJson({
-            'id':         data['id'],
-            'relation':   data['relation'],
-            'status':     data['status'],
-            'invited_at': data['invited_at'],
+          _myStudents.add(GuardianLink.fromJson({
+            'id':          data['id'],
+            'relation':    data['relation'],
+            'status':      data['status'],
+            'invited_at':  data['invited_at'] ?? DateTime.now().toIso8601String(),
             'accepted_at': null,
-            'guardian':   null,  // 수락 전에는 정보 없음
           }));
         }
         notifyListeners();
@@ -96,20 +119,14 @@ class GuardianProvider extends ChangeNotifier {
     return false;
   }
 
-  // ── 초대 수락 — PUT /guardians/:id/accept ────────────────────
-  Future<bool> acceptGuardian(int linkId) async {
+  // ── 연결 수락 — POST /guardians/link/:id/accept ───────────────
+  Future<bool> acceptGuardian(int requestId) async {
     _setLoading(true);
     try {
-      final res = await _api.put('/guardians/$linkId/accept');
+      final res = await _api.post('/guardians/link/$requestId/accept');
       if (res['success'] == true) {
-        // 로컬 상태 즉시 갱신
-        final idx = _myStudents.indexWhere((l) => l.id == linkId);
-        if (idx != -1) {
-          // accepted 상태로 교체 — 전체 목록 재로드로 최신화
-          await loadMyStudents();
-        } else {
-          await loadMyGuardians();
-        }
+        _pending.removeWhere((l) => l.id == requestId);
+        await loadMyGuardians();
         return true;
       }
     } on ApiException catch (e) {
@@ -120,14 +137,13 @@ class GuardianProvider extends ChangeNotifier {
     return false;
   }
 
-  // ── 초대 거절 — PUT /guardians/:id/reject ────────────────────
-  Future<bool> rejectGuardian(int linkId) async {
+  // ── 연결 거절 — POST /guardians/link/:id/reject ───────────────
+  Future<bool> rejectGuardian(int requestId) async {
     _setLoading(true);
     try {
-      final res = await _api.put('/guardians/$linkId/reject');
+      final res = await _api.post('/guardians/link/$requestId/reject');
       if (res['success'] == true) {
-        _myStudents.removeWhere((l) => l.id == linkId);
-        _myGuardians.removeWhere((l) => l.id == linkId);
+        _pending.removeWhere((l) => l.id == requestId);
         notifyListeners();
         return true;
       }
@@ -139,34 +155,14 @@ class GuardianProvider extends ChangeNotifier {
     return false;
   }
 
-  // ── 초대 취소 — DELETE /guardians/:id/cancel ─────────────────
-  // 초대를 보낸 학생(user_id)이 pending 상태 취소
-  Future<bool> cancelGuardian(int linkId) async {
+  // ── 연결 해제 — DELETE /guardians/:guardianUserId ─────────────
+  Future<bool> removeGuardian(int guardianUserId) async {
     _setLoading(true);
     try {
-      final res = await _api.delete('/guardians/$linkId/cancel');
+      final res = await _api.delete('/guardians/$guardianUserId');
       if (res['success'] == true) {
-        _myGuardians.removeWhere((l) => l.id == linkId);
-        notifyListeners();
-        return true;
-      }
-    } on ApiException catch (e) {
-      _errorMessage = e.message;
-    } finally {
-      _setLoading(false);
-    }
-    return false;
-  }
-
-  // ── 연결 삭제 — DELETE /guardians/:id ────────────────────────
-  // accepted 상태의 연결을 완전 삭제 (학생/보호자 양쪽 가능)
-  Future<bool> removeGuardian(int linkId) async {
-    _setLoading(true);
-    try {
-      final res = await _api.delete('/guardians/$linkId');
-      if (res['success'] == true) {
-        _myGuardians.removeWhere((l) => l.id == linkId);
-        _myStudents.removeWhere((l) => l.id == linkId);
+        _myGuardians.removeWhere((l) => l.id == guardianUserId);
+        _myStudents.removeWhere((l) => l.id == guardianUserId);
         notifyListeners();
         return true;
       }

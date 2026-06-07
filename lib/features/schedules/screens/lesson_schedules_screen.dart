@@ -218,7 +218,7 @@ class _LessonSchedulesScreenState extends State<LessonSchedulesScreen>
 
   Future<void> _doCreate(Map<String, dynamic> data) async {
     final p = context.read<ScheduleProvider>();
-    final result = await p.createSchedule(data);
+    final result = await p.createSchedule(widget.groupId, data);
     if (!mounted) return;
     if (result != null) {
       showSuccessSnackBar(context, '레슨 일정이 등록되었습니다.');

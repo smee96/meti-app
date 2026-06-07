@@ -45,5 +45,29 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>QR 코드 스캔 및 명함 사진 촬영에 사용됩니다.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>명함 프로필 사진 선택에 사용됩니다.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>명함 이미지 저장에 사용됩니다.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>https</string>
+		<string>http</string>
+	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>metiapp</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

@@ -76,6 +76,10 @@ class MockUsers {
           String accessToken, Map<String, dynamic> body) =>
       MockCards.createCard(accessToken, body);
 
+  /// GET /cards/public/:id (인증 불필요)
+  static Map<String, dynamic> getPublicCard(int cardId) =>
+      MockCards.getPublicCard(cardId);
+
   static Map<String, dynamic> updateCard(
           String accessToken, int cardId, Map<String, dynamic> body) =>
       MockCards.updateCard(accessToken, cardId, body);
@@ -244,9 +248,9 @@ class MockUsers {
           String accessToken, int scheduleId) =>
       MockSchedules.getScheduleDetail(accessToken, scheduleId);
 
-  /// POST /schedules
+  /// POST /lessons/:groupId/schedules
   static Map<String, dynamic> createSchedule(
-          String accessToken, Map<String, dynamic> body) =>
+          String accessToken, Map<String, dynamic> body, {int groupId = 0}) =>
       MockSchedules.createSchedule(accessToken, body);
 
   /// GET /schedules/:id/attendances
