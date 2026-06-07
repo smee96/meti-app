@@ -1,0 +1,32 @@
+appId: com.meti.meti_app
+tags:
+  - cards
+  - p1
+---
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+
+- waitForAnimationToEnd
+
+# 명함첩 화면 진입 (AppBar 아이콘 탭)
+- tapOn: "명함첩"
+- waitForAnimationToEnd
+
+# 명함첩 화면 진입 확인 (빈 상태)
+- assertVisible: "명함첩"
+
+# QR 스캔 진입 (카메라 권한 처리)
+- runFlow:
+    when:
+      visible: "QR 스캔"
+    commands:
+      - tapOn: "QR 스캔"
+      - waitForAnimationToEnd
+      - runFlow:
+          when:
+            visible: "허용"
+          commands:
+            - tapOn: "허용"
+            - waitForAnimationToEnd
+      - back

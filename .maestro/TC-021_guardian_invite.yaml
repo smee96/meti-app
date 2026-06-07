@@ -1,0 +1,32 @@
+appId: com.meti.meti_app
+tags:
+  - guardian
+  - p2
+---
+# NOTE: 보호자 초대 FAB은 "내 보호자" 탭에만 표시됨 (내 학생 탭에는 없음)
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+
+- tapOn:
+    point: "90%, 94%"
+- waitForAnimationToEnd
+- scroll
+- tapOn: "보호자 관리"
+- waitForAnimationToEnd
+
+# "내 보호자" 탭 (기본 탭) → FAB "보호자 초대" 탭
+# FloatingActionButton.extended label이 standalone 접근성 노드
+- tapOn: "보호자 초대"
+- waitForAnimationToEnd
+
+# 초대 다이얼로그 확인
+- assertVisible: "보호자 초대"
+
+# 이메일 입력 (dialog field labelText: '보호자 이메일')
+- tapOn: "보호자 이메일"
+- inputText: "student@meti.io"
+
+# 초대 보내기 (keyboard 열려 있어도 tapOn이 스크롤해서 찾음)
+- tapOn: "초대 보내기"
+- waitForAnimationToEnd

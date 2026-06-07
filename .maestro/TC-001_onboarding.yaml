@@ -1,0 +1,32 @@
+appId: com.meti.meti_app
+tags:
+  - auth
+  - p0
+---
+- launchApp:
+    clearState: true
+- assertVisible: "METI"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# 온보딩 슬라이드 4장 스와이프
+- swipe:
+    direction: LEFT
+    duration: 400
+- waitForAnimationToEnd
+- swipe:
+    direction: LEFT
+    duration: 400
+- waitForAnimationToEnd
+- swipe:
+    direction: LEFT
+    duration: 400
+- waitForAnimationToEnd
+
+# 마지막 페이지 "시작하기" 버튼
+- assertVisible: "시작하기"
+- tapOn: "시작하기"
+- waitForAnimationToEnd
+
+# 로그인 화면 도달 확인
+- assertVisible: "로그인"

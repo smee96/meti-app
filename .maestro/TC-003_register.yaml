@@ -1,0 +1,57 @@
+appId: com.meti.meti_app
+tags:
+  - auth
+  - p0
+---
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd:
+    timeout: 4000
+- runFlow:
+    when:
+      visible: "시작하기"
+    commands:
+      - swipe:
+          direction: LEFT
+          duration: 400
+      - swipe:
+          direction: LEFT
+          duration: 400
+      - swipe:
+          direction: LEFT
+          duration: 400
+      - tapOn: "시작하기"
+      - waitForAnimationToEnd
+
+- tapOn: "회원가입"
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "이름"
+    optional: true
+- inputText: "TestUser"
+
+- tapOn:
+    text: "이메일"
+    optional: true
+- inputText: "newuser@test.io"
+
+- tapOn:
+    text: "비밀번호"
+    optional: true
+- inputText: "Test1234!"
+- hideKeyboard
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "비밀번호 확인"
+    optional: true
+- inputText: "Test1234!"
+- hideKeyboard
+
+- tapOn: "회원가입"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# 이메일 인증 화면
+- assertVisible: "이메일 인증"

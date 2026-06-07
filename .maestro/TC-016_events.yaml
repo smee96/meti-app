@@ -1,0 +1,29 @@
+appId: com.meti.meti_app
+tags:
+  - events
+  - p1
+---
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+
+- tapOn:
+    point: "50%, 94%"
+- waitForAnimationToEnd
+
+# 이벤트 화면 타이틀 확인
+- assertVisible: "이벤트"
+
+# 탭 필터 — 좌표 탭 (TabBar 탭은 accessibility 노드가 독립적으로 안 잡힘)
+# Tab bar y≈12%, 전체(x≈17%), 예정(x≈50%), 진행중(x≈83%)
+- tapOn:
+    point: "50%, 12%"
+- waitForAnimationToEnd
+
+- tapOn:
+    point: "83%, 12%"
+- waitForAnimationToEnd
+
+- tapOn:
+    point: "17%, 12%"
+- waitForAnimationToEnd

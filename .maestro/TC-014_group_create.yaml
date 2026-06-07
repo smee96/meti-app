@@ -1,0 +1,37 @@
+appId: com.meti.meti_app
+tags:
+  - groups
+  - p1
+---
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+
+- tapOn:
+    point: "30%, 94%"
+- waitForAnimationToEnd
+
+# 그룹 개설 신청 버튼 (+ 아이콘 버튼, tooltip: '그룹 개설 신청')
+- tapOn: "그룹 개설 신청"
+- waitForAnimationToEnd
+
+# 바텀시트 타이틀 확인
+- assertVisible: "그룹 개설 신청"
+
+# 그룹명 입력 (required)
+- tapOn: "그룹명 \\*"
+- inputText: "Test Dev Group"
+
+# 그룹 목적 입력 — hint 텍스트로 필드 탭 (required, ≥5자)
+- tapOn: "예) 플러터 개발자 지식 공유 및 네트워킹 스터디"
+- inputText: "Flutter study group"  # Maestro: Korean inputText unsupported (ASCII only)
+
+# 신청 제출
+- tapOn: "신청하기"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# 개설 신청 완료 다이얼로그 확인 후 닫기
+- assertVisible: "개설 신청 완료"
+- tapOn: "확인"
+- waitForAnimationToEnd

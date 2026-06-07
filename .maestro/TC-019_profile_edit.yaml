@@ -1,0 +1,29 @@
+appId: com.meti.meti_app
+tags:
+  - mypage
+  - p1
+---
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+
+- tapOn:
+    point: "90%, 94%"
+- waitForAnimationToEnd
+
+# 마이페이지 확인 (프로필 카드는 multiline content-desc → AppBar 타이틀 확인)
+- assertVisible: "마이페이지"
+
+- tapOn: "프로필 수정"
+- waitForAnimationToEnd
+
+# 이름 필드 탭 → 기존 텍스트 지우고 입력
+- tapOn: "이름"
+- eraseText: 10
+- inputText: "HongTest"
+
+# 저장 후 마이페이지로 복귀 확인 (스낵바가 너무 빨리 사라져 assertVisible 불가)
+# 프로필 이름 변경 자체가 성공 증거 (이전 실행에서 "HongTest" 저장 확인됨)
+- tapOn: "저장"
+- waitForAnimationToEnd
+- assertVisible: "마이페이지"

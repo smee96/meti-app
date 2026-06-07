@@ -1,0 +1,36 @@
+appId: com.meti.meti_app
+tags:
+  - groups
+  - p1
+---
+# NOTE: 스크롤 가능한 TabBar 내 탭 텍스트는 assertVisible 불가 (accessibility 제한)
+# 관리 화면 진입 확인만 검증
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+
+- tapOn:
+    point: "30%, 94%"
+- waitForAnimationToEnd
+
+# "내 그룹" 서브탭 (좌표 탭)
+- tapOn:
+    point: "75%, 12%"
+- waitForAnimationToEnd
+
+# 관리자 그룹 관리 버튼 탭
+- tapOn: "관리"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# 그룹 관리 화면 진입 확인 (AppBar 타이틀)
+- assertVisible: "METI 개발자 모임"
+
+# 탭 전환 — 좌표 탭 (tab bar y≈9%: 레슨 탭 x≈45%, 이벤트 탭 x≈60%)
+- tapOn:
+    point: "45%, 9%"
+- waitForAnimationToEnd
+
+- tapOn:
+    point: "60%, 9%"
+- waitForAnimationToEnd

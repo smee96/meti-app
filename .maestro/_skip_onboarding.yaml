@@ -1,0 +1,17 @@
+appId: com.meti.meti_app
+---
+- swipe:
+    direction: LEFT
+    duration: 400
+- waitForAnimationToEnd
+- swipe:
+    direction: LEFT
+    duration: 400
+- waitForAnimationToEnd
+- swipe:
+    direction: LEFT
+    duration: 400
+- waitForAnimationToEnd
+- tapOn: "시작하기"
+- waitForAnimationToEnd:
+    timeout: 2000

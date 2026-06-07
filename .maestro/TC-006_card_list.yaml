@@ -1,0 +1,14 @@
+appId: com.meti.meti_app
+tags:
+  - cards
+  - p0
+---
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+
+- waitForAnimationToEnd
+
+# 명함 목록 또는 빈 상태 확인
+- assertVisible: "내 명함"          # 섹션 헤더
+- assertVisible: "홍길동"           # Mock 기본 명함

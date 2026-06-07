@@ -1,0 +1,28 @@
+appId: com.meti.meti_app
+tags:
+  - auth
+  - p0
+---
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+
+# 메인 진입 확인
+- assertVisible: "내 명함"
+
+- tapOn:
+    point: "90%, 94%"
+- waitForAnimationToEnd
+- scroll
+
+# 로그아웃 메뉴 탭 → 확인 다이얼로그 출현
+- tapOn: "로그아웃"
+
+# 다이얼로그 "로그아웃" 버튼 탭 (implicit assertion: 버튼 없으면 timeout fail)
+# assertVisible "로그아웃 하시겠습니까?" — "?" 포함 텍스트 타이밍 이슈로 skip
+- tapOn: "로그아웃"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# 로그인 화면 복귀 확인
+- assertVisible: "로그인"

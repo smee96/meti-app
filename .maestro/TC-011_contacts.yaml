@@ -1,0 +1,17 @@
+appId: com.meti.meti_app
+tags:
+  - cards
+  - p1
+---
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+
+- waitForAnimationToEnd
+
+# 명함첩 진입 (AppBar 아이콘)
+- tapOn: "명함첩"
+- waitForAnimationToEnd
+
+# 명함첩 화면 확인
+- assertVisible: "명함첩"

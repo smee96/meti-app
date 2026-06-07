@@ -1,0 +1,23 @@
+appId: com.meti.meti_app
+tags:
+  - mypage
+  - p2
+---
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+
+- tapOn:
+    point: "90%, 94%"
+- waitForAnimationToEnd
+
+# 업그레이드 카드 또는 메뉴
+- assertVisible: "업그레이드"
+- tapOn: "업그레이드"
+- waitForAnimationToEnd
+
+# 플랜 선택 화면
+# 플랜 업그레이드 화면 확인
+- assertVisible: "플랜 업그레이드"
+- assertVisible: "Pro"
+# Business는 스크롤 아래에 있어 assertVisible 불가 → 화면 타이틀로 대체 확인

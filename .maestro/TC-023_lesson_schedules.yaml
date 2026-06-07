@@ -1,0 +1,30 @@
+appId: com.meti.meti_app
+tags:
+  - groups
+  - p2
+---
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+
+- tapOn:
+    point: "30%, 94%"
+- waitForAnimationToEnd
+
+# "내 그룹" 서브탭 (좌표 탭 — content-desc: "내 그룹\nTab 2 of 2")
+- tapOn:
+    point: "75%, 12%"
+- waitForAnimationToEnd
+
+# 관리 버튼
+- tapOn: "관리"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# 어드민 화면 확인
+- assertVisible: "METI 개발자 모임"
+
+# 레슨 탭 — 좌표 탭 (Tab(child: Row(...)) 구조라 text tap 불가, y≈9%: tab bar)
+- tapOn:
+    point: "45%, 9%"
+- waitForAnimationToEnd

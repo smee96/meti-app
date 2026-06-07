@@ -1,0 +1,23 @@
+appId: com.meti.meti_app
+tags:
+  - cards
+  - p1
+---
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+
+- waitForAnimationToEnd
+
+# 첫 번째 명함 카드 탭 (y≈59%: 비공개 카드 중앙)
+- tapOn:
+    point: "50%, 59%"
+- waitForAnimationToEnd
+
+# QR 코드 표시 버튼 탭
+- tapOn: "QR 코드 표시"
+- waitForAnimationToEnd
+
+# QR 코드 화면 확인 (타이틀 "QR 코드", 재생성 버튼)
+- assertVisible: "QR 코드"
+- assertVisible: "QR 새로 생성"

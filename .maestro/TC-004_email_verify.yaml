@@ -1,0 +1,54 @@
+appId: com.meti.meti_app
+tags:
+  - auth
+  - p0
+---
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd:
+    timeout: 4000
+- runFlow:
+    when:
+      visible: "시작하기"
+    file: _skip_onboarding.yaml
+
+- tapOn: "회원가입"
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "이름"
+    optional: true
+- inputText: "VerifyTester"
+
+- tapOn:
+    text: "이메일"
+    optional: true
+- inputText: "verify@test.io"
+
+- tapOn:
+    text: "비밀번호"
+    optional: true
+- inputText: "Test1234!"
+- hideKeyboard
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "비밀번호 확인"
+    optional: true
+- inputText: "Test1234!"
+- hideKeyboard
+
+- tapOn: "회원가입"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# 이메일 인증 화면 진입 확인
+- assertVisible: "이메일 인증"
+- assertVisible: "인증 토큰"
+- assertVisible: "인증 완료"
+
+# 로그인 화면으로 복귀 (Mock 토큰은 동적 생성되므로 링크 사용)
+- tapOn: "로그인 화면으로 돌아가기"
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertVisible: "로그인"

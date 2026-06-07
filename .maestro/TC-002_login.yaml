@@ -1,0 +1,14 @@
+appId: com.meti.meti_app
+tags:
+  - auth
+  - p0
+---
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# 메인 화면 확인 (홈 화면 요소)
+- assertVisible: "내 명함"
+- assertVisible: "홍길동"

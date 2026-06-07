@@ -1,0 +1,21 @@
+appId: com.meti.meti_app
+tags:
+  - groups
+  - p0
+---
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+
+- tapOn:
+    point: "30%, 94%"
+- waitForAnimationToEnd
+
+# 그룹 화면 진입 확인 (title과 action button만 standalone 노드)
+- assertVisible: "그룹"
+- assertVisible: "그룹 개설 신청"
+
+# 내 그룹 탭 전환 (tab content-desc: "내 그룹\nTab 2 of 2" → 좌표 탭)
+- tapOn:
+    point: "75%, 12%"
+- waitForAnimationToEnd

@@ -1,0 +1,23 @@
+appId: com.meti.meti_app
+tags:
+  - mypage
+  - p1
+---
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+
+- tapOn:
+    point: "90%, 94%"
+- waitForAnimationToEnd
+
+# 포인트 카드 좌표 탭 (ADB dump: bounds [0,870][1080,1200], center y=43%)
+# content-desc가 "내 포인트\n3,500 P\n내역" 으로 합쳐져 있어 text 탭 불가
+- tapOn:
+    point: "50%, 43%"
+- waitForAnimationToEnd
+
+# 포인트 화면 확인 (AppBar 타이틀, standalone 텍스트)
+- assertVisible: "포인트"
+- assertVisible: "내 포인트 잔액"
+- assertVisible: "거래 내역"

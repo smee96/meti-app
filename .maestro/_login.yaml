@@ -1,0 +1,40 @@
+appId: com.meti.meti_app
+---
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# 온보딩이 있으면 스킵
+- runFlow:
+    when:
+      visible: "시작하기"
+    commands:
+      - swipe:
+          direction: LEFT
+          duration: 400
+      - swipe:
+          direction: LEFT
+          duration: 400
+      - swipe:
+          direction: LEFT
+          duration: 400
+      - tapOn: "시작하기"
+      - waitForAnimationToEnd:
+          timeout: 2000
+
+# 로그인 화면이면 로그인
+- runFlow:
+    when:
+      visible: "로그인"
+    commands:
+      - tapOn:
+          text: "이메일"
+          optional: true
+      - inputText: "test@meti.dev"
+      - tapOn:
+          text: "비밀번호"
+          optional: true
+      - inputText: "MetiTest1234!"
+      - hideKeyboard
+      - tapOn: "로그인"
+      - waitForAnimationToEnd:
+          timeout: 3000

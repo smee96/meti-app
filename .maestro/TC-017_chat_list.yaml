@@ -1,0 +1,15 @@
+appId: com.meti.meti_app
+tags:
+  - chat
+  - p1
+---
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+
+- tapOn:
+    point: "70%, 94%"
+- waitForAnimationToEnd
+
+# 채팅 화면 타이틀 확인
+- assertVisible: "채팅"

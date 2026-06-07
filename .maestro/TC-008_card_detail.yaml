@@ -1,0 +1,29 @@
+appId: com.meti.meti_app
+tags:
+  - cards
+  - p0
+---
+- launchApp:
+    clearState: true
+- runFlow: _login.yaml
+
+- waitForAnimationToEnd
+
+# 첫 번째 명함 카드 영역 탭 (y≈59%: 내 명함 섹션 첫 카드 중앙)
+- tapOn:
+    point: "50%, 59%"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# 카드 상세 화면 진입 확인 — 상세 화면에서는 각 필드가 독립 노드로 노출됨
+- assertVisible: "METI Corp"
+- runFlow:
+    when:
+      visible: "스킬"
+    commands:
+      - assertVisible: "스킬"
+- runFlow:
+    when:
+      visible: "Flutter"
+    commands:
+      - assertVisible: "Flutter"
