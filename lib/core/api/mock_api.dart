@@ -9,7 +9,6 @@ export 'mock/mock_cards.dart';     // MockCards
 export 'mock/mock_groups.dart';    // MockGroups
 export 'mock/mock_lessons.dart';   // MockLessons
 export 'mock/mock_payments.dart';  // MockPayments
-export 'mock/mock_guardians.dart'; // MockGuardians  — v3.0
 export 'mock/mock_schedules.dart'; // MockSchedules  — v3.0
 
 // ── MockUsers 호환 어댑터 ───────────────────────────────────────
@@ -22,7 +21,6 @@ import 'mock/mock_cards.dart';
 import 'mock/mock_groups.dart';
 import 'mock/mock_lessons.dart';
 import 'mock/mock_payments.dart';
-import 'mock/mock_guardians.dart'; // v3.0
 import 'mock/mock_schedules.dart'; // v3.0
 
 // ignore_for_file: non_constant_identifier_names
@@ -206,36 +204,6 @@ class MockUsers {
 
   static Map<String, dynamic> getPointChargeProducts(String accessToken) =>
       MockPayments.getPointChargeProducts(accessToken);
-
-  // ── 보호자 연결 (v3.0) ───────────────────────────────────────
-  /// GET /guardians/my-guardians
-  static Map<String, dynamic> getMyGuardians(String accessToken) =>
-      MockGuardians.getMyGuardians(accessToken);
-
-  /// GET /guardians/my-students
-  static Map<String, dynamic> getMyStudents(String accessToken) =>
-      MockGuardians.getMyStudents(accessToken);
-
-  /// POST /guardians/invite
-  static Map<String, dynamic> inviteGuardian(
-          String accessToken, Map<String, dynamic> body) =>
-      MockGuardians.invite(accessToken, body);
-
-  /// PUT /guardians/:id/accept
-  static Map<String, dynamic> acceptGuardian(String accessToken, int linkId) =>
-      MockGuardians.accept(accessToken, linkId);
-
-  /// PUT /guardians/:id/reject
-  static Map<String, dynamic> rejectGuardian(String accessToken, int linkId) =>
-      MockGuardians.reject(accessToken, linkId);
-
-  /// DELETE /guardians/:id/cancel
-  static Map<String, dynamic> cancelGuardian(String accessToken, int linkId) =>
-      MockGuardians.cancel(accessToken, linkId);
-
-  /// DELETE /guardians/:id
-  static Map<String, dynamic> removeGuardian(String accessToken, int linkId) =>
-      MockGuardians.remove(accessToken, linkId);
 
   // ── 레슨 일정 / 출석 (v3.0) ─────────────────────────────────
   /// GET /schedules?group_id=

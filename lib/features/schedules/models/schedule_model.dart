@@ -25,11 +25,13 @@ class AttendanceRecord {
   factory AttendanceRecord.fromJson(Map<String, dynamic> j) =>
       AttendanceRecord(
         studentId:   j['student_id']   as int?    ?? 0,
-        studentName: j['student_name'] as String? ?? '(알 수 없음)',
+        // 서버: name / Mock: student_name
+        studentName: (j['student_name'] ?? j['name']) as String? ?? '(알 수 없음)',
         avatarUrl:   j['avatar_url']   as String?,
         status:      j['status']       as String? ?? 'absent',
         note:        j['note']         as String?,
-        recordedAt:  j['recorded_at']  as String?,
+        // 서버: checked_at / Mock: recorded_at
+        recordedAt:  (j['recorded_at'] ?? j['checked_at']) as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -99,21 +101,34 @@ class LessonSchedule {
     this.createdAt,
   });
 
-  factory LessonSchedule.fromJson(Map<String, dynamic> j) => LessonSchedule(
-        id:               j['id']               as int?    ?? 0,
-        groupId:          j['group_id']          as int?    ?? 0,
-        instructorId:     j['instructor_id']     as int?,
-        instructorName:   j['instructor_name']   as String? ?? '미지정',
-        title:            j['title']             as String? ?? '',
-        description:      j['description']       as String?,
-        scheduledAt:      j['scheduled_at']      as String? ?? '',
-        durationMinutes:  j['duration_minutes']  as int?    ?? 60,
-        location:         j['location']          as String?,
-        capacity:         j['capacity']          as int?    ?? 0,
-        status:           j['status']            as String? ?? 'scheduled',
-        attendanceCount:  j['attendance_count']  as int?    ?? 0,
-        createdAt:        j['created_at']        as String?,
-      );
+  factory LessonSchedule.fromJson(Map<String, dynamic> j) {
+    // 서버: starts_at/ends_at/max_students/present_count
+    // Mock: scheduled_at/duration_minutes/capacity/attendance_count
+    final startsAt = (j['starts_at'] ?? j['scheduled_at']) as String? ?? '';
+    final endsAt = j['ends_at'] as String?;
+    var duration = j['duration_minutes'] as int? ?? 60;
+    // 서버는 duration 없이 starts/ends만 → 직접 계산
+    if (j['duration_minutes'] == null && endsAt != null) {
+      final s = DateTime.tryParse(startsAt);
+      final e = DateTime.tryParse(endsAt);
+      if (s != null && e != null) duration = e.difference(s).inMinutes;
+    }
+    return LessonSchedule(
+      id:               j['id']               as int?    ?? 0,
+      groupId:          j['group_id']          as int?    ?? 0,
+      instructorId:     j['instructor_id']     as int?,
+      instructorName:   j['instructor_name']   as String? ?? '미지정',
+      title:            j['title']             as String? ?? '',
+      description:      j['description']       as String?,
+      scheduledAt:      startsAt,
+      durationMinutes:  duration,
+      location:         j['location']          as String?,
+      capacity:         (j['max_students'] ?? j['capacity']) as int? ?? 0,
+      status:           j['status']            as String? ?? 'scheduled',
+      attendanceCount:  (j['present_count'] ?? j['attendance_count']) as int? ?? 0,
+      createdAt:        j['created_at']        as String?,
+    );
+  }
 
   // ── 편의 getter ─────────────────────────────────────────────────
   bool get isScheduled  => status == 'scheduled';

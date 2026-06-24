@@ -39,7 +39,7 @@ class MockGroups {
           'status':           'active',
           'admin_plan':       plan,
           'member_count':     memberLimit == -1 ? 24 : memberLimit,
-          'max_group_members': memberLimit == -1 ? null : memberLimit,
+          'max_members': memberLimit == -1 ? null : memberLimit,
           'my_role':          'admin',
           'admin_name':       '홍길동',
           'my_status':        'active',   // v2.9 신규
@@ -54,7 +54,7 @@ class MockGroups {
           'status':           'active',
           'admin_plan':       'pro',
           'member_count':     5,
-          'max_group_members': 10,
+          'max_members': 10,
           'my_role':          'member',
           'admin_name':       '이디자',
           'my_status':        'pending',  // v2.9 신규 — 승인 대기 중

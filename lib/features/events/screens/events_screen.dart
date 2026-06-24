@@ -6,7 +6,9 @@ import '../../../core/widgets/common_widgets.dart';
 import '../models/event_model.dart';
 
 class EventsScreen extends StatefulWidget {
-  const EventsScreen({super.key});
+  /// 임베드 모드: 명함첩 허브 세그먼트 안에 넣을 때 외부 AppBar 없이 렌더
+  final bool embedded;
+  const EventsScreen({super.key, this.embedded = false});
 
   @override
   State<EventsScreen> createState() => _EventsScreenState();
@@ -121,45 +123,69 @@ class _EventsScreenState extends State<EventsScreen>
     }
   }
 
+  Widget _buildInnerTabBar() {
+    return Material(
+      color: AppColors.surface,
+      child: TabBar(
+        controller: _tabController,
+        indicatorColor: AppColors.primary,
+        labelColor: AppColors.primary,
+        unselectedLabelColor: AppColors.textSecondary,
+        tabs: const [
+          Tab(text: '전체'),
+          Tab(text: '예정'),
+          Tab(text: '진행중'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    return _isLoading
+        ? const Center(
+            child: CircularProgressIndicator(color: AppColors.primary))
+        : _events.isEmpty
+            ? const EmptyStateWidget(
+                icon: Icons.event_outlined,
+                title: '이벤트가 없어요',
+                subtitle: '새로운 이벤트를 기다려주세요!',
+              )
+            : RefreshIndicator(
+                onRefresh: _loadEvents,
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _events.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (_, i) => _EventCard(
+                    event: _events[i],
+                    onJoin: () => _handleJoin(_events[i]),
+                    onLeave: () => _handleLeave(_events[i]),
+                  ),
+                ),
+              );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // 임베드 모드: 명함첩 허브 안 — 외부 AppBar 없이 내부 탭바 + 본문만
+    if (widget.embedded) {
+      return Column(
+        children: [
+          _buildInnerTabBar(),
+          Expanded(child: _buildBody()),
+        ],
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('이벤트'),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppColors.primary,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textSecondary,
-          tabs: const [
-            Tab(text: '전체'),
-            Tab(text: '예정'),
-            Tab(text: '진행중'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: _buildInnerTabBar(),
         ),
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary))
-          : _events.isEmpty
-              ? const EmptyStateWidget(
-                  icon: Icons.event_outlined,
-                  title: '이벤트가 없어요',
-                  subtitle: '새로운 이벤트를 기다려주세요!',
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadEvents,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _events.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (_, i) => _EventCard(
-                      event: _events[i],
-                      onJoin: () => _handleJoin(_events[i]),
-                      onLeave: () => _handleLeave(_events[i]),
-                    ),
-                  ),
-                ),
+      body: _buildBody(),
     );
   }
 }

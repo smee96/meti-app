@@ -24,10 +24,8 @@ class MockPayments {
       'success': true,
       'data': {
         'balance': user['point_balance'] ?? 3500,
-        'expiring_soon': {
-          'amount':     2000,
-          'expires_at': '2026-06-01T00:00:00.000Z',
-        },
+        // 서버 스펙: 7일 내 만료 예정 합계(숫자, 0=없음)
+        'expiring_soon': 2000,
       },
     };
   }

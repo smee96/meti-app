@@ -71,13 +71,28 @@ class MetiLogo extends StatelessWidget {
         ),
         if (showText) ...[
           const SizedBox(height: 8),
-          Text(
-            'METI',
-            style: TextStyle(
-              color: lightMode ? Colors.white : AppColors.primary,
-              fontSize: size * 0.35,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 3,
+          Text.rich(
+            TextSpan(
+              style: TextStyle(
+                fontSize: size * 0.35,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 3,
+              ),
+              children: [
+                TextSpan(
+                  text: 'MET',
+                  style: TextStyle(
+                    color: lightMode ? Colors.white : AppColors.primary,
+                  ),
+                ),
+                // 워드마크 마지막 I = 골드(금박)
+                TextSpan(
+                  text: 'I',
+                  style: TextStyle(
+                    color: lightMode ? AppColors.gold : AppColors.goldDeep,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

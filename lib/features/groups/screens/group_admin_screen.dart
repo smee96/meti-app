@@ -277,7 +277,7 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
   // ── 멤버 탭 ────────────────────────────────────────────
   Widget _buildMembersTab() {
     // v2.5: 플랜별 멤버 한도 표시
-    final maxLimit = widget.group['max_group_members'] as int?;
+    final maxLimit = widget.group['max_members'] as int?;
     final memberCount = _members.length;
     final isAtLimit = maxLimit != null && memberCount >= maxLimit;
 
@@ -1341,7 +1341,6 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
 
   // 이벤트 취소 (관리자)
   Future<void> _handleEventCancel(Event event) async {
-    final gid = widget.group['id'] as int?;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -1363,7 +1362,7 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
     if (confirmed != true || !mounted) return;
     try {
       final res =
-          await _api.delete('/events/groups/$gid/events/${event.id}');
+          await _api.delete('/events/${event.id}');
       if (!mounted) return;
       if (res['success'] == true) {
         showSuccessSnackBar(context, '이벤트가 취소되었습니다.');
@@ -1887,6 +1886,7 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
                       label: Text(_isTransferring ? '이체 중...' : '그룹으로 이체'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.accent,
+                        foregroundColor: AppColors.primaryDark,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
@@ -2384,7 +2384,6 @@ class _PendingTile extends StatelessWidget {
     final name = member['name'] as String? ?? '알 수 없음';
     final email = member['email'] as String? ?? '';
     final message = member['message'] as String?;
-    final isMinor = member['is_minor'] == true || member['is_minor'] == 1;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -2404,27 +2403,7 @@ class _PendingTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Text(name, style: AppTextStyles.h4),
-                        if (isMinor) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppColors.warning.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text('미성년자',
-                                style: TextStyle(
-                                    fontSize: 10,
-                                    color: AppColors.warning,
-                                    fontWeight: FontWeight.w600)),
-                          ),
-                        ],
-                      ],
-                    ),
+                    Text(name, style: AppTextStyles.h4),
                     Text(email,
                         style: AppTextStyles.caption,
                         overflow: TextOverflow.ellipsis),

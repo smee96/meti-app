@@ -191,11 +191,16 @@ class _LessonSchedulesScreenState extends State<LessonSchedulesScreen>
                   selectedDate.year, selectedDate.month, selectedDate.day,
                   selectedTime.hour, selectedTime.minute,
                 ).toUtc();
+                final endDt = dt.add(Duration(minutes: durationMin));
 
                 Navigator.pop(ctx);
                 await _doCreate({
                   'group_id':         widget.groupId,
                   'title':            titleCtrl.text.trim(),
+                  // 실서버 필드(starts_at/ends_at)
+                  'starts_at':        dt.toIso8601String(),
+                  'ends_at':          endDt.toIso8601String(),
+                  // Mock 호환 필드(scheduled_at/duration_minutes)
                   'scheduled_at':     dt.toIso8601String(),
                   'duration_minutes': durationMin,
                   if (locationCtrl.text.trim().isNotEmpty)

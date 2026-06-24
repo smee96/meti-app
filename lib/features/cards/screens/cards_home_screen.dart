@@ -41,14 +41,6 @@ class _CardsHomeScreenState extends State<CardsHomeScreen> {
               MaterialPageRoute(builder: (_) => const QrScanScreen()),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.contacts_outlined),
-            tooltip: '명함첩',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ContactsScreen()),
-            ),
-          ),
         ],
       ),
       body: Consumer2<AuthProvider, CardsProvider>(

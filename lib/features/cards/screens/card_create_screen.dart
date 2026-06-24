@@ -161,8 +161,7 @@ class _CardCreateScreenState extends State<CardCreateScreen>
       showSuccessSnackBar(context, msg);
       Navigator.pop(context, true);
     } else {
-      if (provider.upgradeRequired &&
-          provider.errorCode == 'card_limit_exceeded') {
+      if (provider.upgradeRequired) {
         _showCardLimitDialog(provider.errorMessage ?? '명함 생성 한도를 초과했습니다.');
       } else {
         showErrorSnackBar(context, provider.errorMessage ?? '저장에 실패했습니다.');

@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/card_model.dart';
 import '../providers/cards_provider.dart';
 import '../widgets/business_card_widget.dart';
+import '../../../core/api/api_client.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
+import '../../chat/screens/chat_room_screen.dart';
 import 'card_create_screen.dart';
 import 'qr_show_screen.dart';
 
@@ -20,11 +24,50 @@ class CardDetailScreen extends StatefulWidget {
 
 class _CardDetailScreenState extends State<CardDetailScreen> {
   late CardModel _card;
+  final ApiClient _api = ApiClient();
+  int? _myUserId;
+  bool _isStartingChat = false;
 
   @override
   void initState() {
     super.initState();
     _card = widget.card;
+    _loadMyUserId();
+  }
+
+  Future<void> _loadMyUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) setState(() => _myUserId = prefs.getInt(AppConstants.keyUserId));
+  }
+
+  /// 내 명함이 아닌 상대방 명함일 때만 채팅 가능
+  bool get _isMyCard => _myUserId != null && _card.userId == _myUserId;
+
+  // ── 채팅하기 — POST /chat/direct 로 1:1 방 생성/조회 후 입장 ──
+  Future<void> _startChat() async {
+    if (_isStartingChat) return;
+    setState(() => _isStartingChat = true);
+    try {
+      final response = await _api.post('/chat/direct',
+          body: {'target_user_id': _card.userId});
+      if (!mounted) return;
+      if (response['success'] == true) {
+        final roomId = response['data']['room_id'] as int;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChatRoomScreen(
+              roomId: roomId,
+              roomName: _card.name,
+            ),
+          ),
+        );
+      }
+    } on ApiException catch (e) {
+      if (mounted) showErrorSnackBar(context, e.message);
+    } finally {
+      if (mounted) setState(() => _isStartingChat = false);
+    }
   }
 
   // ── 명함 사진 변경 (v2.9) ────────────────────────────────
@@ -88,6 +131,36 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // 상대방 명함일 때만 하단 채팅 버튼 노출
+      bottomNavigationBar: _isMyCard
+          ? null
+          : SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                child: SizedBox(
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: _isStartingChat ? null : _startChat,
+                    icon: _isStartingChat
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.chat_bubble_outline),
+                    label: const Text('채팅하기'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
       appBar: AppBar(
         title: const Text('명함 상세'),
         actions: [

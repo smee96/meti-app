@@ -1,34 +1,42 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Brand Colors
-  static const Color primary = Color(0xFF1e3a8a);       // METI Navy
-  static const Color primaryLight = Color(0xFF2d52c4);
-  static const Color primaryDark = Color(0xFF142966);
-  static const Color accent = Color(0xFF3b82f6);        // Blue-500
-  static const Color accentLight = Color(0xFF93c5fd);   // Blue-300
+  // ── Brand — 잉크 네이비 (METI 디자인 토큰) ───────────────
+  static const Color primary = Color(0xFF0B1E40);       // navy (메인)
+  static const Color primaryLight = Color(0xFF1C3D72);  // navyGlow
+  static const Color primaryDark = Color(0xFF06122A);   // navyDeep
+  // 명함 그라데이션 별칭
+  static const Color navy = Color(0xFF0B1E40);
+  static const Color navyGlow = Color(0xFF1C3D72);
+  static const Color navyDeep = Color(0xFF06122A);
+
+  // ── Accent — 골드(샴페인) ─────────────────────────────────
+  static const Color accent = Color(0xFFC9A86A);        // gold (금박)
+  static const Color accentLight = Color(0xFFE2CFA4);   // 밝은 골드
+  static const Color gold = Color(0xFFC9A86A);
+  static const Color goldDeep = Color(0xFF9A7333);
 
   // Semantic Colors
-  static const Color success = Color(0xFF10b981);
-  static const Color warning = Color(0xFFf59e0b);
-  static const Color error = Color(0xFFef4444);
-  static const Color info = Color(0xFF3b82f6);
+  static const Color success = Color(0xFF1B9C73);
+  static const Color warning = Color(0xFFC98A1E);
+  static const Color error = Color(0xFFD8513C);
+  static const Color info = Color(0xFF3470C4);
 
   // Neutrals
-  static const Color background = Color(0xFFf8fafc);
-  static const Color surface = Color(0xFFffffff);
-  static const Color surfaceVariant = Color(0xFFf1f5f9);
-  static const Color border = Color(0xFFe2e8f0);
-  static const Color divider = Color(0xFFf1f5f9);
+  static const Color background = Color(0xFFF4F5F8);
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color surfaceVariant = Color(0xFFF6F7FA);
+  static const Color border = Color(0xFFE3E5EA);
+  static const Color divider = Color(0xFFEEF0F4);
 
   // Text
-  static const Color textPrimary = Color(0xFF0f172a);
-  static const Color textSecondary = Color(0xFF64748b);
-  static const Color textTertiary = Color(0xFF94a3b8);
-  static const Color textOnPrimary = Color(0xFFffffff);
+  static const Color textPrimary = Color(0xFF0E1726);   // ink
+  static const Color textSecondary = Color(0xFF5B6577); // sub
+  static const Color textTertiary = Color(0xFF8B95A6);  // mute
+  static const Color textOnPrimary = Color(0xFFFFFFFF);
 
   // Card
-  static const Color cardShadow = Color(0x1A1e3a8a);
+  static const Color cardShadow = Color(0x2906122A);    // navyDeep ~16%
 }
 
 class AppTheme {

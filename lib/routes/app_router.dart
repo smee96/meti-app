@@ -9,7 +9,6 @@ import '../features/intro/screens/intro_screen.dart';
 import '../features/points/screens/point_screen.dart';
 import '../features/invite/screens/invite_join_screen.dart';
 import '../features/upgrade/screens/upgrade_screen.dart';
-import '../features/guardians/screens/guardians_screen.dart';
 import '../features/schedules/screens/lesson_schedules_screen.dart';
 import '../features/schedules/screens/schedule_detail_screen.dart';
 import '../features/schedules/models/schedule_model.dart';
@@ -54,9 +53,6 @@ class AppRoutes {
   // Invite deep-link
   static const String inviteJoin = '/invite';
 
-  // Guardians
-  static const String guardians = '/guardians';
-
   // Schedules
   static const String lessonSchedules = '/schedules';
   static const String scheduleDetail = '/schedules/detail';
@@ -90,8 +86,6 @@ class AppRoutes {
         final args = settings.arguments as Map<String, dynamic>?;
         final token = args?['token'] as String? ?? '';
         return _slide(InviteJoinScreen(token: token), settings);
-      case guardians:
-        return _slide(const GuardiansScreen(), settings);
       case lessonSchedules:
         // arguments: {'group_id': int, 'group_name': String}
         final lsArgs = settings.arguments as Map<String, dynamic>?;

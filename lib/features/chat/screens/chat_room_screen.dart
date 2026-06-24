@@ -98,30 +98,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   _sendAttachment(type: 'image', label: '이미지');
                 },
               ),
-              ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: AppColors.accent,
-                  child: Icon(Icons.attach_file, color: Colors.white),
-                ),
-                title: const Text('파일 첨부'),
-                subtitle: const Text('문서, PDF, 스프레드시트 등'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _sendAttachment(type: 'file', label: '파일');
-                },
-              ),
-              ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: AppColors.success,
-                  child: Icon(Icons.videocam_outlined, color: Colors.white),
-                ),
-                title: const Text('동영상 첨부'),
-                subtitle: const Text('동영상 파일 선택'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _sendAttachment(type: 'video', label: '동영상');
-                },
-              ),
               const Divider(height: 1),
               ListTile(
                 leading: const CircleAvatar(

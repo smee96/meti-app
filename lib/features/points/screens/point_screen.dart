@@ -126,16 +126,15 @@ class _PointScreenState extends State<PointScreen> {
               letterSpacing: -1,
             ),
           ),
-          // v2.8: expiring_soon 안내
-          if (wallet?.expiringSoon != null) ..._buildExpiringSoon(wallet!.expiringSoon!),
+          // expiring_soon 안내 (7일 내 만료 예정 합계)
+          if ((wallet?.expiringSoon ?? 0) > 0)
+            ..._buildExpiringSoon(wallet!.expiringSoon),
         ],
       ),
     );
   }
 
-  List<Widget> _buildExpiringSoon(PointExpiringSoon expiring) {
-    final days = expiring.daysUntilExpiry;
-    final daysText = days != null ? '($days일 후)' : '';
+  List<Widget> _buildExpiringSoon(int amount) {
     return [
       const SizedBox(height: 12),
       Container(
@@ -151,7 +150,7 @@ class _PointScreenState extends State<PointScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                '곧 만료 예정: ${_formatNumber(expiring.amount)}P $daysText',
+                '곧 만료 예정: ${_formatNumber(amount)}P (7일 이내)',
                 style: const TextStyle(
                   color: Colors.orange,
                   fontSize: 13,

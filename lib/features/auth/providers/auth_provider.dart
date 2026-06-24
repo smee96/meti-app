@@ -59,6 +59,7 @@ class AuthProvider extends ChangeNotifier {
     required String email,
     required String password,
     required String name,
+    String? birthDate, // YYYY-MM-DD — 만 19세 미만 차단(클라이언트 게이트)
   }) async {
     _setLoading();
     try {
@@ -66,6 +67,7 @@ class AuthProvider extends ChangeNotifier {
         'email': email,
         'password': password,
         'name': name,
+        if (birthDate != null) 'birth_date': birthDate,
         // v2.8: account_type 서버 자동 고정 — 클라이언트 전송 제거
       }, auth: false);
 

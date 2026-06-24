@@ -290,11 +290,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
                   label: '알림 설정',
                   onTap: () {},
                 ),
-                _MenuItem(
-                  icon: Icons.supervisor_account_outlined,
-                  label: '보호자 관리',
-                  onTap: () => Navigator.pushNamed(context, AppRoutes.guardians),
-                ),
               ]),
 
               _buildMenuSection('앱 정보', [
@@ -542,6 +537,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.accent,
+              foregroundColor: AppColors.primaryDark,
               minimumSize: const Size(0, 36),
               padding: const EdgeInsets.symmetric(horizontal: 16),
             ),

@@ -31,6 +31,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String _password = '';
   String _confirm = '';
 
+  // 생년월일 — 만 19세 미만 가입 차단용 (필수)
+  DateTime? _birthDate;
+
+  int _ageFrom(DateTime birth) {
+    final now = DateTime.now();
+    var age = now.year - birth.year;
+    if (now.month < birth.month ||
+        (now.month == birth.month && now.day < birth.day)) {
+      age--;
+    }
+    return age;
+  }
+
+  Future<void> _pickBirthDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime(now.year - 20, now.month, now.day),
+      firstDate: DateTime(1920),
+      lastDate: now,
+      helpText: '생년월일 선택',
+    );
+    if (picked != null) setState(() => _birthDate = picked);
+  }
+
   // ── 비밀번호 정책 체크 ────────────────────────────────
   bool get _hasMinLength => _password.length >= 8;
   bool get _hasUppercase => _password.contains(RegExp(r'[A-Z]'));
@@ -72,13 +97,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // 생년월일 필수 + 만 19세 미만 가입 차단
+    if (_birthDate == null) {
+      showErrorSnackBar(context, '생년월일을 입력해주세요.');
+      return;
+    }
+    if (_ageFrom(_birthDate!) < 19) {
+      showErrorSnackBar(context, '만 19세 미만은 가입할 수 없습니다.');
+      return;
+    }
+
     final auth = context.read<AuthProvider>();
     auth.clearError();
+
+    final bd = _birthDate!;
+    final birthDateStr =
+        '${bd.year.toString().padLeft(4, '0')}-${bd.month.toString().padLeft(2, '0')}-${bd.day.toString().padLeft(2, '0')}';
 
     final result = await auth.register(
       email: _emailCtrl.text.trim(),
       password: _passwordCtrl.text,
       name: _nameCtrl.text.trim(),
+      birthDate: birthDateStr,
       // v2.8: accountType 파라미터 제거 — 서버 자동 고정
     );
 
@@ -320,6 +360,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ],
                           ),
                         ),
+
+                      const SizedBox(height: 16),
+
+                      // ── 생년월일 (필수, 만 19세 이상만 가입) ──
+                      InkWell(
+                        onTap: _pickBirthDate,
+                        borderRadius: BorderRadius.circular(12),
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: '생년월일',
+                            prefixIcon: Icon(Icons.cake_outlined),
+                          ),
+                          child: Text(
+                            _birthDate == null
+                                ? '생년월일을 선택해주세요'
+                                : '${_birthDate!.year}년 ${_birthDate!.month}월 ${_birthDate!.day}일',
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: _birthDate == null
+                                  ? AppColors.textTertiary
+                                  : AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.only(top: 6, left: 4),
+                        child: Text(
+                          '만 19세 이상만 가입할 수 있습니다.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
 
                       const SizedBox(height: 32),
 

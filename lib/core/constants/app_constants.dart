@@ -26,11 +26,10 @@ class AppConfig {
   static String get baseUrl {
     switch (env) {
       case AppEnv.staging:
-        return 'https://staging.the-meti.pages.dev/api/v1';
       case AppEnv.production:
         return 'https://the-meti.pages.dev/api/v1';
       case AppEnv.mock:
-        return 'https://staging.the-meti.pages.dev/api/v1'; // mock 모드에서는 실제 요청 안 함
+        return 'https://the-meti.pages.dev/api/v1'; // mock 모드에서는 실제 요청 안 함
     }
   }
 

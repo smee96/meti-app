@@ -1,46 +1,28 @@
-// v2.8: expiring_soon 구조 추가, PointTransaction type 값 v2.8 스펙 반영
-
-class PointExpiringSoon {
-  final int amount;
-  final String expiresAt;
-
-  PointExpiringSoon({required this.amount, required this.expiresAt});
-
-  factory PointExpiringSoon.fromJson(Map<String, dynamic> json) {
-    return PointExpiringSoon(
-      amount: json['amount'] as int? ?? 0,
-      expiresAt: json['expires_at'] as String? ?? '',
-    );
-  }
-
-  /// 만료까지 남은 일수 계산 (오류 시 null)
-  int? get daysUntilExpiry {
-    try {
-      final expiry = DateTime.parse(expiresAt);
-      final diff = expiry.difference(DateTime.now()).inDays;
-      return diff >= 0 ? diff : 0;
-    } catch (_) {
-      return null;
-    }
-  }
-}
+// v2.8: PointTransaction type 값 v2.8 스펙 반영
+// 서버 GET /points/balance 응답: { balance, expiring_soon }
+//   expiring_soon = 7일 내 만료 예정 포인트 합계(숫자, 0=없음)
 
 class PointWallet {
   final int balance;
-  final PointExpiringSoon? expiringSoon; // v2.8: 곧 만료 예정 포인트
+  final int expiringSoon; // 7일 내 만료 예정 합계 (0 = 없음)
 
   PointWallet({
     required this.balance,
-    this.expiringSoon,
+    this.expiringSoon = 0,
   });
 
   factory PointWallet.fromJson(Map<String, dynamic> json) {
-    final expiring = json['expiring_soon'];
+    // 서버는 숫자로 반환. (구버전 Mock의 객체 형태도 방어적으로 처리)
+    final raw = json['expiring_soon'];
+    int expiring = 0;
+    if (raw is num) {
+      expiring = raw.toInt();
+    } else if (raw is Map) {
+      expiring = (raw['amount'] as num?)?.toInt() ?? 0;
+    }
     return PointWallet(
       balance: json['balance'] as int? ?? 0,
-      expiringSoon: expiring != null
-          ? PointExpiringSoon.fromJson(expiring as Map<String, dynamic>)
-          : null,
+      expiringSoon: expiring,
     );
   }
 
@@ -83,7 +65,8 @@ class PointTransaction {
       amount: json['amount'] as int? ?? 0,
       balanceAfter: json['balance_after'] as int? ?? 0,
       refType: json['ref_type'] as String?,
-      refId: json['ref_id'] as String?,
+      // 서버 ref_id는 INTEGER — String/숫자 모두 안전하게 처리
+      refId: json['ref_id']?.toString(),
       description: json['description'] as String? ?? '',
       createdAt: json['created_at'] as String?,
     );

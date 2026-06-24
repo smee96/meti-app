@@ -227,25 +227,6 @@ class ApiClient {
           return MockUsers.issuePaymentToken(accessToken!, body ?? {});
         }
 
-        // v3.0: 보호자 연결 요청 POST /guardians/link
-        if (path == '/guardians/link') {
-          return MockUsers.inviteGuardian(accessToken!, body ?? {});
-        }
-
-        // v3.0: 보호자 연결 수락 POST /guardians/link/:id/accept
-        if (path.startsWith('/guardians/link/') && path.endsWith('/accept')) {
-          final parts = path.split('/');
-          final lid = int.tryParse(parts.length >= 4 ? parts[3] : '0') ?? 0;
-          return MockUsers.acceptGuardian(accessToken!, lid);
-        }
-
-        // v3.0: 보호자 연결 거절 POST /guardians/link/:id/reject
-        if (path.startsWith('/guardians/link/') && path.endsWith('/reject')) {
-          final parts = path.split('/');
-          final lid = int.tryParse(parts.length >= 4 ? parts[3] : '0') ?? 0;
-          return MockUsers.rejectGuardian(accessToken!, lid);
-        }
-
         // v3.0: 레슨 일정 생성 POST /lessons/:groupId/schedules
         if (path.startsWith('/lessons/') && path.endsWith('/schedules')) {
           final parts = path.split('/');
@@ -258,6 +239,14 @@ class ApiClient {
           final parts = path.split('/');
           final sid = int.tryParse(parts.length >= 5 ? parts[4] : '0') ?? 0;
           return MockUsers.recordAttendances(accessToken!, sid, body ?? {});
+        }
+
+        // 1:1 채팅방 시작/조회 POST /chat/direct
+        if (path == '/chat/direct') {
+          return {
+            'success': true,
+            'data': {'room_id': 1, 'is_new': false},
+          };
         }
 
         // 채팅 메시지 전송
@@ -359,27 +348,6 @@ class ApiClient {
           final gid = int.tryParse(parts.length >= 4 ? parts[3] : '0') ?? 0;
           return MockUsers.getLessons(gid);
         }
-        // v3.0: 보호자 목록 GET /guardians?role=mine|students
-        if (path == '/guardians') {
-          return MockUsers.getMyGuardians(accessToken!);
-        }
-        if (path.startsWith('/guardians?')) {
-          final uri = Uri.parse('https://mock.local$path');
-          final role = uri.queryParameters['role'] ?? 'mine';
-          if (role == 'students') return MockUsers.getMyStudents(accessToken!);
-          return MockUsers.getMyGuardians(accessToken!);
-        }
-
-        // v3.0: 대기 중인 연결 요청 GET /guardians/pending
-        if (path == '/guardians/pending') {
-          return {'success': true, 'data': []};
-        }
-
-        // v3.0: 내 학생들의 레슨 그룹 GET /guardians/lesson-groups
-        if (path == '/guardians/lesson-groups') {
-          return {'success': true, 'data': []};
-        }
-
         // v3.0: 레슨 일정 목록 GET /lessons/:groupId/schedules
         if (path.startsWith('/lessons/') && path.endsWith('/schedules')) {
           final parts = path.split('/');
@@ -455,20 +423,13 @@ class ApiClient {
         }
       }
 
-      // ── PUT 라우팅 (현재 미사용 — Guardian/Schedule은 POST로 처리) ──
+      // ── PUT 라우팅 (현재 미사용 — Schedule은 POST로 처리) ──
       if (method == 'PUT') {
         // 추후 필요 시 여기에 추가
       }
 
       // ── DELETE 라우팅 ──
       if (method == 'DELETE') {
-        // v3.0: 보호자 연결 해제 DELETE /guardians/:guardianUserId
-        if (path.startsWith('/guardians/')) {
-          final parts = path.split('/');
-          final lid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
-          if (lid > 0) return MockUsers.removeGuardian(accessToken!, lid);
-        }
-
         // v2.9: 그룹 탈퇴 / pending 신청 취소 DELETE /groups/:id/leave
         if (path.startsWith('/groups/') && path.endsWith('/leave')) {
           final parts = path.split('/');
@@ -723,7 +684,18 @@ class ApiClient {
       return body as Map<String, dynamic>;
     }
     final errMsg = body['error'] ?? body['message'] ?? '알 수 없는 오류가 발생했습니다.';
-    throw ApiException(errMsg.toString(), statusCode: response.statusCode);
+    final errorCode = body['error_code'] as String?;
+    final upgradeRequired = body['upgrade_required'] == true;
+    final extra = <String, dynamic>{};
+    if (body['current'] != null) extra['current'] = body['current'];
+    if (body['limit'] != null) extra['limit'] = body['limit'];
+    throw ApiException(
+      errMsg.toString(),
+      statusCode: response.statusCode,
+      errorCode: errorCode,
+      upgradeRequired: upgradeRequired,
+      extra: extra.isEmpty ? null : extra,
+    );
   }
 
   // ─── Public HTTP Methods ──────────────────────────────
@@ -812,7 +784,7 @@ class ApiClient {
     });
   }
 
-  // v3.0: PUT 메서드 (Guardian accept/reject, Attendance 일괄 기록)
+  // v3.0: PUT 메서드 (Attendance 일괄 기록 등)
   Future<Map<String, dynamic>> put(
     String path, {
     Map<String, dynamic>? body,
