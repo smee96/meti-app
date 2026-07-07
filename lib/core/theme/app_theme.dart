@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Brand Colors
-  static const Color primary = Color(0xFF1e3a8a);       // METI Navy
-  static const Color primaryLight = Color(0xFF2d52c4);
-  static const Color primaryDark = Color(0xFF142966);
+  // Brand Colors (ELID 브랜드 토큰 — elid_brand_kit/tokens 계승)
+  static const Color primary = Color(0xFF0B1E40);       // ELID Navy
+  static const Color primaryLight = Color(0xFF1C3D72);  // Navy Glow
+  static const Color primaryDark = Color(0xFF06122A);   // Navy Deep
+  static const Color gold = Color(0xFFC9A86A);          // ELID Gold (악센트/전환)
   static const Color accent = Color(0xFF3b82f6);        // Blue-500
   static const Color accentLight = Color(0xFF93c5fd);   // Blue-300
 
@@ -28,7 +29,7 @@ class AppColors {
   static const Color textOnPrimary = Color(0xFFffffff);
 
   // Card
-  static const Color cardShadow = Color(0x1A1e3a8a);
+  static const Color cardShadow = Color(0x1A0B1E40);
 }
 
 class AppTheme {

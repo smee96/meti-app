@@ -25,13 +25,98 @@ class LoadingOverlay extends StatelessWidget {
   }
 }
 
-// ─── App Logo ─────────────────────────────────────────
-class MetiLogo extends StatelessWidget {
+// ─── App Logo (ELID) ──────────────────────────────────
+// 심볼: 네이비 그라데이션 타일 + 소문자 'e' + 골드 도트
+class ElidSymbol extends StatelessWidget {
+  final double size;
+
+  const ElidSymbol({super.key, this.size = 48});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        gradient: const RadialGradient(
+          center: Alignment(0.6, -1.2),
+          radius: 1.3,
+          colors: [
+            AppColors.primaryLight,
+            AppColors.primary,
+            AppColors.primaryDark,
+          ],
+          stops: [0.0, 0.42, 1.0],
+        ),
+        borderRadius: BorderRadius.circular(size * 0.22),
+        border: Border.all(
+          color: AppColors.gold.withValues(alpha: 0.45),
+          width: size >= 64 ? 1.5 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text.rich(
+          TextSpan(
+            text: 'e',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: size * 0.58,
+              fontWeight: FontWeight.w800,
+              height: 1,
+              letterSpacing: -size * 0.01,
+            ),
+            children: const [
+              TextSpan(text: '.', style: TextStyle(color: AppColors.gold)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// 워드마크: EL + 골드 I + D (Pretendard ExtraBold)
+class ElidWordmark extends StatelessWidget {
+  final double fontSize;
+  final bool onDark;
+
+  const ElidWordmark({super.key, this.fontSize = 24, this.onDark = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final base = onDark ? Colors.white : AppColors.primary;
+    return Text.rich(
+      TextSpan(
+        text: 'EL',
+        style: TextStyle(
+          color: base,
+          fontSize: fontSize,
+          fontWeight: FontWeight.w800,
+          letterSpacing: fontSize * -0.01,
+          height: 1,
+        ),
+        children: const [
+          TextSpan(text: 'I', style: TextStyle(color: AppColors.gold)),
+          TextSpan(text: 'D'),
+        ],
+      ),
+    );
+  }
+}
+
+class ElidLogo extends StatelessWidget {
   final double size;
   final bool showText;
-  final bool lightMode;
+  final bool lightMode; // true = 어두운 배경 위
 
-  const MetiLogo({
+  const ElidLogo({
     super.key,
     this.size = 48,
     this.showText = true,
@@ -40,47 +125,13 @@ class MetiLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!showText) return ElidSymbol(size: size);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            color: lightMode ? Colors.white : AppColors.primary,
-            borderRadius: BorderRadius.circular(size * 0.22),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Center(
-            child: Text(
-              'M',
-              style: TextStyle(
-                color: lightMode ? AppColors.primary : Colors.white,
-                fontSize: size * 0.52,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -1,
-              ),
-            ),
-          ),
-        ),
-        if (showText) ...[
-          const SizedBox(height: 8),
-          Text(
-            'METI',
-            style: TextStyle(
-              color: lightMode ? Colors.white : AppColors.primary,
-              fontSize: size * 0.35,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 3,
-            ),
-          ),
-        ],
+        ElidSymbol(size: size),
+        const SizedBox(height: 8),
+        ElidWordmark(fontSize: size * 0.38, onDark: lightMode),
       ],
     );
   }

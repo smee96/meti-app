@@ -1,5 +1,5 @@
 name: meti_app
-description: METI - Digital Business Card & Global Networking Platform
+description: ELID by METI - Digital Business Card & Global Networking Platform
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -39,9 +39,33 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.4
+
+# ── ELID 앱 아이콘 (elid_brand_kit) ──────────────────────
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  remove_alpha_ios: true
+  background_color_ios: "#0B1E40"
+  web:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+    background_color: "#0B1E40"
+    theme_color: "#0B1E40"
+
+# ── ELID 스플래시 (#0B1E40 + 심볼) ───────────────────────
+flutter_native_splash:
+  color: "#0B1E40"
+  image: assets/brand/elid_appicon_512.png
+  android_12:
+    color: "#0B1E40"
+    image: assets/brand/elid_appicon_512.png
 
 flutter:
   uses-material-design: true
   assets:
     - assets/images/
     - assets/icons/
+    - assets/brand/

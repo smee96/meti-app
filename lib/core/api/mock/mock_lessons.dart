@@ -211,7 +211,7 @@ class MockLessons {
       'participant_count': 0,
       'is_joined':         false,
       'entry_fee':         body['entry_fee'] ?? 0,
-      'group_name':        'METI 개발자 모임',
+      'group_name':        'ELID 개발자 모임',
       'organizer_name':    email,
       'creation_cost':     cost,
       'created_at':        DateTime.now().toIso8601String(),

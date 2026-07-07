@@ -76,7 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       const SizedBox(height: 60),
                       // Logo
-                      const Center(child: MetiLogo(size: 64)),
+                      const Center(child: ElidLogo(size: 64)),
                       const SizedBox(height: 48),
 
                       // Title

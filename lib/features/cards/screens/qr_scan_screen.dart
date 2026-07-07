@@ -142,7 +142,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
                   left: 0,
                   right: 0,
                   child: Text(
-                    'METI QR 코드를 프레임 안에\n맞춰주세요',
+                    'ELID QR 코드를 프레임 안에\n맞춰주세요',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.8),

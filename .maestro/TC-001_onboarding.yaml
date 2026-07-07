@@ -5,7 +5,7 @@ tags:
 ---
 - launchApp:
     clearState: true
-- assertVisible: "METI"
+- assertVisible: "ELID"
 - waitForAnimationToEnd:
     timeout: 3000
 

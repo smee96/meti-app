@@ -106,7 +106,7 @@ class BusinessCardWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 상단: METI 로고
+                // 상단: ELID 로고
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -118,7 +118,7 @@ class BusinessCardWidget extends StatelessWidget {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        'METI',
+                        'ELID',
                         style: TextStyle(
                           color: textColor,
                           fontSize: 10,
@@ -446,7 +446,7 @@ class BusinessCardWidget extends StatelessWidget {
                 ],
               ),
             ),
-            // METI 태그
+            // ELID 태그
             Container(
               padding:
                   const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
@@ -455,7 +455,7 @@ class BusinessCardWidget extends StatelessWidget {
                 borderRadius: BorderRadius.circular(5),
               ),
               child: Text(
-                'METI',
+                'ELID',
                 style: TextStyle(
                   color: textColor,
                   fontSize: 9,

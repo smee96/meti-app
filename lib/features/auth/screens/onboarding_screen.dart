@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/common_widgets.dart';
 import '../../../routes/app_router.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -305,43 +306,17 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             ),
           ),
 
-          // ── 상단 METI 로고 ────────────────────────────────
+          // ── 상단 ELID 로고 ────────────────────────────────
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               child: FadeTransition(
                 opacity: _contentFade,
-                child: Row(
+                child: const Row(
                   children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Center(
-                        child: Text(
-                          'M',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            height: 1,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Text(
-                      'METI',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 3,
-                      ),
-                    ),
+                    ElidSymbol(size: 36),
+                    SizedBox(width: 10),
+                    ElidWordmark(fontSize: 21, onDark: true),
                   ],
                 ),
               ),
@@ -543,7 +518,7 @@ class _MockCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Text(
-                        'METI',
+                        'ELID',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 9,

@@ -39,7 +39,7 @@ class MockPayments {
       'success': true,
       'data': {
         'group_id':   groupId,
-        'group_name': 'METI 개발자 모임',
+        'group_name': 'ELID 개발자 모임',
         'balance':    balance,
       },
     };

@@ -605,7 +605,7 @@ class ApiClient {
     'success': true,
     'data': [
       {
-        'id': 1, 'name': 'METI 개발자 모임', 'description': 'Flutter & Dart 개발자 커뮤니티',
+        'id': 1, 'name': 'ELID 개발자 모임', 'description': 'Flutter & Dart 개발자 커뮤니티',
         'category': 'club', 'visibility': 'public', 'status': 'active',
         'plan': 'free', 'member_count': 24, 'admin_name': '홍길동',
       },
@@ -627,11 +627,11 @@ class ApiClient {
     'success': true,
     'data': [
       {
-        'id': 1, 'title': 'METI 네트워킹 밋업 2026', 'description': '글로벌 비즈니스 네트워킹 이벤트',
+        'id': 1, 'title': 'ELID 네트워킹 밋업 2026', 'description': '글로벌 비즈니스 네트워킹 이벤트',
         'location': '서울 강남구 테헤란로', 'starts_at': '2026-06-15T18:00:00Z',
         'ends_at': '2026-06-15T21:00:00Z', 'status': 'upcoming',
         'visibility': 'public', 'registration_type': 'free',
-        'group_name': 'METI 개발자 모임', 'organizer_name': '홍길동',
+        'group_name': 'ELID 개발자 모임', 'organizer_name': '홍길동',
         'participant_count': 34, 'max_participants': 100,
       },
       {

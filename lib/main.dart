@@ -21,11 +21,11 @@ void main() {
       statusBarIconBrightness: Brightness.dark,
     ),
   );
-  runApp(const MetiApp());
+  runApp(const ElidApp());
 }
 
-class MetiApp extends StatelessWidget {
-  const MetiApp({super.key});
+class ElidApp extends StatelessWidget {
+  const ElidApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +38,7 @@ class MetiApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ScheduleProvider()),
       ],
       child: MaterialApp(
-        title: 'METI',
+        title: 'ELID',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         initialRoute: AppRoutes.splash,

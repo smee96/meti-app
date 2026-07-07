@@ -13,7 +13,7 @@ tags:
     point: "30%, 94%"
 - waitForAnimationToEnd
 
-# 첫 번째 공개 그룹 탭 (y≈31%: METI 개발자 모임 bounds [42,605][1038,870])
+# 첫 번째 공개 그룹 탭 (y≈31%: ELID 개발자 모임 bounds [42,605][1038,870])
 - tapOn:
     point: "50%, 31%"
 - waitForAnimationToEnd

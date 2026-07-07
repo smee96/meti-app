@@ -214,7 +214,7 @@ class MockAuth {
       'success': true,
       'data': {
         'group_id':   1,
-        'group_name': 'METI 개발자 모임',
+        'group_name': 'ELID 개발자 모임',
         'label':      '일반 초대',
         'max_uses':   100,
         'used_count': 3,
@@ -234,7 +234,7 @@ class MockAuth {
     }
     return {
       'success': true,
-      'data': {'group_id': 1, 'group_name': 'METI 개발자 모임'},
+      'data': {'group_id': 1, 'group_name': 'ELID 개발자 모임'},
       'message': '그룹에 가입되었습니다.',
     };
   }

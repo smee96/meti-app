@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/common_widgets.dart';
 import '../../../routes/app_router.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -172,43 +173,10 @@ class _SplashScreenState extends State<SplashScreen>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // 로고 아이콘
-                            Container(
-                              width: 96,
-                              height: 96,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(28),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.25),
-                                    blurRadius: 32,
-                                    offset: const Offset(0, 10),
-                                  ),
-                                ],
-                              ),
-                              child: const Center(
-                                child: Text(
-                                  'M',
-                                  style: TextStyle(
-                                    color: AppColors.primary,
-                                    fontSize: 56,
-                                    fontWeight: FontWeight.w800,
-                                    height: 1,
-                                  ),
-                                ),
-                              ),
-                            ),
+                            // 로고 심볼 (e + 골드 도트)
+                            const ElidSymbol(size: 96),
                             const SizedBox(height: 24),
-                            const Text(
-                              'METI',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 36,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 8,
-                              ),
-                            ),
+                            const ElidWordmark(fontSize: 40, onDark: true),
                             const SizedBox(height: 10),
                             Text(
                               'Global Business Networking',
@@ -327,7 +295,19 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                   ),
 
-                if (_showButtons) const SizedBox(height: 16),
+                // 하단 브랜드 표기
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    'ELID by METI',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.45),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
