@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/card_model.dart';
 import '../providers/cards_provider.dart';
 import '../widgets/business_card_widget.dart';
@@ -51,6 +52,20 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
     }
   }
 
+  // ── 명함 공유 ────────────────────────────────────────────
+  // 공개 명함 링크를 시스템 공유 시트로 전송 (카톡·문자 등)
+  Future<void> _handleShare() async {
+    if (_card.isPublic != 1) {
+      showErrorSnackBar(context, '비공개 명함은 공유할 수 없습니다.\n수정에서 공개로 전환한 뒤 공유해주세요.');
+      return;
+    }
+    final url = 'https://meti.app/cards/public/${_card.id}';
+    await Share.share(
+      '[ELID] ${_card.name}님의 명함\n$url',
+      subject: 'ELID 명함 — ${_card.name}',
+    );
+  }
+
   Future<void> _handleDelete() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -92,6 +107,11 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
         title: const Text('명함 상세'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.share_outlined),
+            tooltip: '명함 공유',
+            onPressed: _handleShare,
+          ),
+          IconButton(
             icon: const Icon(Icons.qr_code),
             tooltip: 'QR 코드',
             onPressed: () => Navigator.push(
@@ -115,7 +135,11 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                 );
                 if (!mounted) return;
                 if (result == true) {
-                  final updated = await provider.getCardDetail(cardId);
+                  // 단건 조회 실패 시 목록(updateCard가 갱신)에서 폴백
+                  final updated = await provider.getCardDetail(cardId) ??
+                      provider.myCards
+                          .where((c) => c.id == cardId)
+                          .firstOrNull;
                   if (mounted) setState(() => _card = updated ?? _card);
                 }
               } else if (value == 'delete') {

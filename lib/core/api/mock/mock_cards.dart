@@ -97,6 +97,21 @@ class MockCards {
     return {'success': true, 'data': newCard, 'message': '명함이 생성되었습니다.'};
   }
 
+  // ── 명함 단건 조회 — GET /cards/:id ──────────────────────────
+  static Map<String, dynamic> getCard(String accessToken, int cardId) {
+    final email = MockStore.accessTokens[accessToken];
+    if (email == null) throw MockApiException('인증이 필요합니다.', 401);
+
+    final user   = MockStore.users.firstWhere((u) => u['email'] == email);
+    final userId = user['id'] as int;
+
+    final card = MockStore.cards.firstWhere(
+      (c) => c['id'] == cardId && c['user_id'] == userId,
+      orElse: () => throw MockApiException('명함을 찾을 수 없습니다.', 404),
+    );
+    return {'success': true, 'data': Map<String, dynamic>.from(card)};
+  }
+
   // ── 명함 수정 — PATCH /cards/:id ────────────────────────────
   // v2.9: tags[], sns_links[] full-replace 방식
   static Map<String, dynamic> updateCard(

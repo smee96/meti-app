@@ -26,7 +26,8 @@ tags:
 - assertVisible: "이름을 입력해주세요"
 
 # 이름 입력 후 저장 — Happy Path (3번째 명함 생성 성공)
-- tapOn: "이름 \\*"
+# 유효성 에러 표시 후에는 접근성 텍스트가 "이름 *, 이름을 입력해주세요"로 병합됨
+- tapOn: "이름 \\*.*"
 - inputText: "CardTest"
 - hideKeyboard
 - waitForAnimationToEnd

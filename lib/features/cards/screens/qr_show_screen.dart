@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/card_model.dart';
 import '../providers/cards_provider.dart';
 import '../../../core/theme/app_theme.dart';
@@ -153,6 +154,24 @@ class _QrShowScreenState extends State<QrShowScreen> {
                     ),
                   ),
                 const SizedBox(height: 32),
+
+                // 링크 공유 버튼
+                ElevatedButton.icon(
+                  onPressed: _isLoading
+                      ? null
+                      : () => Share.share(
+                            '[ELID] ${widget.card.name}님의 명함\n$_qrData',
+                            subject: 'ELID 명함 — ${widget.card.name}',
+                          ),
+                  icon: const Icon(Icons.share_outlined),
+                  label: const Text('링크 공유'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.primary,
+                    minimumSize: const Size(180, 44),
+                  ),
+                ),
+                const SizedBox(height: 12),
 
                 // 새로고침 버튼
                 OutlinedButton.icon(

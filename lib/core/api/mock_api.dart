@@ -80,6 +80,10 @@ class MockUsers {
   static Map<String, dynamic> getPublicCard(int cardId) =>
       MockCards.getPublicCard(cardId);
 
+  /// GET /cards/:id (단건 조회)
+  static Map<String, dynamic> getCard(String accessToken, int cardId) =>
+      MockCards.getCard(accessToken, cardId);
+
   static Map<String, dynamic> updateCard(
           String accessToken, int cardId, Map<String, dynamic> body) =>
       MockCards.updateCard(accessToken, cardId, body);

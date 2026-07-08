@@ -10,6 +10,7 @@ import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../models/card_model.dart';
+import '../widgets/card_template_styles.dart';
 
 class PublicCardScreen extends StatefulWidget {
   final int cardId;
@@ -104,9 +105,7 @@ class _PublicCardScreenState extends State<PublicCardScreen> {
                   )
                 : IconButton(
                     icon: Icon(
-                      _saved
-                          ? Icons.bookmark
-                          : Icons.bookmark_border_outlined,
+                      _saved ? Icons.bookmark : Icons.bookmark_border_outlined,
                       color: _saved ? AppColors.primary : null,
                     ),
                     tooltip: '명함첩에 저장',
@@ -131,7 +130,8 @@ class _PublicCardScreenState extends State<PublicCardScreen> {
             children: [
               const Icon(Icons.error_outline, size: 48, color: AppColors.error),
               const SizedBox(height: 16),
-              Text(_error!, style: AppTextStyles.body1, textAlign: TextAlign.center),
+              Text(_error!,
+                  style: AppTextStyles.body1, textAlign: TextAlign.center),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _loadCard,
@@ -147,10 +147,10 @@ class _PublicCardScreenState extends State<PublicCardScreen> {
     final card = _card!;
 
     // 태그 분류
-    final careers   = card.tags.where((t) => t.tagType == 'career').toList();
+    final careers = card.tags.where((t) => t.tagType == 'career').toList();
     final education = card.tags.where((t) => t.tagType == 'education').toList();
-    final skills    = card.tags.where((t) => t.tagType == 'skill').toList();
-    final keywords  = card.tags.where((t) => t.tagType == 'keyword').toList();
+    final skills = card.tags.where((t) => t.tagType == 'skill').toList();
+    final keywords = card.tags.where((t) => t.tagType == 'keyword').toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: 40),
@@ -171,55 +171,56 @@ class _PublicCardScreenState extends State<PublicCardScreen> {
               child: Text(card.bio!, style: AppTextStyles.body1),
             ),
 
-          // ── 경력 ───────────────────────────────────────────────
-          if (careers.isNotEmpty)
-            _buildSection(
-              title: '경력',
-              child: Column(
-                children: careers
-                    .map((t) => _buildTagListItem(
-                          Icons.work_outline,
-                          t.tagValue,
-                        ))
-                    .toList(),
+          // ── 상세 이력 (2뎁스 진입) ─────────────────────────────
+          // 1뎁스는 기본 명함만 보여주고, 경력·학력·스킬·키워드는 상세 화면으로 분리
+          if (careers.isNotEmpty ||
+              education.isNotEmpty ||
+              skills.isNotEmpty ||
+              keywords.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
               ),
-            ),
-
-          // ── 학력 ───────────────────────────────────────────────
-          if (education.isNotEmpty)
-            _buildSection(
-              title: '학력',
-              child: Column(
-                children: education
-                    .map((t) => _buildTagListItem(
-                          Icons.school_outlined,
-                          t.tagValue,
-                        ))
-                    .toList(),
-              ),
-            ),
-
-          // ── 스킬 ───────────────────────────────────────────────
-          if (skills.isNotEmpty)
-            _buildSection(
-              title: '스킬',
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children:
-                    skills.map((t) => _buildChip(t.tagValue, AppColors.primary)).toList(),
-              ),
-            ),
-
-          // ── 키워드 ─────────────────────────────────────────────
-          if (keywords.isNotEmpty)
-            _buildSection(
-              title: '키워드',
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children:
-                    keywords.map((t) => _buildChip(t.tagValue, AppColors.accent)).toList(),
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+                child: ListTile(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.history_edu_outlined,
+                        color: AppColors.primary),
+                  ),
+                  title: const Text('상세 이력', style: AppTextStyles.body1),
+                  subtitle: Text(
+                    [
+                      if (careers.isNotEmpty) '경력 ${careers.length}',
+                      if (education.isNotEmpty) '학력 ${education.length}',
+                      if (skills.isNotEmpty) '스킬 ${skills.length}',
+                      if (keywords.isNotEmpty) '키워드 ${keywords.length}',
+                    ].join(' · '),
+                    style: AppTextStyles.caption,
+                  ),
+                  trailing: const Icon(Icons.chevron_right,
+                      color: AppColors.textTertiary),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CardResumeScreen(card: card),
+                    ),
+                  ),
+                ),
               ),
             ),
 
@@ -228,9 +229,7 @@ class _PublicCardScreenState extends State<PublicCardScreen> {
             _buildSection(
               title: 'SNS / 링크',
               child: Column(
-                children: card.snsLinks
-                    .map((s) => _buildSnsRow(s))
-                    .toList(),
+                children: card.snsLinks.map((s) => _buildSnsRow(s)).toList(),
               ),
             ),
 
@@ -254,16 +253,12 @@ class _PublicCardScreenState extends State<PublicCardScreen> {
   }
 
   // ── 헤더 ─────────────────────────────────────────────────────
+  // 명함의 템플릿 컬러(2컬러 그라데이션 + 악센트)를 그대로 사용
   Widget _buildHeader(CardModel card) {
+    final style = cardTemplateStyle(card.templateId);
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 36, 24, 28),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.primary, AppColors.primaryLight],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
+      decoration: BoxDecoration(gradient: style.gradient),
       child: Column(
         children: [
           // 아바타
@@ -272,26 +267,29 @@ class _PublicCardScreenState extends State<PublicCardScreen> {
             height: 88,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 3),
-              color: Colors.white.withValues(alpha: 0.2),
+              border: Border.all(
+                  color: style.accent.withValues(alpha: 0.6), width: 3),
+              color:
+                  style.accent.withValues(alpha: style.isLight ? 0.10 : 0.18),
             ),
             child: card.avatarUrl != null && card.avatarUrl!.isNotEmpty
                 ? ClipOval(
                     child: Image.network(
                       card.avatarUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _avatarInitial(card.name),
+                      errorBuilder: (_, __, ___) =>
+                          _avatarInitial(card.name, style),
                     ),
                   )
-                : _avatarInitial(card.name),
+                : _avatarInitial(card.name, style),
           ),
           const SizedBox(height: 16),
 
           // 이름
           Text(
             card.name,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: style.textColor,
               fontSize: 24,
               fontWeight: FontWeight.w700,
             ),
@@ -303,7 +301,7 @@ class _PublicCardScreenState extends State<PublicCardScreen> {
             Text(
               [card.title, card.company].whereType<String>().join(' · '),
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.85),
+                color: style.subColor,
                 fontSize: 15,
               ),
               textAlign: TextAlign.center,
@@ -314,13 +312,13 @@ class _PublicCardScreenState extends State<PublicCardScreen> {
     );
   }
 
-  Widget _avatarInitial(String name) {
+  Widget _avatarInitial(String name, CardTemplateStyle style) {
     final initial = name.isNotEmpty ? name[0] : '?';
     return Center(
       child: Text(
         initial,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: style.isLight ? style.accent : style.textColor,
           fontSize: 32,
           fontWeight: FontWeight.w700,
         ),
@@ -382,43 +380,9 @@ class _PublicCardScreenState extends State<PublicCardScreen> {
                 style: AppTextStyles.body1.copyWith(color: AppColors.primary),
               ),
             ),
-            const Icon(Icons.chevron_right, size: 16, color: AppColors.textTertiary),
+            const Icon(Icons.chevron_right,
+                size: 16, color: AppColors.textTertiary),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTagListItem(IconData icon, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 16, color: AppColors.textSecondary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(value, style: AppTextStyles.body1),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildChip(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
         ),
       ),
     );
@@ -450,14 +414,16 @@ class _PublicCardScreenState extends State<PublicCardScreen> {
                   Text(info.label, style: AppTextStyles.caption),
                   Text(
                     sns.url,
-                    style: AppTextStyles.body2.copyWith(color: AppColors.primary),
+                    style:
+                        AppTextStyles.body2.copyWith(color: AppColors.primary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.open_in_new, size: 14, color: AppColors.textTertiary),
+            const Icon(Icons.open_in_new,
+                size: 14, color: AppColors.textTertiary),
           ],
         ),
       ),
@@ -467,17 +433,22 @@ class _PublicCardScreenState extends State<PublicCardScreen> {
   _SnsInfo _snsInfo(String platform) {
     switch (platform) {
       case 'linkedin':
-        return _SnsInfo('LinkedIn', Icons.business_center_outlined, const Color(0xFF0077B5));
+        return _SnsInfo('LinkedIn', Icons.business_center_outlined,
+            const Color(0xFF0077B5));
       case 'github':
         return _SnsInfo('GitHub', Icons.code, const Color(0xFF333333));
       case 'instagram':
-        return _SnsInfo('Instagram', Icons.photo_camera_outlined, const Color(0xFFE1306C));
+        return _SnsInfo(
+            'Instagram', Icons.photo_camera_outlined, const Color(0xFFE1306C));
       case 'twitter':
-        return _SnsInfo('Twitter / X', Icons.alternate_email, const Color(0xFF1DA1F2));
+        return _SnsInfo(
+            'Twitter / X', Icons.alternate_email, const Color(0xFF1DA1F2));
       case 'facebook':
-        return _SnsInfo('Facebook', Icons.facebook_outlined, const Color(0xFF1877F2));
+        return _SnsInfo(
+            'Facebook', Icons.facebook_outlined, const Color(0xFF1877F2));
       case 'youtube':
-        return _SnsInfo('YouTube', Icons.play_circle_outline, const Color(0xFFFF0000));
+        return _SnsInfo(
+            'YouTube', Icons.play_circle_outline, const Color(0xFFFF0000));
       case 'blog':
         return _SnsInfo('블로그', Icons.article_outlined, AppColors.accent);
       default:
@@ -519,4 +490,168 @@ class _SnsInfo {
   final IconData icon;
   final Color color;
   const _SnsInfo(this.label, this.icon, this.color);
+}
+
+// ════════════════════════════════════════════════════════════
+// 상세 이력 화면 (공개 명함 2뎁스)
+// 경력 · 학력 · 스킬 · 키워드를 섹션별로 표시
+// ════════════════════════════════════════════════════════════
+class CardResumeScreen extends StatelessWidget {
+  final CardModel card;
+
+  const CardResumeScreen({super.key, required this.card});
+
+  @override
+  Widget build(BuildContext context) {
+    final style = cardTemplateStyle(card.templateId);
+    final careers = card.tags.where((t) => t.tagType == 'career').toList();
+    final education = card.tags.where((t) => t.tagType == 'education').toList();
+    final skills = card.tags.where((t) => t.tagType == 'skill').toList();
+    final keywords = card.tags.where((t) => t.tagType == 'keyword').toList();
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(title: const Text('상세 이력')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 40),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 미니 헤더 (이름 + 직책)
+            Container(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+              decoration: BoxDecoration(gradient: style.gradient),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    card.name,
+                    style: TextStyle(
+                      color: style.textColor,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (card.title != null || card.company != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      [card.title, card.company]
+                          .whereType<String>()
+                          .join(' · '),
+                      style: TextStyle(color: style.subColor, fontSize: 13),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            if (careers.isNotEmpty)
+              _section(
+                title: '경력',
+                child: Column(
+                  children: careers
+                      .map((t) => _listItem(Icons.work_outline, t.tagValue))
+                      .toList(),
+                ),
+              ),
+
+            if (education.isNotEmpty)
+              _section(
+                title: '학력',
+                child: Column(
+                  children: education
+                      .map((t) => _listItem(Icons.school_outlined, t.tagValue))
+                      .toList(),
+                ),
+              ),
+
+            if (skills.isNotEmpty)
+              _section(
+                title: '스킬',
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: skills
+                      .map((t) => _chip(t.tagValue, AppColors.primary))
+                      .toList(),
+                ),
+              ),
+
+            if (keywords.isNotEmpty)
+              _section(
+                title: '키워드',
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: keywords
+                      .map((t) => _chip(t.tagValue, AppColors.accent))
+                      .toList(),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _section({required String title, required Widget child}) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _listItem(IconData icon, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: AppColors.textSecondary),
+          const SizedBox(width: 10),
+          Expanded(child: Text(value, style: AppTextStyles.body1)),
+        ],
+      ),
+    );
+  }
+
+  Widget _chip(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
 }

@@ -153,12 +153,6 @@ class AppConstants {
     'github', 'youtube', 'tiktok', 'website',
   ];
 
-  // Card Templates
-  static const List<Map<String, String>> cardTemplates = [
-    {'id': 'default',     'name': '기본'},
-    {'id': 'modern_blue', 'name': '모던 블루'},
-    {'id': 'classic',     'name': '클래식'},
-    {'id': 'minimal',     'name': '미니멀'},
-    {'id': 'dark',        'name': '다크'},
-  ];
+  // Card Templates — features/cards/widgets/card_template_styles.dart 로 이전
+  // (id·이름·2컬러 그라데이션·악센트를 한 곳에서 관리)
 }

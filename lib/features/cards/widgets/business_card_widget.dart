@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/card_model.dart';
-import '../../../core/theme/app_theme.dart';
+import 'card_template_styles.dart';
 
 class BusinessCardWidget extends StatelessWidget {
   final CardModel card;
@@ -14,58 +14,40 @@ class BusinessCardWidget extends StatelessWidget {
     this.isCompact = false,
   });
 
-  Color _getTemplateColor() {
-    switch (card.templateId) {
-      case 'modern_blue':
-        return const Color(0xFF1e3a8a);
-      case 'classic':
-        return const Color(0xFF1a1a2e);
-      case 'minimal':
-        return const Color(0xFFf8fafc);
-      case 'dark':
-        return const Color(0xFF0f172a);
-      case 'green':
-        return const Color(0xFF065f46);
-      default:
-        return AppColors.primary;
-    }
-  }
-
-  bool get _isLight => card.templateId == 'minimal';
-
   @override
   Widget build(BuildContext context) {
-    final bgColor = _getTemplateColor();
-    final textColor = _isLight ? AppColors.textPrimary : Colors.white;
-    final subColor = _isLight
-        ? AppColors.textSecondary
-        : Colors.white.withValues(alpha: 0.75);
+    final style = cardTemplateStyle(card.templateId);
+    final textColor = style.textColor;
+    final subColor = style.subColor;
 
     if (isCompact) {
       return GestureDetector(
         onTap: onTap,
-        child: _buildCompactCard(bgColor, textColor, subColor),
+        child: _buildCompactCard(style, textColor, subColor),
       );
     }
 
     // 세로형 명함 (기본)
     return GestureDetector(
       onTap: onTap,
-      child: _buildVerticalCard(bgColor, textColor, subColor),
+      child: _buildVerticalCard(style, textColor, subColor),
     );
   }
 
   // ── 세로형 명함 ──────────────────────────────────
   Widget _buildVerticalCard(
-      Color bgColor, Color textColor, Color subColor) {
+      CardTemplateStyle style, Color textColor, Color subColor) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: bgColor,
+        gradient: style.gradient,
         borderRadius: BorderRadius.circular(20),
+        border: style.isLight
+            ? Border.all(color: style.accent.withValues(alpha: 0.25))
+            : null,
         boxShadow: [
           BoxShadow(
-            color: bgColor.withValues(alpha: 0.35),
+            color: style.start.withValues(alpha: style.isLight ? 0.15 : 0.35),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -114,13 +96,16 @@ class BusinessCardWidget extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
+                        color: style.accent.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: style.accent.withValues(alpha: 0.35),
+                        ),
                       ),
                       child: Text(
                         'ELID',
                         style: TextStyle(
-                          color: textColor,
+                          color: style.accent,
                           fontSize: 10,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 2,
@@ -171,9 +156,10 @@ class BusinessCardWidget extends StatelessWidget {
                       height: 56,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: style.accent.withValues(
+                            alpha: style.isLight ? 0.10 : 0.18),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.3),
+                          color: style.accent.withValues(alpha: 0.45),
                           width: 2,
                         ),
                       ),
@@ -181,9 +167,9 @@ class BusinessCardWidget extends StatelessWidget {
                         child: Text(
                           card.name.isNotEmpty
                               ? card.name[0].toUpperCase()
-                              : 'M',
+                              : 'E',
                           style: TextStyle(
-                            color: textColor,
+                            color: style.isLight ? style.accent : textColor,
                             fontSize: 22,
                             fontWeight: FontWeight.w700,
                           ),
@@ -236,7 +222,7 @@ class BusinessCardWidget extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   child: Divider(
-                    color: Colors.white.withValues(alpha: 0.15),
+                    color: textColor.withValues(alpha: 0.15),
                     height: 1,
                   ),
                 ),
@@ -382,15 +368,18 @@ class BusinessCardWidget extends StatelessWidget {
 
   // ── 컴팩트형 (목록용) ────────────────────────────
   Widget _buildCompactCard(
-      Color bgColor, Color textColor, Color subColor) {
+      CardTemplateStyle style, Color textColor, Color subColor) {
     return Container(
       height: 90,
       decoration: BoxDecoration(
-        color: bgColor,
+        gradient: style.gradient,
         borderRadius: BorderRadius.circular(14),
+        border: style.isLight
+            ? Border.all(color: style.accent.withValues(alpha: 0.25))
+            : null,
         boxShadow: [
           BoxShadow(
-            color: bgColor.withValues(alpha: 0.25),
+            color: style.start.withValues(alpha: style.isLight ? 0.12 : 0.25),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -406,13 +395,16 @@ class BusinessCardWidget extends StatelessWidget {
               height: 44,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.2),
+                color: style.accent.withValues(
+                    alpha: style.isLight ? 0.10 : 0.18),
+                border: Border.all(
+                    color: style.accent.withValues(alpha: 0.4)),
               ),
               child: Center(
                 child: Text(
-                  card.name.isNotEmpty ? card.name[0].toUpperCase() : 'M',
+                  card.name.isNotEmpty ? card.name[0].toUpperCase() : 'E',
                   style: TextStyle(
-                    color: textColor,
+                    color: style.isLight ? style.accent : textColor,
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
@@ -451,13 +443,13 @@ class BusinessCardWidget extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
+                color: style.accent.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(5),
               ),
               child: Text(
                 'ELID',
                 style: TextStyle(
-                  color: textColor,
+                  color: style.accent,
                   fontSize: 9,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.5,

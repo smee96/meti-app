@@ -296,6 +296,13 @@ class ApiClient {
         if (path == '/cards/contacts/list') {
           return {'success': true, 'data': [], 'pagination': {'page': 1, 'limit': 20, 'total': 0}};
         }
+
+        // 명함 단건 조회 GET /cards/:id (public/contacts/qr 라우트 뒤에 위치해야 함)
+        final cardIdMatch = RegExp(r'^/cards/(\d+)$').firstMatch(path);
+        if (cardIdMatch != null) {
+          return MockUsers.getCard(
+              accessToken!, int.parse(cardIdMatch.group(1)!));
+        }
         if (path == '/groups') return _mockGroups();
         // v2.9: /groups/mine (기존 /groups/me 대체)
         if (path == '/groups/mine') return MockUsers.getMyGroupsMine(accessToken!);
