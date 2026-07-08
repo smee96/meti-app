@@ -12,9 +12,9 @@ appId: com.meti.meti_app
 - extendedWaitUntil:
     visible: "로그인"
     timeout: 8000
-- tapOn: "이메일"
+- tapOn: "name@company.com"
 - inputText: "test@meti.dev"
-- tapOn: "비밀번호"
+- tapOn: "••••••••"
 - inputText: "MetiTest1234!"
 - hideKeyboard
 - tapOn: "로그인"

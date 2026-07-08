@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
@@ -26,7 +28,8 @@ class LoadingOverlay extends StatelessWidget {
 }
 
 // ─── App Logo (ELID) ──────────────────────────────────
-// 심볼: 네이비 그라데이션 타일 + 소문자 'e' + 골드 도트
+// 심볼 ④ 명함 모티프 (2026-07-08 확정 디자인):
+// 네이비 라디얼 타일 + 기요셰 텍스처 + 골드 보더 + -8° 미니 명함(ELID·골드 도트)
 class ElidSymbol extends StatelessWidget {
   final double size;
 
@@ -34,78 +37,191 @@ class ElidSymbol extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(size * 0.24);
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         gradient: const RadialGradient(
-          center: Alignment(0.6, -1.2),
+          center: Alignment(0.56, -1.2), // 130% at 78% -10%
           radius: 1.3,
           colors: [
             AppColors.primaryLight,
             AppColors.primary,
             AppColors.primaryDark,
           ],
-          stops: [0.0, 0.42, 1.0],
+          stops: [0.0, 0.44, 1.0],
         ),
-        borderRadius: BorderRadius.circular(size * 0.22),
-        border: Border.all(
-          color: AppColors.gold.withValues(alpha: 0.45),
-          width: size >= 64 ? 1.5 : 1,
-        ),
+        borderRadius: radius,
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: AppColors.primaryDark.withValues(alpha: 0.55),
+            blurRadius: 34,
+            spreadRadius: -12,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
-      child: Center(
-        child: Text.rich(
-          TextSpan(
-            text: 'e',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: size * 0.58,
-              fontWeight: FontWeight.w800,
-              height: 1,
-              letterSpacing: -size * 0.01,
+      child: ClipRRect(
+        borderRadius: radius,
+        child: Stack(
+          children: [
+            // 기요셰 사선 텍스처
+            Positioned.fill(
+              child: CustomPaint(painter: GuillochePainter()),
             ),
-            children: const [
-              TextSpan(text: '.', style: TextStyle(color: AppColors.gold)),
-            ],
-          ),
+            // 골드 헤어라인 보더
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: radius,
+                  border: Border.all(
+                    color: AppColors.gold.withValues(alpha: 0.45),
+                    width: size >= 64 ? 1.5 : 1,
+                  ),
+                ),
+              ),
+            ),
+            // 미니 명함 (-8°)
+            Center(
+              child: Transform.rotate(
+                angle: -8 * 3.14159265 / 180,
+                child: Container(
+                  width: size * 0.57,
+                  height: size * 0.36,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF16305B), Color(0xFF0A1B3B)],
+                    ),
+                    borderRadius: BorderRadius.circular(size * 0.08),
+                    border: Border.all(
+                      color: AppColors.gold,
+                      width: size >= 64 ? 1.5 : 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.4),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Stack(
+                    children: [
+                      // 좌하단 ELID
+                      Positioned(
+                        left: size * 0.07,
+                        bottom: size * 0.045,
+                        child: Text.rich(
+                          TextSpan(
+                            text: 'EL',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: size * 0.13,
+                              fontWeight: FontWeight.w800,
+                              height: 1,
+                            ),
+                            children: const [
+                              TextSpan(
+                                  text: 'I',
+                                  style:
+                                      TextStyle(color: AppColors.gold)),
+                              TextSpan(text: 'D'),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // 우상단 골드 도트
+                      Positioned(
+                        right: size * 0.05,
+                        top: size * 0.04,
+                        child: Container(
+                          width: size * 0.06,
+                          height: size * 0.06,
+                          decoration: const BoxDecoration(
+                            color: AppColors.gold,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
+// 기요셰 사선 텍스처 (115°, 흰색 5%, 1px 간격 8px)
+class GuillochePainter extends CustomPainter {
+  final double opacity;
+  final double spacing;
+
+  GuillochePainter({this.opacity = 0.05, this.spacing = 8});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: opacity)
+      ..strokeWidth = 1;
+    const rad = 115 * 3.14159265 / 180;
+    final dir = Offset(math.cos(rad), math.sin(rad));
+    final normal = Offset(-math.sin(rad), math.cos(rad));
+    final center = Offset(size.width / 2, size.height / 2);
+    final diag = size.width + size.height;
+    for (double d = -diag; d < diag; d += spacing) {
+      final p = center + normal * d;
+      canvas.drawLine(p - dir * diag, p + dir * diag, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant GuillochePainter old) =>
+      old.opacity != opacity || old.spacing != spacing;
+}
+
 // 워드마크: EL + 골드 I + D (Pretendard ExtraBold)
+// wide=true → 히어로/스플래시용 와이드 자간(0.16em)
 class ElidWordmark extends StatelessWidget {
   final double fontSize;
   final bool onDark;
+  final bool wide;
 
-  const ElidWordmark({super.key, this.fontSize = 24, this.onDark = false});
+  const ElidWordmark({
+    super.key,
+    this.fontSize = 24,
+    this.onDark = false,
+    this.wide = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final base = onDark ? Colors.white : AppColors.primary;
-    return Text.rich(
-      TextSpan(
-        text: 'EL',
-        style: TextStyle(
-          color: base,
-          fontSize: fontSize,
-          fontWeight: FontWeight.w800,
-          letterSpacing: fontSize * -0.01,
-          height: 1,
+    final spacing = wide ? fontSize * 0.16 : fontSize * -0.01;
+    return Padding(
+      // 와이드 자간은 마지막 글자 뒤 공백만큼 좌측 패딩으로 시각 중심 보정
+      padding: EdgeInsets.only(left: wide ? fontSize * 0.16 : 0),
+      child: Text.rich(
+        TextSpan(
+          text: 'EL',
+          style: TextStyle(
+            color: base,
+            fontSize: fontSize,
+            fontWeight: FontWeight.w800,
+            letterSpacing: spacing,
+            height: 1,
+          ),
+          children: const [
+            TextSpan(text: 'I', style: TextStyle(color: AppColors.gold)),
+            TextSpan(text: 'D'),
+          ],
         ),
-        children: const [
-          TextSpan(text: 'I', style: TextStyle(color: AppColors.gold)),
-          TextSpan(text: 'D'),
-        ],
       ),
     );
   }

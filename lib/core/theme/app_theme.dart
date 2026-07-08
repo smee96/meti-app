@@ -6,6 +6,7 @@ class AppColors {
   static const Color primaryLight = Color(0xFF1C3D72);  // Navy Glow
   static const Color primaryDark = Color(0xFF06122A);   // Navy Deep
   static const Color gold = Color(0xFFC9A86A);          // ELID Gold (악센트/전환)
+  static const Color goldDeep = Color(0xFF9A7333);      // Gold Deep (밝은 배경 텍스트 대비)
   static const Color accent = Color(0xFF3b82f6);        // Blue-500
   static const Color accentLight = Color(0xFF93c5fd);   // Blue-300
 
