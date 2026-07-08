@@ -33,15 +33,70 @@ class CardTemplateStyle {
       : Colors.white.withValues(alpha: 0.75);
 }
 
-/// 템플릿 목록 — 기존 5종(id 유지) + 2컬러 조합 신규 5종
+/// 템플릿 목록 — 디자인 킷 공식 팔레트 (tokens.json) 기반
+/// 마감재(cardFinish): navy(#1C3D72→#06122A) · midnight(#2A2E38→#070809) · teal(#0C5163→#021C23)
+/// 악센트(accentOptions): gold #C9A86A · mint #6ABE9F · coral #E58773 · violet #9283DC
 const List<CardTemplateStyle> kCardTemplateStyles = [
-  // 기존 템플릿 (id 유지, 스타일만 업그레이드)
+  // ── 킷 공식 조합 ────────────────────────────────────────
   CardTemplateStyle(
     id: 'default',
     name: '엘리드',
-    start: Color(0xFF0B1E40), // ELID Navy
-    end: Color(0xFF1C3D72),   // Navy Glow
-    accent: Color(0xFFC9A86A), // ELID Gold — 네이비×골드
+    start: Color(0xFF1C3D72), // navy glow
+    end: Color(0xFF06122A),   // navy deep
+    accent: Color(0xFFC9A86A), // gold
+  ),
+  CardTemplateStyle(
+    id: 'dark',
+    name: '미드나잇',
+    start: Color(0xFF2A2E38), // midnight glow
+    end: Color(0xFF070809),   // midnight deep
+    accent: Color(0xFFC9A86A), // gold
+  ),
+  CardTemplateStyle(
+    id: 'ocean_coral',
+    name: '틸 코랄',
+    start: Color(0xFF0C5163), // teal glow
+    end: Color(0xFF021C23),   // teal deep
+    accent: Color(0xFFE58773), // coral (oklch 0.72 0.12 33)
+  ),
+  CardTemplateStyle(
+    id: 'forest_gold',
+    name: '민트',
+    start: Color(0xFF1C3D72), // navy glow
+    end: Color(0xFF06122A),
+    accent: Color(0xFF6ABE9F), // mint (oklch 0.74 0.095 168)
+  ),
+  CardTemplateStyle(
+    id: 'violet_amber',
+    name: '바이올렛',
+    start: Color(0xFF1C3D72), // navy glow
+    end: Color(0xFF06122A),
+    accent: Color(0xFF9283DC), // violet (oklch 0.66 0.13 290)
+  ),
+
+  // ── 라이트 & 레거시 조합 ────────────────────────────────
+  CardTemplateStyle(
+    id: 'minimal',
+    name: '미니멀',
+    start: Color(0xFFffffff),
+    end: Color(0xFFe2e8f0),
+    accent: Color(0xFF0B1E40),
+    isLight: true,
+  ),
+  CardTemplateStyle(
+    id: 'ivory_navy',
+    name: '아이보리',
+    start: Color(0xFFfdf6ec),
+    end: Color(0xFFf0e6d2),
+    accent: Color(0xFF0B1E40),
+    isLight: true,
+  ),
+  CardTemplateStyle(
+    id: 'burgundy_rose',
+    name: '버건디',
+    start: Color(0xFF4c0519),
+    end: Color(0xFF9f1239),
+    accent: Color(0xFFfda4af),
   ),
   CardTemplateStyle(
     id: 'modern_blue',
@@ -55,60 +110,7 @@ const List<CardTemplateStyle> kCardTemplateStyles = [
     name: '클래식',
     start: Color(0xFF1a1a2e),
     end: Color(0xFF16213e),
-    accent: Color(0xFFe2b04a), // 잉크×앤틱골드
-  ),
-  CardTemplateStyle(
-    id: 'minimal',
-    name: '미니멀',
-    start: Color(0xFFffffff),
-    end: Color(0xFFe2e8f0),
-    accent: Color(0xFF0B1E40),
-    isLight: true,
-  ),
-  CardTemplateStyle(
-    id: 'dark',
-    name: '다크',
-    start: Color(0xFF0f172a),
-    end: Color(0xFF334155),
-    accent: Color(0xFF38bdf8), // 블랙×아이스블루
-  ),
-
-  // ── 신규 2컬러 조합 ─────────────────────────────────────
-  CardTemplateStyle(
-    id: 'forest_gold',
-    name: '포레스트',
-    start: Color(0xFF064e3b),
-    end: Color(0xFF047857),
-    accent: Color(0xFFd4af37), // 딥그린×골드
-  ),
-  CardTemplateStyle(
-    id: 'burgundy_rose',
-    name: '버건디',
-    start: Color(0xFF4c0519),
-    end: Color(0xFF9f1239),
-    accent: Color(0xFFfda4af), // 버건디×로즈
-  ),
-  CardTemplateStyle(
-    id: 'ocean_coral',
-    name: '오션',
-    start: Color(0xFF134e4a),
-    end: Color(0xFF0d9488),
-    accent: Color(0xFFfb923c), // 틸×코랄
-  ),
-  CardTemplateStyle(
-    id: 'violet_amber',
-    name: '바이올렛',
-    start: Color(0xFF4c1d95),
-    end: Color(0xFF7c3aed),
-    accent: Color(0xFFfbbf24), // 바이올렛×앰버
-  ),
-  CardTemplateStyle(
-    id: 'ivory_navy',
-    name: '아이보리',
-    start: Color(0xFFfdf6ec),
-    end: Color(0xFFf0e6d2),
-    accent: Color(0xFF0B1E40), // 아이보리×네이비
-    isLight: true,
+    accent: Color(0xFFe2b04a),
   ),
 ];
 
