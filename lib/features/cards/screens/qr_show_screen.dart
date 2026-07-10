@@ -44,6 +44,20 @@ class _QrShowScreenState extends State<QrShowScreen> {
     return 'https://meti.app/cards/public/${widget.card.id}';
   }
 
+  bool get _isPublicCard => widget.card.isPublic == 1;
+
+  // BUG-AOS-004: 만료 문구를 expires_at 기반으로 동적 계산
+  String? get _expiryLabel {
+    if (_expiresAt == null) return null;
+    final expires = DateTime.tryParse(_expiresAt!);
+    if (expires == null) return null;
+    final remaining = expires.difference(DateTime.now());
+    if (remaining.isNegative) return '만료됨 — 새로 생성해주세요';
+    if (remaining.inHours >= 1) return '${remaining.inHours}시간 유효';
+    if (remaining.inMinutes >= 1) return '${remaining.inMinutes}분 유효';
+    return '곧 만료 — 새로 생성해주세요';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -129,8 +143,8 @@ class _QrShowScreenState extends State<QrShowScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // 만료 시간
-                if (_expiresAt != null)
+                // 만료 시간 (expires_at 기반)
+                if (_expiryLabel != null)
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -145,7 +159,7 @@ class _QrShowScreenState extends State<QrShowScreen> {
                             color: Colors.white, size: 14),
                         const SizedBox(width: 6),
                         Text(
-                          '24시간 유효',
+                          _expiryLabel!,
                           style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.9),
                               fontSize: 12),
@@ -153,11 +167,41 @@ class _QrShowScreenState extends State<QrShowScreen> {
                       ],
                     ),
                   ),
+
+                // 비공개 명함 안내 (상세 화면 공유 차단과 정책 통일)
+                if (!_isPublicCard) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.lock_outline,
+                            color: Colors.white, size: 14),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            '비공개 명함입니다. 공개로 전환해야 상대가 열람할 수 있어요.',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.95),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 32),
 
-                // 링크 공유 버튼
+                // 링크 공유 버튼 (비공개 명함은 상세 화면과 동일하게 차단)
                 ElevatedButton.icon(
-                  onPressed: _isLoading
+                  onPressed: (_isLoading || !_isPublicCard)
                       ? null
                       : () => Share.share(
                             '[ELID] ${widget.card.name}님의 명함\n$_qrData',

@@ -430,8 +430,10 @@ class _PublicCardScreenState extends State<PublicCardScreen> {
     );
   }
 
+  // BUG-AOS-001: 생성 화면은 'Instagram'처럼 첫 글자 대문자로 저장하므로
+  // 소문자로 정규화해 매칭 (card_detail의 _SnsDetailIcon과 동일 정책)
   _SnsInfo _snsInfo(String platform) {
-    switch (platform) {
+    switch (platform.toLowerCase()) {
       case 'linkedin':
         return _SnsInfo('LinkedIn', Icons.business_center_outlined,
             const Color(0xFF0077B5));
@@ -441,6 +443,7 @@ class _PublicCardScreenState extends State<PublicCardScreen> {
         return _SnsInfo(
             'Instagram', Icons.photo_camera_outlined, const Color(0xFFE1306C));
       case 'twitter':
+      case 'twitter/x':
         return _SnsInfo(
             'Twitter / X', Icons.alternate_email, const Color(0xFF1DA1F2));
       case 'facebook':
@@ -449,8 +452,16 @@ class _PublicCardScreenState extends State<PublicCardScreen> {
       case 'youtube':
         return _SnsInfo(
             'YouTube', Icons.play_circle_outline, const Color(0xFFFF0000));
+      case 'tiktok':
+        return _SnsInfo(
+            'TikTok', Icons.music_video_outlined, const Color(0xFF333333));
+      case 'kakao':
+        return _SnsInfo(
+            '카카오', Icons.chat_bubble_outline, const Color(0xFFC9A800));
       case 'blog':
         return _SnsInfo('블로그', Icons.article_outlined, AppColors.accent);
+      case 'website':
+        return _SnsInfo('웹사이트', Icons.language_outlined, AppColors.accent);
       default:
         return _SnsInfo(platform, Icons.link, AppColors.textSecondary);
     }

@@ -52,7 +52,7 @@ class _CardCreateScreenState extends State<CardCreateScreen>
   final _websiteCtrl = TextEditingController();
   final _bioCtrl     = TextEditingController();
 
-  String _selectedTemplate = 'modern_blue';
+  String _selectedTemplate = 'default'; // 브랜드 기본: 엘리드(네이비×골드)
   bool   _isPublic         = true; // 공개 명함이 기본 (QR/링크 공유 가능)
 
   // ── 명함 사진 (avatar) ──────────────────────────────────

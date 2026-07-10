@@ -22,6 +22,12 @@ class CardDetailScreen extends StatefulWidget {
 class _CardDetailScreenState extends State<CardDetailScreen> {
   late CardModel _card;
 
+  static const _resumeTypes = {'career', 'education'};
+  List<CardTag> get _resumeTags =>
+      _card.tags.where((t) => _resumeTypes.contains(t.tagType)).toList();
+  List<CardTag> get _plainTags =>
+      _card.tags.where((t) => !_resumeTypes.contains(t.tagType)).toList();
+
   @override
   void initState() {
     super.initState();
@@ -301,14 +307,60 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
               const SizedBox(height: 20),
             ],
 
-            // ── 태그 (tags[]) ────────────────────────────────
-            if (_card.tags.isNotEmpty) ...[
+            // ── 이력 (career/education 태그 — 공개 뷰어와 동일하게 분리 표시) ──
+            if (_resumeTags.isNotEmpty) ...[
+              const Text('이력', style: AppTextStyles.h4),
+              const SizedBox(height: 8),
+              ..._resumeTags.map((tag) {
+                final isCareer = tag.tagType == 'career';
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: Icon(
+                          isCareer
+                              ? Icons.work_outline
+                              : Icons.school_outlined,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(tag.tagValue, style: AppTextStyles.body1),
+                            Text(
+                              isCareer ? '경력' : '학력',
+                              style: AppTextStyles.caption,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              const SizedBox(height: 20),
+            ],
+
+            // ── 태그 (이력 제외 일반 태그) ────────────────────
+            if (_plainTags.isNotEmpty) ...[
               const Text('태그', style: AppTextStyles.h4),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: _card.tags.map((tag) {
+                children: _plainTags.map((tag) {
                   final label = tag.tagValue.isNotEmpty
                       ? tag.tagValue
                       : tag.tagType;

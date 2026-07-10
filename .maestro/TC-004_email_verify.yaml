@@ -12,7 +12,7 @@ tags:
       visible: "시작하기"
     file: _skip_onboarding.yaml
 
-- tapOn: "회원가입"
+- tapOn: ".*무료로 시작하기.*"
 - waitForAnimationToEnd
 
 - tapOn:
