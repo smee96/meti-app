@@ -69,8 +69,9 @@ class MockCards {
     final tags     = (body['tags']     as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
     final snsLinks = (body['sns_links'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
 
+    final newId = DateTime.now().millisecondsSinceEpoch % 100000;
     final newCard = {
-      'id':         DateTime.now().millisecondsSinceEpoch % 100000,
+      'id':         newId,
       'user_id':    userId,
       'group_id':   body['group_id'],
       'card_type':  body['card_type']  ?? 'personal',
@@ -91,6 +92,8 @@ class MockCards {
       'sns_count':  snsLinks.length,
       'created_at': DateTime.now().toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
+      // 실서버는 명함 응답에 share_url(공유 페이지 URL)을 내려줌
+      'share_url': 'https://staging.the-meti.pages.dev/card/$newId',
     };
     MockStore.cards.add(newCard);
 
@@ -195,8 +198,8 @@ class MockCards {
           'is_public': 1,
           'is_active': 1,
           'tags': [
-            {'tag_type': 'career',    'tag_value': 'METI Corp · 시니어 개발자 · 2024~현재'},
-            {'tag_type': 'education', 'tag_value': '서울대학교 컴퓨터공학과 · 2018 졸업'},
+            {'tag_type': 'career',    'tag_value': 'METI Corp · 시니어 개발자', 'tag_period': '2024~현재'},
+            {'tag_type': 'education', 'tag_value': '서울대학교 컴퓨터공학과', 'tag_period': '2018 졸업'},
             {'tag_type': 'skill',     'tag_value': 'Flutter'},
             {'tag_type': 'skill',     'tag_value': 'Dart'},
             {'tag_type': 'skill',     'tag_value': 'TypeScript'},
@@ -207,6 +210,7 @@ class MockCards {
             {'platform': 'github',   'url': 'https://github.com/example', 'sort_order': 0},
             {'platform': 'linkedin', 'url': 'https://linkedin.com/in/example', 'sort_order': 1},
           ],
+          'share_url': 'https://staging.the-meti.pages.dev/card/$cardId',
         },
       };
     }

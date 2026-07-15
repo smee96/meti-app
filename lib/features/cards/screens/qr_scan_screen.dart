@@ -53,7 +53,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
     _controller?.stop();
 
     // QR URL에서 토큰 추출
-    // 예: https://meti.app/cards/qr/uuid-token
+    // 예: https://the-meti.pages.dev/cards/qr/uuid-token
     final uri = Uri.tryParse(raw);
     String? token;
     if (uri != null && uri.pathSegments.length >= 3) {

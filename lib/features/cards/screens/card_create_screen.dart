@@ -253,7 +253,8 @@ class _CardCreateScreenState extends State<CardCreateScreen>
   }
 
   // ── 이력 추가 다이얼로그 ─────────────────────────────────
-  // 이력 = tag_type이 career/education인 태그 (서버 스펙 변경 없음)
+  // 이력 = tag_type이 career/education인 태그
+  // 기간은 tag_period 필드로 분리 전송 (서버 마이그레이션 0026)
   void _showAddCareerDialog({int? editIndex}) {
     final existing = editIndex != null ? _tags[editIndex] : null;
     final valueCtrl = TextEditingController(text: existing?.tagValue ?? '');
@@ -264,11 +265,16 @@ class _CardCreateScreenState extends State<CardCreateScreen>
       backgroundColor: Colors.transparent,
       builder: (ctx) => _CareerInputSheet(
         initialType: existing?.tagType ?? 'career',
+        initialPeriod: existing?.tagPeriod ?? '',
         valueCtrl: valueCtrl,
         isEdit: editIndex != null,
-        onSave: (type, value) {
+        onSave: (type, value, period) {
           setState(() {
-            final tag = CardTag(tagType: type, tagValue: value);
+            final tag = CardTag(
+              tagType: type,
+              tagValue: value,
+              tagPeriod: period.isEmpty ? null : period,
+            );
             if (editIndex != null) {
               _tags[editIndex] = tag;
             } else {
@@ -770,7 +776,11 @@ class _CardCreateScreenState extends State<CardCreateScreen>
                     ),
                     title: Text(tag.tagValue, style: AppTextStyles.body1),
                     subtitle: Text(
-                      _resumeTypes[tag.tagType]!,
+                      [
+                        _resumeTypes[tag.tagType]!,
+                        if (tag.tagPeriod != null && tag.tagPeriod!.isNotEmpty)
+                          tag.tagPeriod!,
+                      ].join(' · '),
                       style: AppTextStyles.caption,
                     ),
                     trailing: Row(
@@ -944,12 +954,14 @@ class _CardCreateScreenState extends State<CardCreateScreen>
 // ════════════════════════════════════════════════════════════
 class _CareerInputSheet extends StatefulWidget {
   final String initialType;
+  final String initialPeriod;
   final TextEditingController valueCtrl;
   final bool isEdit;
-  final void Function(String type, String value) onSave;
+  final void Function(String type, String value, String period) onSave;
 
   const _CareerInputSheet({
     required this.initialType,
+    required this.initialPeriod,
     required this.valueCtrl,
     required this.isEdit,
     required this.onSave,
@@ -961,12 +973,13 @@ class _CareerInputSheet extends StatefulWidget {
 
 class _CareerInputSheetState extends State<_CareerInputSheet> {
   late String _type;
-  final _periodCtrl = TextEditingController();
+  late final TextEditingController _periodCtrl;
 
   @override
   void initState() {
     super.initState();
     _type = widget.initialType;
+    _periodCtrl = TextEditingController(text: widget.initialPeriod);
   }
 
   @override
@@ -978,9 +991,8 @@ class _CareerInputSheetState extends State<_CareerInputSheet> {
   void _submit() {
     final v = widget.valueCtrl.text.trim();
     if (v.isEmpty) return;
-    final period = _periodCtrl.text.trim();
-    final value = period.isEmpty ? v : '$v · $period';
-    widget.onSave(_type, value);
+    // 기간은 tag_value에 병합하지 않고 tag_period로 분리 전송
+    widget.onSave(_type, v, _periodCtrl.text.trim());
     Navigator.pop(context);
   }
 

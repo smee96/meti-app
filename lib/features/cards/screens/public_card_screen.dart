@@ -561,7 +561,8 @@ class CardResumeScreen extends StatelessWidget {
                 title: '경력',
                 child: Column(
                   children: careers
-                      .map((t) => _listItem(Icons.work_outline, t.tagValue))
+                      .map((t) => _listItem(Icons.work_outline, t.tagValue,
+                          period: t.tagPeriod))
                       .toList(),
                 ),
               ),
@@ -571,7 +572,8 @@ class CardResumeScreen extends StatelessWidget {
                 title: '학력',
                 child: Column(
                   children: education
-                      .map((t) => _listItem(Icons.school_outlined, t.tagValue))
+                      .map((t) => _listItem(Icons.school_outlined, t.tagValue,
+                          period: t.tagPeriod))
                       .toList(),
                 ),
               ),
@@ -633,7 +635,8 @@ class CardResumeScreen extends StatelessWidget {
     );
   }
 
-  Widget _listItem(IconData icon, String value) {
+  // 기간(tag_period)은 웹 공유 페이지와 동일하게 오른쪽에 분리 표시
+  Widget _listItem(IconData icon, String value, {String? period}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -642,6 +645,10 @@ class CardResumeScreen extends StatelessWidget {
           Icon(icon, size: 16, color: AppColors.textSecondary),
           const SizedBox(width: 10),
           Expanded(child: Text(value, style: AppTextStyles.body1)),
+          if (period != null && period.isNotEmpty) ...[
+            const SizedBox(width: 10),
+            Text(period, style: AppTextStyles.caption),
+          ],
         ],
       ),
     );

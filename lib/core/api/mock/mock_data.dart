@@ -106,6 +106,7 @@ class MockStore {
       'created_at': '2026-01-01 00:00:00',
       'updated_at': '2026-01-01 00:00:00',
       'sns_count': 0,
+      'share_url': 'https://staging.the-meti.pages.dev/card/1',
     },
     {
       'id': 2,
@@ -134,6 +135,7 @@ class MockStore {
       'created_at': '2026-02-01 00:00:00',
       'updated_at': '2026-02-01 00:00:00',
       'sns_count': 2,
+      'share_url': 'https://staging.the-meti.pages.dev/card/2',
     },
   ];
 
@@ -348,32 +350,6 @@ class MockStore {
     {'id': 4, 'title': '직접 입력',       'amount_krw': 0,      'points': 0,      'is_custom': 1,
      'min_amount': 10000},
   ];
-
-  // ── 보호자 연결 (Guardian) ────────────────────────────────────
-  // guardianLinks: user_guardians 테이블 Mock
-  // - status: 'pending' | 'accepted' | 'rejected'
-  // - user_id: 학생, guardian_user_id: 보호자
-  static final List<Map<String, dynamic>> guardianLinks = [
-    {
-      'id': 1,
-      'user_id': 1,              // 학생: test@meti.dev (id=1)
-      'guardian_user_id': 2,     // 보호자: pro@meti.dev (id=2)
-      'relation': 'parent',
-      'status': 'accepted',
-      'invited_at': '2026-05-01T09:00:00Z',
-      'accepted_at': '2026-05-02T10:00:00Z',
-    },
-    {
-      'id': 2,
-      'user_id': 1,              // 학생: test@meti.dev (id=1)
-      'guardian_user_id': 3,     // 보호자: admin@meti.dev (id=3)
-      'relation': 'teacher',
-      'status': 'pending',       // 수락 대기 중 → 앱에서 수락/거절 테스트 가능
-      'invited_at': '2026-05-28T09:00:00Z',
-      'accepted_at': null,
-    },
-  ];
-  static int guardianLinkIdSeq = 10;
 
   // ── 레슨 일정 (Schedule) ─────────────────────────────────────
   // lessonSchedules: lesson_schedules 테이블 Mock (groupId → List<Schedule>)

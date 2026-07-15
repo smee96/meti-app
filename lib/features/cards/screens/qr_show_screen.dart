@@ -4,6 +4,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/card_model.dart';
 import '../providers/cards_provider.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
 
 class QrShowScreen extends StatefulWidget {
@@ -39,9 +40,11 @@ class _QrShowScreenState extends State<QrShowScreen> {
 
   String get _qrData {
     if (_qrUrl != null) {
-      return 'https://meti.app$_qrUrl';
+      // 서버가 절대 URL을 주면 그대로, 상대 경로면 웹 origin으로 절대화
+      if (_qrUrl!.startsWith('http')) return _qrUrl!;
+      return '${AppConstants.webBaseUrl}$_qrUrl';
     }
-    return 'https://meti.app/cards/public/${widget.card.id}';
+    return widget.card.resolvedShareUrl;
   }
 
   bool get _isPublicCard => widget.card.isPublic == 1;

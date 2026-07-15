@@ -36,8 +36,11 @@ void main() {
     expect(find.text('학력'), findsOneWidget);
     expect(find.text('스킬'), findsOneWidget);
     expect(find.text('키워드'), findsOneWidget);
-    expect(find.text('METI Corp · 시니어 개발자 · 2024~현재'), findsOneWidget);
-    expect(find.text('서울대학교 컴퓨터공학과 · 2018 졸업'), findsOneWidget);
+    // tag_period 분리 렌더링: 내용과 기간이 별도 위젯으로 표시된다
+    expect(find.text('METI Corp · 시니어 개발자'), findsOneWidget);
+    expect(find.text('2024~현재'), findsOneWidget);
+    expect(find.text('서울대학교 컴퓨터공학과'), findsOneWidget);
+    expect(find.text('2018 졸업'), findsOneWidget);
     expect(find.text('Flutter'), findsOneWidget);
   });
 }

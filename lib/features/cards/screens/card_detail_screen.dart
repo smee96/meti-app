@@ -65,7 +65,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
       showErrorSnackBar(context, '비공개 명함은 공유할 수 없습니다.\n수정에서 공개로 전환한 뒤 공유해주세요.');
       return;
     }
-    final url = 'https://meti.app/cards/public/${_card.id}';
+    final url = _card.resolvedShareUrl;
     await Share.share(
       '[ELID] ${_card.name}님의 명함\n$url',
       subject: 'ELID 명함 — ${_card.name}',
@@ -340,7 +340,12 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                           children: [
                             Text(tag.tagValue, style: AppTextStyles.body1),
                             Text(
-                              isCareer ? '경력' : '학력',
+                              [
+                                isCareer ? '경력' : '학력',
+                                if (tag.tagPeriod != null &&
+                                    tag.tagPeriod!.isNotEmpty)
+                                  tag.tagPeriod!,
+                              ].join(' · '),
                               style: AppTextStyles.caption,
                             ),
                           ],
