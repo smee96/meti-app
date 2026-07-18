@@ -35,11 +35,12 @@ void main() {
       expect(e.message, contains('명함을 교환한'));
     }
 
-    // 교환된 상대(user 2) → 기존 방(1) 반환
+    // 교환된 상대(user 2) → 기존 방(1) 반환 — 서버 스펙 {room_id, is_new}
     final direct = await api.post('/chat/direct', body: {'target_user_id': 2});
     expect(direct['success'], true);
-    final roomId = (direct['data'] as Map)['id'] as int;
+    final roomId = (direct['data'] as Map)['room_id'] as int;
     expect(roomId, 1);
+    expect((direct['data'] as Map)['is_new'], false);
 
     // 목록: retention 7일(free) + unread 배지
     final rooms = await api.get('/chat');
@@ -53,11 +54,11 @@ void main() {
     final msgs = await api.get('/chat/$roomId/messages');
     expect((msgs['data'] as List).first['id'], sentId);
 
-    // 본인 메시지 삭제 → is_deleted 소프트 삭제
+    // 본인 메시지 삭제 → is_deleted 소프트 삭제 (서버는 0/1 int)
     final del = await api.delete('/chat/$roomId/messages/$sentId');
     expect(del['success'], true);
     final after = await api.get('/chat/$roomId/messages');
-    expect((after['data'] as List).first['is_deleted'], true);
+    expect((after['data'] as List).first['is_deleted'], 1);
 
     // 신고/차단 API 정상 응답
     final report = await api.post('/chat/report', body: {

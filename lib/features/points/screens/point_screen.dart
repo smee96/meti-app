@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/charge_launcher.dart';
+import '../../../core/utils/server_date.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../providers/point_provider.dart';
 import '../models/point_model.dart';
@@ -308,11 +309,9 @@ class _TransactionTile extends StatelessWidget {
     final amountColor = isEarn ? AppColors.success : AppColors.error;
 
     String dateStr = '';
-    if (tx.createdAt != null) {
-      try {
-        final dt = DateTime.parse(tx.createdAt!).toLocal();
-        dateStr = '${dt.year}.${dt.month.toString().padLeft(2, '0')}.${dt.day.toString().padLeft(2, '0')}';
-      } catch (_) {}
+    final dt = tryParseServerDate(tx.createdAt);
+    if (dt != null) {
+      dateStr = '${dt.year}.${dt.month.toString().padLeft(2, '0')}.${dt.day.toString().padLeft(2, '0')}';
     }
 
     return Container(

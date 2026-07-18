@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/server_date.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../cards/screens/contacts_screen.dart';
 import 'chat_room_screen.dart';
@@ -81,17 +82,13 @@ class _ChatListScreenState extends State<ChatListScreen>
   }
 
   String _formatTime(String? isoDate) {
-    if (isoDate == null) return '';
-    try {
-      final dt = DateTime.parse(isoDate).toLocal();
-      final now = DateTime.now();
-      final diff = now.difference(dt);
-      if (diff.inDays == 0) return DateFormat('HH:mm').format(dt);
-      if (diff.inDays == 1) return '어제';
-      return DateFormat('MM/dd').format(dt);
-    } catch (_) {
-      return '';
-    }
+    final dt = tryParseServerDate(isoDate);
+    if (dt == null) return '';
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inDays == 0) return DateFormat('HH:mm').format(dt);
+    if (diff.inDays == 1) return '어제';
+    return DateFormat('MM/dd').format(dt);
   }
 
   void _openRoom(dynamic room) {

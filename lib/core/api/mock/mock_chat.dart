@@ -40,39 +40,39 @@ class MockChat {
         'id': 1, 'room_id': 1, 'sender_id': 2, 'sender_name': '김프로',
         'message_type': 'text',
         'content': '홍길동님 안녕하세요! 명함 보고 연락드립니다.',
-        'is_deleted': false, 'created_at': '2026-07-16T14:00:00Z',
+        'is_deleted': 0, 'created_at': '2026-07-16T14:00:00Z',
       },
       {
         'id': 2, 'room_id': 1, 'sender_id': 1, 'sender_name': '홍길동',
         'message_type': 'text',
         'content': '반갑습니다, 김프로님! 어떤 일로 연락 주셨나요?',
-        'is_deleted': false, 'created_at': '2026-07-16T14:03:00Z',
+        'is_deleted': 0, 'created_at': '2026-07-16T14:03:00Z',
       },
       {
         'id': 3, 'room_id': 1, 'sender_id': 2, 'sender_name': '김프로',
         'message_type': 'file',
         'content': 'ELID_제휴제안서.pdf',
         'file_name': 'ELID_제휴제안서.pdf', 'file_size': 524288,
-        'is_deleted': false, 'created_at': '2026-07-16T14:05:00Z',
+        'is_deleted': 0, 'created_at': '2026-07-16T14:05:00Z',
       },
       {
         'id': 4, 'room_id': 1, 'sender_id': 1, 'sender_name': '홍길동',
         'message_type': 'card',
         'content': '명함을 공유했습니다.',
         'card_id': 2, 'card_name': '홍길동 (공개)',
-        'is_deleted': false, 'created_at': '2026-07-16T14:10:00Z',
+        'is_deleted': 0, 'created_at': '2026-07-16T14:10:00Z',
       },
       {
         'id': 5, 'room_id': 1, 'sender_id': 2, 'sender_name': '김프로',
         'message_type': 'text',
         'content': '명함 잘 받았습니다. 미팅 가능하신 날짜 알려주세요!',
-        'is_deleted': false, 'created_at': '2026-07-17T09:40:00Z',
+        'is_deleted': 0, 'created_at': '2026-07-17T09:40:00Z',
       },
       {
         'id': 6, 'room_id': 1, 'sender_id': 2, 'sender_name': '김프로',
         'message_type': 'text',
         'content': '이번 주 목요일 오후는 어떠세요?',
-        'is_deleted': false, 'created_at': '2026-07-17T09:42:00Z',
+        'is_deleted': 0, 'created_at': '2026-07-17T09:42:00Z',
       },
     ],
   };
@@ -166,11 +166,14 @@ class MockChat {
       throw MockApiException('명함을 교환한 상대방과만 채팅할 수 있습니다.', 403);
     }
 
-    // 기존 방 있으면 반환
+    // 서버 응답 스펙: {room_id, is_new} (staging 검증 2026-07-18)
     for (final r in rooms) {
       final ids = (r['member_ids'] as List).cast<int>();
       if (ids.contains(myId) && ids.contains(targetId)) {
-        return {'success': true, 'data': _roomResponse(r, myId)};
+        return {
+          'success': true,
+          'data': {'room_id': r['id'], 'is_new': false},
+        };
       }
     }
 
@@ -185,7 +188,7 @@ class MockChat {
     messages[room['id'] as int] = [];
     return {
       'success': true,
-      'data': _roomResponse(room, myId),
+      'data': {'room_id': room['id'], 'is_new': true},
       'message': '채팅방이 생성되었습니다.',
     };
   }
@@ -247,7 +250,7 @@ class MockChat {
       if (body['file_url'] != null) 'file_url': body['file_url'],
       if (body['card_id'] != null) 'card_id': body['card_id'],
       if (cardName != null) 'card_name': cardName,
-      'is_deleted': false,
+      'is_deleted': 0,
       'created_at': DateTime.now().toUtc().toIso8601String(),
     };
     (messages[roomId] ??= []).add(msg);
@@ -301,7 +304,8 @@ class MockChat {
     if (msg['sender_id'] != myId) {
       throw MockApiException('본인 메시지만 삭제할 수 있습니다.', 403);
     }
-    msg['is_deleted'] = true;
+    // 서버와 동일하게 0/1 int (staging 검증 2026-07-18)
+    msg['is_deleted'] = 1;
     msg['content'] = '';
     return {'success': true, 'data': null, 'message': '메시지가 삭제되었습니다.'};
   }

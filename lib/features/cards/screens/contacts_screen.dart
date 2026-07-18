@@ -38,12 +38,14 @@ class _ContactsScreenState extends State<ContactsScreen> {
           .post('/chat/direct', body: {'target_user_id': card.userId});
       if (!mounted) return;
       if (response['success'] == true) {
+        // 서버 응답: {room_id, is_new} (구 mock 호환으로 id도 허용)
         final room = response['data'] as Map<String, dynamic>;
+        final roomId = (room['room_id'] ?? room['id']) as int;
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => ChatRoomScreen(
-              roomId: room['id'] as int,
+              roomId: roomId,
               roomName: card.name,
               otherUserId: card.userId,
             ),

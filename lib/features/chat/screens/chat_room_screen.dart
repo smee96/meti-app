@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/server_date.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../cards/screens/public_card_screen.dart';
 
@@ -292,7 +293,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen>
   // ─── 메시지 삭제 ───────────────────────────────────────
   void _onMessageLongPress(Map<String, dynamic> msg) {
     final isMe = msg['sender_id'] == _myUserId;
-    if (!isMe || msg['is_deleted'] == true) return;
+    if (!isMe || _deleted(msg)) return;
 
     showModalBottomSheet(
       context: context,
@@ -467,14 +468,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen>
   }
 
   String _formatTime(String? isoDate) {
-    if (isoDate == null) return '';
-    try {
-      final dt = DateTime.parse(isoDate).toLocal();
-      return DateFormat('HH:mm').format(dt);
-    } catch (_) {
-      return '';
-    }
+    final dt = tryParseServerDate(isoDate);
+    if (dt == null) return '';
+    return DateFormat('HH:mm').format(dt);
   }
+
+  /// 서버는 is_deleted를 0/1(int)로 내려줌 — bool과 겸용 처리
+  static bool _deleted(Map<String, dynamic> msg) =>
+      msg['is_deleted'] == true || msg['is_deleted'] == 1;
 
   void _openSharedCard(Map<String, dynamic> msg) {
     final cardId = msg['card_id'] as int?;
@@ -551,7 +552,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen>
                               senderName: msg['sender_name'] as String?,
                               messageType:
                                   msg['message_type'] as String? ?? 'text',
-                              isDeleted: msg['is_deleted'] == true,
+                              isDeleted: _deleted(msg),
                               cardName: msg['card_name'] as String?,
                               fileUrl: msg['file_url'] as String?,
                               onCardTap: msg['message_type'] == 'card'

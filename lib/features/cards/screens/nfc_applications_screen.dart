@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/server_date.dart';
 import '../../../core/widgets/common_widgets.dart';
 
 /// NFC 실물카드 신청 내역 (핸드오프 §5-2)
@@ -93,13 +94,9 @@ class _ApplicationTile extends StatelessWidget {
   }
 
   String _formatDate(String? isoDate) {
-    if (isoDate == null) return '';
-    try {
-      final dt = DateTime.parse(isoDate).toLocal();
-      return '${dt.year}.${dt.month.toString().padLeft(2, '0')}.${dt.day.toString().padLeft(2, '0')}';
-    } catch (_) {
-      return '';
-    }
+    final dt = tryParseServerDate(isoDate);
+    if (dt == null) return '';
+    return '${dt.year}.${dt.month.toString().padLeft(2, '0')}.${dt.day.toString().padLeft(2, '0')}';
   }
 
   String _formatNumber(int n) => n.toString().replaceAllMapped(
@@ -111,6 +108,11 @@ class _ApplicationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final trackingNo = app['tracking_no'] as String?;
     final carrier = app['carrier'] as String?;
+    // 서버는 applied_at, mock은 created_at (staging 검증 2026-07-18)
+    final appliedAt =
+        (app['created_at'] ?? app['applied_at']) as String?;
+    // 서버 목록 응답에는 배송지 필드가 없음 — 있을 때만 표시
+    final shippingName = app['shipping_name'] as String?;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -145,7 +147,7 @@ class _ApplicationTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${_formatDate(app['created_at'] as String?)} · ${_formatNumber(app['amount'] as int? ?? 0)}P',
+                      '${_formatDate(appliedAt)} · ${_formatNumber(app['amount'] as int? ?? 0)}P',
                       style: AppTextStyles.caption,
                     ),
                   ],
@@ -169,23 +171,25 @@ class _ApplicationTile extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          // 배송지
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.local_shipping_outlined,
-                  size: 16, color: AppColors.textTertiary),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  '${app['shipping_name']} · ${app['shipping_address']}'
-                  '${app['shipping_detail'] != null ? ' ${app['shipping_detail']}' : ''}',
-                  style: AppTextStyles.caption,
+          // 배송지 (서버 목록 응답에는 미포함 — 값이 있을 때만)
+          if (shippingName != null && shippingName.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.local_shipping_outlined,
+                    size: 16, color: AppColors.textTertiary),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '$shippingName · ${app['shipping_address'] ?? ''}'
+                    '${app['shipping_detail'] != null ? ' ${app['shipping_detail']}' : ''}',
+                    style: AppTextStyles.caption,
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
           // 운송장 (발급완료 시)
           if (trackingNo != null && trackingNo.isNotEmpty) ...[
             const SizedBox(height: 6),
