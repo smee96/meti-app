@@ -35,11 +35,13 @@ class PointWallet {
   });
 
   factory PointWallet.fromJson(Map<String, dynamic> json) {
+    // 서버는 만료 예정이 없으면 expiring_soon을 0(int)으로 내려줌 (staging 검증 2026-07-18)
+    // — Map일 때만 구조 파싱, 그 외(0, null)는 만료 예정 없음
     final expiring = json['expiring_soon'];
     return PointWallet(
       balance: json['balance'] as int? ?? 0,
-      expiringSoon: expiring != null
-          ? PointExpiringSoon.fromJson(expiring as Map<String, dynamic>)
+      expiringSoon: expiring is Map<String, dynamic>
+          ? PointExpiringSoon.fromJson(expiring)
           : null,
     );
   }
@@ -83,7 +85,8 @@ class PointTransaction {
       amount: json['amount'] as int? ?? 0,
       balanceAfter: json['balance_after'] as int? ?? 0,
       refType: json['ref_type'] as String?,
-      refId: json['ref_id'] as String?,
+      // 서버는 ref_id를 int로 내려줌 (staging 검증 2026-07-18) — 문자열로 정규화
+      refId: json['ref_id']?.toString(),
       description: json['description'] as String? ?? '',
       createdAt: json['created_at'] as String?,
     );
@@ -110,6 +113,8 @@ class PointTransaction {
         return '행사 사용';
       case 'use_admin':
         return '관리자 차감';
+      case 'use_nfc_card':
+        return 'NFC 카드';
       case 'transfer_out':
         return '그룹 이전';
       case 'transfer_in':
