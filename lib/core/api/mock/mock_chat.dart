@@ -244,6 +244,7 @@ class MockChat {
           (type == 'card' ? '명함을 공유했습니다.' : ''),
       if (body['file_name'] != null) 'file_name': body['file_name'],
       if (body['file_size'] != null) 'file_size': body['file_size'],
+      if (body['file_url'] != null) 'file_url': body['file_url'],
       if (body['card_id'] != null) 'card_id': body['card_id'],
       if (cardName != null) 'card_name': cardName,
       'is_deleted': false,
@@ -266,6 +267,27 @@ class MockChat {
     }
 
     return {'success': true, 'data': Map<String, dynamic>.from(msg)};
+  }
+
+  // ── POST /chat/:roomId/upload ────────────────────────────────
+  // 서버 스펙: 업로드 성공 시 메시지 자동 생성 → {message, file_url} 반환 (별도 send 불필요)
+  static Map<String, dynamic> uploadChatFile(
+      String accessToken, int roomId, Map<String, dynamic> body) {
+    final fileName = body['file_name'] as String? ?? 'image.jpg';
+    final fileType = body['file_type'] as String? ?? 'image';
+    final fileUrl =
+        'https://staging.the-meti.pages.dev/uploads/chat/$roomId/$fileName';
+
+    final sent = sendChatMessage(accessToken, roomId, {
+      'message_type': fileType,
+      'content': fileName,
+      'file_name': fileName,
+      'file_url': fileUrl,
+    });
+    return {
+      'success': true,
+      'data': {'message': sent['data'], 'file_url': fileUrl},
+    };
   }
 
   // ── DELETE /chat/:roomId/messages/:msgId ─────────────────────

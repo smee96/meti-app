@@ -119,6 +119,10 @@ class MockUsers {
           String accessToken, int roomId, int messageId) =>
       MockChat.deleteChatMessage(accessToken, roomId, messageId);
 
+  static Map<String, dynamic> uploadChatFile(
+          String accessToken, int roomId, Map<String, dynamic> body) =>
+      MockChat.uploadChatFile(accessToken, roomId, body);
+
   static Map<String, dynamic> reportChat(
           String accessToken, Map<String, dynamic> body) =>
       MockChat.reportChat(accessToken, body);

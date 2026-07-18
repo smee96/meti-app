@@ -266,6 +266,12 @@ class ApiClient {
           final rid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
           return MockUsers.sendChatMessage(accessToken!, rid, body ?? {});
         }
+        // 채팅 파일 업로드 POST /chat/:roomId/upload — 업로드 시 메시지 자동 생성
+        if (path.startsWith('/chat/') && path.endsWith('/upload')) {
+          final parts = path.split('/');
+          final rid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
+          return MockUsers.uploadChatFile(accessToken!, rid, body ?? {});
+        }
       }
 
       // ── GET 라우팅 ──
@@ -767,17 +773,21 @@ class ApiClient {
 
   // ─── Multipart Upload (v2.9) ─────────────────────────
   /// 파일 업로드 (multipart/form-data)
-  /// [path]     : API 경로 (예: '/auth/me/avatar', '/cards/1/avatar')
+  /// [path]     : API 경로 (예: '/auth/me/avatar', '/chat/1/upload')
   /// [filePath] : 로컬 파일 경로
-  /// [fieldName]: form-data 필드명 (기본값 'avatar')
+  /// [fieldName]: form-data 필드명 (기본값 'avatar', 채팅 업로드는 'file')
+  /// [fields]   : 추가 form-data 필드 (예: {'file_type': 'image'})
   Future<Map<String, dynamic>> uploadFile(
     String path,
     String filePath, {
     String fieldName = 'avatar',
+    Map<String, String>? fields,
   }) async {
-    // Mock 모드: 실제 파일 없이 바로 mock dispatch
+    // Mock 모드: 실제 파일 없이 파일명만 넘겨 mock dispatch
     if (AppConstants.useMock) {
-      return _mockDispatch('POST', path);
+      final fileName = filePath.split(RegExp(r'[/\\]')).last;
+      return _mockDispatch('POST', path,
+          body: {'file_name': fileName, ...?fields});
     }
 
     final accessToken = await _getAccessToken();
@@ -789,6 +799,7 @@ class ApiClient {
     request.files.add(
       await http.MultipartFile.fromPath(fieldName, filePath),
     );
+    if (fields != null) request.fields.addAll(fields);
     final streamedResponse = await _client.send(request);
     final response = await http.Response.fromStream(streamedResponse);
     return _handleResponse(response, retryRequest: () async {
@@ -796,6 +807,7 @@ class ApiClient {
       final r = http.MultipartRequest('POST', uri);
       if (newToken != null) r.headers['Authorization'] = 'Bearer $newToken';
       r.files.add(await http.MultipartFile.fromPath(fieldName, filePath));
+      if (fields != null) r.fields.addAll(fields);
       return http.Response.fromStream(await _client.send(r));
     });
   }

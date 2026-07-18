@@ -64,6 +64,20 @@ void main() {
       'target_type': 'user', 'target_id': 2, 'reason': '스팸/광고',
     });
     expect(report['success'], true);
+
+    // 이미지 업로드 → 서버가 메시지 자동 생성 ({message, file_url} 반환)
+    final upload = await api.uploadFile(
+      '/chat/$roomId/upload', 'C:/photos/meetup.jpg',
+      fieldName: 'file', fields: {'file_type': 'image'});
+    expect(upload['success'], true);
+    final uploadData = upload['data'] as Map<String, dynamic>;
+    expect(uploadData['file_url'], isNotEmpty);
+    final created = uploadData['message'] as Map<String, dynamic>;
+    expect(created['message_type'], 'image');
+    expect(created['file_name'], 'meetup.jpg');
+    // 폴링 조회에도 반영
+    final latest = await api.get('/chat/$roomId/messages');
+    expect((latest['data'] as List).first['id'], created['id']);
   });
 
   testWidgets('채팅 목록: 방·보관기간 배너 표시 후 방 진입', (tester) async {

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/api/api_client.dart';
@@ -167,22 +168,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen>
                   child: Icon(Icons.image_outlined, color: Colors.white),
                 ),
                 title: const Text('이미지 첨부'),
-                subtitle: const Text('JPG, PNG, WEBP, GIF'),
+                subtitle: const Text('갤러리에서 사진 선택'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _sendAttachment(type: 'image', label: '이미지');
-                },
-              ),
-              ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: AppColors.accent,
-                  child: Icon(Icons.attach_file, color: Colors.white),
-                ),
-                title: const Text('파일 첨부'),
-                subtitle: const Text('PDF, Word, Excel, TXT'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _sendAttachment(type: 'file', label: '파일');
+                  _pickAndSendImage();
                 },
               ),
               ListTile(
@@ -213,19 +202,37 @@ class _ChatRoomScreenState extends State<ChatRoomScreen>
     );
   }
 
-  /// Mock 파일 첨부 전송 (Web 호환 — 실제 파일 선택 없이 더미 메시지 전송)
-  Future<void> _sendAttachment(
-      {required String type, required String label}) async {
+  /// 이미지 선택 → POST /chat/:roomId/upload (multipart)
+  /// 서버가 업로드와 동시에 메시지를 생성하므로 별도 send 없이 폴링만 하면 됨
+  Future<void> _pickAndSendImage() async {
     if (_isSending) return;
-    final now = DateTime.now();
-    final fakeFileName =
-        '${label}_${now.millisecondsSinceEpoch}.${type == 'image' ? 'jpg' : 'pdf'}';
-    await _send({
-      'content': fakeFileName,
-      'message_type': type,
-      'file_name': fakeFileName,
-      'file_size': 1024 * (type == 'image' ? 256 : 512),
-    });
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1600,
+      maxHeight: 1600,
+      imageQuality: 85,
+    );
+    if (picked == null || !mounted) return;
+
+    setState(() => _isSending = true);
+    try {
+      final response = await _api.uploadFile(
+        '/chat/${widget.roomId}/upload',
+        picked.path,
+        fieldName: 'file',
+        fields: {'file_type': 'image'},
+      );
+      if (response['success'] == true) {
+        await _loadMessages();
+        _scrollToBottom();
+      }
+    } on ApiException catch (e) {
+      if (mounted) showErrorSnackBar(context, e.message);
+    } catch (_) {
+      if (mounted) showErrorSnackBar(context, '이미지 업로드에 실패했습니다.');
+    }
+    if (mounted) setState(() => _isSending = false);
   }
 
   /// 명함 공유 — 내 명함 선택 시트
@@ -546,6 +553,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen>
                                   msg['message_type'] as String? ?? 'text',
                               isDeleted: msg['is_deleted'] == true,
                               cardName: msg['card_name'] as String?,
+                              fileUrl: msg['file_url'] as String?,
                               onCardTap: msg['message_type'] == 'card'
                                   ? () => _openSharedCard(msg)
                                   : null,
@@ -657,6 +665,7 @@ class _MessageBubble extends StatelessWidget {
   final String messageType;
   final bool isDeleted;
   final String? cardName;
+  final String? fileUrl;
   final VoidCallback? onCardTap;
 
   const _MessageBubble({
@@ -667,6 +676,7 @@ class _MessageBubble extends StatelessWidget {
     this.messageType = 'text',
     this.isDeleted = false,
     this.cardName,
+    this.fileUrl,
     this.onCardTap,
   });
 
@@ -781,6 +791,23 @@ class _MessageBubble extends StatelessWidget {
       );
     }
     if (_isAttachment) {
+      // 이미지는 URL이 있으면 미리보기, 로드 실패 시 파일 표시로 폴백
+      if (messageType == 'image' && fileUrl != null && fileUrl!.isNotEmpty) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Image.network(
+            fileUrl!,
+            width: 200,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _AttachmentPreview(
+              fileName: content,
+              icon: _attachIcon,
+              label: _attachLabel,
+              isMe: isMe,
+            ),
+          ),
+        );
+      }
       return _AttachmentPreview(
         fileName: content,
         icon: _attachIcon,
