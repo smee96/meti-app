@@ -241,19 +241,21 @@ class ApiClient {
           return MockUsers.recordAttendances(accessToken!, sid, body ?? {});
         }
 
-        // 채팅 메시지 전송
-        if (path.endsWith('/messages')) {
-          return {
-            'success': true,
-            'data': {
-              'id': DateTime.now().millisecondsSinceEpoch % 100000,
-              'room_id': 1,
-              'sender_id': 1,
-              'message_type': 'text',
-              'content': body!['content'],
-              'created_at': DateTime.now().toIso8601String(),
-            },
-          };
+        // ── 채팅 (서버 스펙 §2) ──
+        if (path == '/chat/direct') {
+          return MockUsers.createDirectRoom(accessToken!, body ?? {});
+        }
+        if (path == '/chat/report') {
+          return MockUsers.reportChat(accessToken!, body ?? {});
+        }
+        if (path == '/chat/block') {
+          return MockUsers.blockChatUser(accessToken!, body ?? {});
+        }
+        // 채팅 메시지 전송 POST /chat/:roomId/messages
+        if (path.startsWith('/chat/') && path.endsWith('/messages')) {
+          final parts = path.split('/');
+          final rid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
+          return MockUsers.sendChatMessage(accessToken!, rid, body ?? {});
         }
       }
 
@@ -275,7 +277,7 @@ class ApiClient {
         }
 
         if (path == '/cards/contacts/list') {
-          return {'success': true, 'data': [], 'pagination': {'page': 1, 'limit': 20, 'total': 0}};
+          return MockUsers.getContacts(accessToken!);
         }
 
         // 명함 단건 조회 GET /cards/:id (public/contacts/qr 라우트 뒤에 위치해야 함)
@@ -366,9 +368,11 @@ class ApiClient {
           return {'success': true, 'data': []};
         }
 
-        if (path == '/chat') return {'success': true, 'data': []};
+        if (path == '/chat') return MockUsers.getChatRooms(accessToken!);
         if (path.startsWith('/chat/') && path.endsWith('/messages')) {
-          return {'success': true, 'data': []};
+          final parts = path.split('/');
+          final rid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
+          return MockUsers.getChatMessages(accessToken!, rid);
         }
         // 포인트 API (v2.8 경로)
         if (path == '/points/balance') return MockUsers.getPointWallet(accessToken!);
@@ -429,6 +433,13 @@ class ApiClient {
 
       // ── DELETE 라우팅 ──
       if (method == 'DELETE') {
+        // 채팅 메시지 삭제 DELETE /chat/:roomId/messages/:msgId
+        if (path.startsWith('/chat/') && path.contains('/messages/')) {
+          final parts = path.split('/');
+          final rid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
+          final mid = int.tryParse(parts.length >= 5 ? parts[4] : '0') ?? 0;
+          return MockUsers.deleteChatMessage(accessToken!, rid, mid);
+        }
         // v2.9: 그룹 탈퇴 / pending 신청 취소 DELETE /groups/:id/leave
         if (path.startsWith('/groups/') && path.endsWith('/leave')) {
           final parts = path.split('/');

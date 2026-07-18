@@ -32,6 +32,59 @@ class MockCards {
     };
   }
 
+  // ── 명함첩 목록 — GET /cards/contacts/list ────────────────────
+  // 유저별 저장된 타인 명함. test(1) 계정: 김프로(교환됨)·이어드민(미교환 → 채팅 403)
+  static final Map<int, List<Map<String, dynamic>>> contactsByUser = {
+    1: [
+      {
+        'id': 101, 'user_id': 2, 'card_type': 'personal',
+        'name': '김프로', 'title': '프로덕트 매니저', 'company': 'Mobin Inc.',
+        'email': 'pro@meti.dev', 'phone': '010-2222-3333',
+        'website': null, 'bio': '프로덕트로 세상을 바꿉니다.',
+        'avatar_url': null, 'template_id': 'forest_gold',
+        'is_primary': 1, 'is_public': 1, 'is_active': 1,
+        'tags': [
+          {'tag_type': 'skill', 'tag_value': '프로덕트 전략'},
+        ],
+        'sns_links': [], 'sns_count': 0,
+        'created_at': '2026-07-10 00:00:00',
+        'updated_at': '2026-07-10 00:00:00',
+        'share_url': 'https://staging.the-meti.pages.dev/card/101',
+      },
+      {
+        'id': 102, 'user_id': 3, 'card_type': 'personal',
+        'name': '이어드민', 'title': 'CTO', 'company': 'ELID',
+        'email': 'admin@meti.dev', 'phone': null,
+        'website': null, 'bio': null,
+        'avatar_url': null, 'template_id': 'burgundy_rose',
+        'is_primary': 1, 'is_public': 1, 'is_active': 1,
+        'tags': [], 'sns_links': [], 'sns_count': 0,
+        'created_at': '2026-07-12 00:00:00',
+        'updated_at': '2026-07-12 00:00:00',
+        'share_url': 'https://staging.the-meti.pages.dev/card/102',
+      },
+    ],
+  };
+
+  static Map<String, dynamic> getContacts(String accessToken) {
+    final email = MockStore.accessTokens[accessToken];
+    if (email == null) throw MockApiException('인증이 필요합니다.', 401);
+
+    final user = MockStore.users.firstWhere((u) => u['email'] == email);
+    final list = contactsByUser[user['id'] as int] ?? [];
+    return {
+      'success': true,
+      'data': List<Map<String, dynamic>>.from(list),
+      'pagination': {
+        'page': 1,
+        'limit': 20,
+        'total': list.length,
+        'total_pages': 1,
+        'has_next': false,
+      },
+    };
+  }
+
   // ── 명함 생성 — POST /cards ───────────────────────────────────
   // v2.9: 플랜별 한도 free=3 / pro=10 / business=무제한
   // v2.9: tags[], sns_links[] 필드 지원

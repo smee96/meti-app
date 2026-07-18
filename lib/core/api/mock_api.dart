@@ -6,6 +6,7 @@
 export 'mock/mock_data.dart';       // MockApiException, MockStore
 export 'mock/mock_auth.dart';      // MockAuth
 export 'mock/mock_cards.dart';     // MockCards
+export 'mock/mock_chat.dart';      // MockChat — 채팅 보강
 export 'mock/mock_groups.dart';    // MockGroups
 export 'mock/mock_lessons.dart';   // MockLessons
 export 'mock/mock_payments.dart';  // MockPayments
@@ -18,6 +19,7 @@ export 'mock/mock_schedules.dart'; // MockSchedules  — v3.0
 
 import 'mock/mock_auth.dart';
 import 'mock/mock_cards.dart';
+import 'mock/mock_chat.dart';
 import 'mock/mock_groups.dart';
 import 'mock/mock_lessons.dart';
 import 'mock/mock_payments.dart';
@@ -90,6 +92,38 @@ class MockUsers {
   static Map<String, dynamic> uploadCardAvatar(
           String accessToken, int cardId) =>
       MockCards.uploadCardAvatar(accessToken, cardId);
+
+  // ── 채팅 ──────────────────────────────────────────────────────
+  static Map<String, dynamic> getChatRooms(String accessToken) =>
+      MockChat.getChatRooms(accessToken);
+
+  static Map<String, dynamic> createDirectRoom(
+          String accessToken, Map<String, dynamic> body) =>
+      MockChat.createDirectRoom(accessToken, body);
+
+  static Map<String, dynamic> getChatMessages(
+          String accessToken, int roomId) =>
+      MockChat.getChatMessages(accessToken, roomId);
+
+  static Map<String, dynamic> sendChatMessage(
+          String accessToken, int roomId, Map<String, dynamic> body) =>
+      MockChat.sendChatMessage(accessToken, roomId, body);
+
+  static Map<String, dynamic> deleteChatMessage(
+          String accessToken, int roomId, int messageId) =>
+      MockChat.deleteChatMessage(accessToken, roomId, messageId);
+
+  static Map<String, dynamic> reportChat(
+          String accessToken, Map<String, dynamic> body) =>
+      MockChat.reportChat(accessToken, body);
+
+  static Map<String, dynamic> blockChatUser(
+          String accessToken, Map<String, dynamic> body) =>
+      MockChat.blockChatUser(accessToken, body);
+
+  /// GET /cards/contacts/list — 명함첩
+  static Map<String, dynamic> getContacts(String accessToken) =>
+      MockCards.getContacts(accessToken);
 
   // ── 그룹 ──────────────────────────────────────────────────────
   /// v2.9: /groups/mine (기존 getMyGroups → getMine으로 경로 변경)
