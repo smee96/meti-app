@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/charge_launcher.dart';
+import '../../../core/widgets/common_widgets.dart';
 import '../providers/point_provider.dart';
 import '../models/point_model.dart';
 
@@ -11,15 +13,38 @@ class PointScreen extends StatefulWidget {
   State<PointScreen> createState() => _PointScreenState();
 }
 
-class _PointScreenState extends State<PointScreen> {
+class _PointScreenState extends State<PointScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final p = context.read<PointProvider>();
-      p.loadWallet();
-      p.loadTransactions();
-    });
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _reload());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// 외부 브라우저 충전 후 앱 복귀 시 잔액·내역 자동 갱신
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _reload();
+  }
+
+  void _reload() {
+    final p = context.read<PointProvider>();
+    p.loadWallet();
+    p.loadTransactions();
+  }
+
+  /// 충전 = 외부 브라우저 웹 충전 페이지 (IAP 회피, OTT 자동 로그인)
+  Future<void> _openCharge() async {
+    final opened = await openExternalChargePage();
+    if (!opened && mounted) {
+      showErrorSnackBar(context, '브라우저를 열 수 없습니다. 잠시 후 다시 시도해주세요.');
+    }
   }
 
   @override
@@ -44,6 +69,7 @@ class _PointScreenState extends State<PointScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverToBoxAdapter(child: _buildWalletCard(point)),
+                SliverToBoxAdapter(child: _buildChargeButton()),
                 SliverToBoxAdapter(child: _buildInfoBanner()),
                 SliverToBoxAdapter(child: _buildPlanUpgradeCard()),
                 SliverToBoxAdapter(
@@ -165,6 +191,23 @@ class _PointScreenState extends State<PointScreen> {
     ];
   }
 
+  /// 충전 버튼 — 외부 브라우저로 웹 충전 페이지 오픈 (§5-1)
+  Widget _buildChargeButton() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: ElevatedButton.icon(
+        onPressed: _openCharge,
+        icon: const Icon(Icons.open_in_new, size: 18),
+        label: const Text('포인트 충전하기'),
+        style: ElevatedButton.styleFrom(
+          minimumSize: const Size(double.infinity, 48),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+        ),
+      ),
+    );
+  }
+
   Widget _buildInfoBanner() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -193,7 +236,7 @@ class _PointScreenState extends State<PointScreen> {
                 ),
                 SizedBox(height: 4),
                 Text(
-                  '현재 포인트 직접 충전 기능은 준비 중입니다.\n플랜 구독 시 자동으로 포인트가 지급되며,\n이벤트를 통해 포인트를 적립하실 수 있습니다.',
+                  '충전은 브라우저의 웹 충전 페이지에서 진행됩니다.\n충전 완료 후 앱으로 돌아오면 잔액이 자동 갱신됩니다.\n플랜 구독·이벤트 적립으로도 포인트를 모을 수 있습니다.',
                   style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.5),
                 ),
               ],

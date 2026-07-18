@@ -95,6 +95,10 @@ class ApiClient {
           return MockUsers.refreshToken(body!['refresh_token'] as String);
         }
         if (path == '/auth/logout') return MockUsers.logout(accessToken);
+        // 웹 충전 자동 로그인용 원타임 토큰
+        if (path == '/auth/web-session-token') {
+          return MockUsers.issueWebSessionToken(accessToken!);
+        }
         if (path == '/auth/forgot-password') {
           // v3.0 보안패치: reset_token 응답 제거 (서버가 이메일로만 전송)
           return {

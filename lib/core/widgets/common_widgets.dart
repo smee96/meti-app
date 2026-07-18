@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../utils/charge_launcher.dart';
 
 // ─── Loading Overlay ──────────────────────────────────
 class LoadingOverlay extends StatelessWidget {
@@ -280,7 +281,7 @@ void showSuccessSnackBar(BuildContext context, String message) {
 
 /// 포인트 부족 오류 전용 스낵바
 /// - insufficient_points 응답 시 호출
-/// - 앱 내 충전 버튼 금지 (v2.5 정책)
+/// - 앱 내 현금 결제 금지 — '충전' 액션은 외부 브라우저 웹 충전 페이지로 연결 (핸드오프 §5-1)
 /// - extra: {'current': int, 'required': int, 'short': int}
 void showInsufficientPointsSnackBar(
   BuildContext context, {
@@ -336,6 +337,11 @@ void showInsufficientPointsSnackBar(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       margin: const EdgeInsets.all(16),
       duration: const Duration(seconds: 4),
+      action: SnackBarAction(
+        label: '충전',
+        textColor: Colors.white,
+        onPressed: openExternalChargePage,
+      ),
     ),
   );
 }

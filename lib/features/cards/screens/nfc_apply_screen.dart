@@ -4,7 +4,7 @@ import '../widgets/business_card_widget.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
-import '../../points/utils/charge_launcher.dart';
+import '../../../core/utils/charge_launcher.dart';
 import 'nfc_applications_screen.dart';
 
 /// NFC 실물카드 신청 (핸드오프 §5-2)

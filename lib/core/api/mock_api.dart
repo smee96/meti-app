@@ -59,6 +59,10 @@ class MockUsers {
   static Map<String, dynamic> logout(String? accessToken) =>
       MockAuth.logout(accessToken);
 
+  /// POST /auth/web-session-token — 웹 충전 자동 로그인용 OTT
+  static Map<String, dynamic> issueWebSessionToken(String accessToken) =>
+      MockAuth.issueWebSessionToken(accessToken);
+
   static Map<String, dynamic> invitePreview(String token) =>
       MockAuth.invitePreview(token);
 
