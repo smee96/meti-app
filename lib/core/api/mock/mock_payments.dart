@@ -76,7 +76,7 @@ class MockPayments {
           'ref_type': 'payment',
           'ref_id': 'pay_mock_001',
           'description': '포인트 직접 충전',
-          'created_at': '2026-02-28T10:01:00Z',
+          'created_at': '2026-03-05T10:01:00Z',
         },
         {
           'id': 3,

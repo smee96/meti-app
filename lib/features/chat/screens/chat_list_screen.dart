@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
+import '../../cards/screens/contacts_screen.dart';
 import 'chat_room_screen.dart';
 
 class ChatListScreen extends StatefulWidget {
@@ -60,7 +61,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   title: '채팅방이 없어요',
                   subtitle: '명함을 교환한 상대방과\n채팅을 시작해보세요.',
                   actionLabel: '명함첩 보기',
-                  onAction: () {},
+                  onAction: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ContactsScreen()),
+                  ),
                 )
               : RefreshIndicator(
                   onRefresh: _loadRooms,

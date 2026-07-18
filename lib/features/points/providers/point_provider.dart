@@ -47,7 +47,15 @@ class PointProvider extends ChangeNotifier {
         final list = res['data'] as List<dynamic>? ?? [];
         _transactions = list
             .map((e) => PointTransaction.fromJson(e as Map<String, dynamic>))
-            .toList();
+            .toList()
+          ..sort((a, b) {
+            final aDt = DateTime.tryParse(a.createdAt ?? '');
+            final bDt = DateTime.tryParse(b.createdAt ?? '');
+            if (aDt == null && bDt == null) return 0;
+            if (aDt == null) return 1; // 날짜 없는 항목은 뒤로
+            if (bDt == null) return -1;
+            return bDt.compareTo(aDt); // 최신순
+          });
         notifyListeners();
       }
     } on ApiException catch (e) {
