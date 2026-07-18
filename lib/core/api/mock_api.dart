@@ -9,6 +9,7 @@ export 'mock/mock_cards.dart';     // MockCards
 export 'mock/mock_chat.dart';      // MockChat — 채팅 보강
 export 'mock/mock_groups.dart';    // MockGroups
 export 'mock/mock_lessons.dart';   // MockLessons
+export 'mock/mock_nfc.dart';       // MockNfc — NFC 실물카드 신청
 export 'mock/mock_payments.dart';  // MockPayments
 export 'mock/mock_schedules.dart'; // MockSchedules  — v3.0
 
@@ -22,6 +23,7 @@ import 'mock/mock_cards.dart';
 import 'mock/mock_chat.dart';
 import 'mock/mock_groups.dart';
 import 'mock/mock_lessons.dart';
+import 'mock/mock_nfc.dart';
 import 'mock/mock_payments.dart';
 import 'mock/mock_schedules.dart'; // v3.0
 
@@ -124,6 +126,16 @@ class MockUsers {
   /// GET /cards/contacts/list — 명함첩
   static Map<String, dynamic> getContacts(String accessToken) =>
       MockCards.getContacts(accessToken);
+
+  // ── NFC 실물카드 ──────────────────────────────────────────────
+  static Map<String, dynamic> getNfcConfig() => MockNfc.getNfcConfig();
+
+  static Map<String, dynamic> applyNfc(
+          String accessToken, Map<String, dynamic> body) =>
+      MockNfc.applyNfc(accessToken, body);
+
+  static Map<String, dynamic> getNfcApplications(String accessToken) =>
+      MockNfc.getNfcApplications(accessToken);
 
   // ── 그룹 ──────────────────────────────────────────────────────
   /// v2.9: /groups/mine (기존 getMyGroups → getMine으로 경로 변경)

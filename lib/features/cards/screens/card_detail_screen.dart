@@ -3,12 +3,17 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/card_model.dart';
 import '../providers/cards_provider.dart';
 import '../widgets/business_card_widget.dart';
+import '../../../core/api/api_client.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
 import 'card_create_screen.dart';
+import 'nfc_applications_screen.dart';
+import 'nfc_apply_screen.dart';
 import 'qr_show_screen.dart';
 
 class CardDetailScreen extends StatefulWidget {
@@ -20,7 +25,12 @@ class CardDetailScreen extends StatefulWidget {
 }
 
 class _CardDetailScreenState extends State<CardDetailScreen> {
+  final ApiClient _api = ApiClient();
   late CardModel _card;
+
+  // NFC 실물카드 (핸드오프 §5-2) — 내 명함일 때만 신청 버튼·상태 배지 노출
+  int? _myUserId;
+  Map<String, dynamic>? _nfcApplication;
 
   static const _resumeTypes = {'career', 'education'};
   List<CardTag> get _resumeTags =>
@@ -28,10 +38,81 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
   List<CardTag> get _plainTags =>
       _card.tags.where((t) => !_resumeTypes.contains(t.tagType)).toList();
 
+  bool get _isMyCard => _myUserId != null && _card.userId == _myUserId;
+
+  bool get _nfcInProgress {
+    final status = _nfcApplication?['status'] as String?;
+    return status == 'pending' || status == 'approved';
+  }
+
+  String? get _nfcStatusLabel {
+    switch (_nfcApplication?['status'] as String?) {
+      case 'pending':
+        return '신청됨';
+      case 'approved':
+        return '제작중';
+      case 'issued':
+        return '발급완료';
+    }
+    return null;
+  }
+
+  Color get _nfcStatusColor {
+    switch (_nfcApplication?['status'] as String?) {
+      case 'pending':
+        return AppColors.info;
+      case 'approved':
+        return AppColors.accent;
+      case 'issued':
+        return AppColors.success;
+    }
+    return AppColors.textTertiary;
+  }
+
   @override
   void initState() {
     super.initState();
     _card = widget.card;
+    _loadNfcStatus();
+  }
+
+  /// 이 명함의 최근 NFC 신청 상태 조회 (내 명함일 때만)
+  Future<void> _loadNfcStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final myId = prefs.getInt(AppConstants.keyUserId);
+    if (!mounted) return;
+    setState(() => _myUserId = myId);
+    if (myId == null || _card.userId != myId) return;
+
+    try {
+      final response = await _api.get('/cards/nfc/applications');
+      if (!mounted) return;
+      if (response['success'] == true) {
+        final forThisCard = (response['data'] as List)
+            .where((a) => a['card_id'] == _card.id)
+            .toList();
+        setState(() => _nfcApplication = forThisCard.isNotEmpty
+            ? Map<String, dynamic>.from(forThisCard.first as Map)
+            : null);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _openNfc() async {
+    if (_nfcInProgress) {
+      // 진행 중 신청은 중복 신청(409) 대신 내역으로 이동
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const NfcApplicationsScreen()),
+      );
+      _loadNfcStatus();
+    } else {
+      final applied = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => NfcApplyScreen(card: _card)),
+      );
+      if (applied == true) _loadNfcStatus();
+    }
   }
 
   // ── 명함 사진 변경 (v2.9) ────────────────────────────────
@@ -232,6 +313,45 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                 minimumSize: const Size(double.infinity, 48),
               ),
             ),
+
+            // ── NFC 실물카드 (내 명함만) ─────────────────────
+            if (_isMyCard) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _openNfc,
+                icon: const Icon(Icons.nfc),
+                label: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(_nfcInProgress
+                        ? 'NFC 카드 신청 내역'
+                        : 'NFC 실물카드 신청'),
+                    if (_nfcStatusLabel != null) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _nfcStatusColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          _nfcStatusLabel!,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: _nfcStatusColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
 
             // ── 기본 정보 ────────────────────────────────────

@@ -125,6 +125,11 @@ class ApiClient {
           return MockUsers.createCard(accessToken!, body!);
         }
 
+        // NFC 실물카드 신청 POST /cards/nfc/apply
+        if (path == '/cards/nfc/apply') {
+          return MockUsers.applyNfc(accessToken!, body ?? {});
+        }
+
         // v2.9: 프로필 사진 업로드 POST /auth/me/avatar
         if (path == '/auth/me/avatar') {
           return MockUsers.uploadAvatar(accessToken!);
@@ -278,6 +283,14 @@ class ApiClient {
 
         if (path == '/cards/contacts/list') {
           return MockUsers.getContacts(accessToken!);
+        }
+
+        // NFC 실물카드 GET /cards/nfc/config, /cards/nfc/applications
+        if (path == '/cards/nfc/config') {
+          return MockUsers.getNfcConfig();
+        }
+        if (path == '/cards/nfc/applications') {
+          return MockUsers.getNfcApplications(accessToken!);
         }
 
         // 명함 단건 조회 GET /cards/:id (public/contacts/qr 라우트 뒤에 위치해야 함)
