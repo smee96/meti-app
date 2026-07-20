@@ -27,11 +27,11 @@ appId: com.meti.meti_app
       visible: "로그인"
     commands:
       - tapOn:
-          text: "이메일"
+          text: "name@company.com"
           optional: true
       - inputText: "test@meti.dev"
       - tapOn:
-          text: "비밀번호"
+          text: "••••••••"
           optional: true
       - inputText: "MetiTest1234!"
       - hideKeyboard

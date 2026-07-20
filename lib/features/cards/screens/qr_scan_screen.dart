@@ -53,7 +53,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
     _controller?.stop();
 
     // QR URL에서 토큰 추출
-    // 예: https://meti.app/cards/qr/uuid-token
+    // 예: https://the-meti.pages.dev/cards/qr/uuid-token
     final uri = Uri.tryParse(raw);
     String? token;
     if (uri != null && uri.pathSegments.length >= 3) {
@@ -142,7 +142,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
                   left: 0,
                   right: 0,
                   child: Text(
-                    'METI QR 코드를 프레임 안에\n맞춰주세요',
+                    'ELID QR 코드를 프레임 안에\n맞춰주세요',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.8),

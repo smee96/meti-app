@@ -23,7 +23,7 @@ tags:
       - tapOn: "시작하기"
       - waitForAnimationToEnd
 
-- tapOn: "회원가입"
+- tapOn: ".*무료로 시작하기.*"
 - waitForAnimationToEnd
 
 - tapOn:

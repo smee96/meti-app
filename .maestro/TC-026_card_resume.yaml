@@ -1,0 +1,78 @@
+appId: com.meti.meti_app
+---
+# 검증: 이력 입력 → 2컬러 템플릿 → 저장 → 상세 확인
+- launchApp:
+    clearState: true
+
+# 스플래시 → 로그인 (명시적 대기)
+- extendedWaitUntil:
+    visible: "시작하기"
+    timeout: 15000
+- tapOn: "시작하기"
+- extendedWaitUntil:
+    visible: "로그인"
+    timeout: 8000
+- tapOn: "name@company.com"
+- inputText: "test@meti.dev"
+- tapOn: "••••••••"
+- inputText: "MetiTest1234!"
+- hideKeyboard
+- tapOn: "로그인"
+- extendedWaitUntil:
+    visible: "명함 만들기"
+    timeout: 8000
+
+# 명함 만들기 진입
+- tapOn: "명함 만들기"
+- waitForAnimationToEnd
+
+# 템플릿: 신규 2컬러 조합 선택 (가로 리스트 — 화면 밖이면 건너뜀)
+- tapOn:
+    text: "버건디"
+    optional: true
+- tapOn:
+    text: "포레스트"
+    optional: true
+
+# 이름 입력
+- tapOn: "이름 \\*"
+- inputText: "ResumeTest"
+- hideKeyboard
+
+# 이력 탭으로 이동
+- tapOn:
+    point: "75%, 12%"   # '이력 · 태그 · SNS' 탭 (TabBar 접근성 제약 우회)
+- waitForAnimationToEnd
+
+# 이력 1 추가 (경력)
+- tapOn:
+    text: "추가"
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "내용 \\*"
+- inputText: "ELID Corp Senior Developer"
+- tapOn: "기간 (선택)"
+- inputText: "2024 - now"
+- hideKeyboard
+- tapOn: "추가하기"
+- waitForAnimationToEnd
+- assertVisible: "(?s)ELID Corp Senior Developer.*2024.*"
+
+# 이력 2 추가 (학력)
+- tapOn:
+    text: "추가"
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "학력"
+- tapOn: "내용 \\*"
+- inputText: "Seoul National Univ BBA"
+- hideKeyboard
+- tapOn: "추가하기"
+- waitForAnimationToEnd
+- assertVisible: "(?s)Seoul National Univ.*BBA.*"
+
+# 저장
+- tapOn: "저장"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "내 명함"

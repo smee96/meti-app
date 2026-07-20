@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/common_widgets.dart';
 import '../../../routes/app_router.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -125,35 +126,32 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.primaryDark,
       body: Stack(
         children: [
-          // 배경 장식 원형
-          Positioned(
-            top: -size.width * 0.3,
-            right: -size.width * 0.2,
-            child: Container(
-              width: size.width * 0.8,
-              height: size.width * 0.8,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.04),
+          // 배경: 네이비 라디얼 그라데이션 (스플래시 A)
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment(0, -1.2),
+                  radius: 1.4,
+                  colors: [
+                    AppColors.primaryLight,
+                    AppColors.primary,
+                    AppColors.primaryDark,
+                  ],
+                  stops: [0.0, 0.48, 1.0],
+                ),
               ),
             ),
           ),
-          Positioned(
-            bottom: -size.width * 0.2,
-            left: -size.width * 0.1,
-            child: Container(
-              width: size.width * 0.6,
-              height: size.width * 0.6,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.04),
-              ),
+          // 기요셰 사선 텍스처
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.5,
+              child: CustomPaint(painter: GuillochePainter(spacing: 9)),
             ),
           ),
 
@@ -172,51 +170,18 @@ class _SplashScreenState extends State<SplashScreen>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // 로고 아이콘
-                            Container(
-                              width: 96,
-                              height: 96,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(28),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.25),
-                                    blurRadius: 32,
-                                    offset: const Offset(0, 10),
-                                  ),
-                                ],
-                              ),
-                              child: const Center(
-                                child: Text(
-                                  'M',
-                                  style: TextStyle(
-                                    color: AppColors.primary,
-                                    fontSize: 56,
-                                    fontWeight: FontWeight.w800,
-                                    height: 1,
-                                  ),
-                                ),
-                              ),
-                            ),
+                            // 로고 심볼 ④ (명함 모티프)
+                            const ElidSymbol(size: 96),
                             const SizedBox(height: 24),
-                            const Text(
-                              'METI',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 36,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 8,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
+                            const ElidWordmark(
+                                fontSize: 36, onDark: true, wide: true),
+                            const SizedBox(height: 12),
                             Text(
-                              'Global Business Networking',
+                              '디지털 명함, 다시 우아하게',
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.65),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w400,
-                                letterSpacing: 1.5,
+                                color: Colors.white.withValues(alpha: 0.58),
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
@@ -327,7 +292,19 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                   ),
 
-                if (_showButtons) const SizedBox(height: 16),
+                // 하단 브랜드 표기
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    'ELID by METI',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.45),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

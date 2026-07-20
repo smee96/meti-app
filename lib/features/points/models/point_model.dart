@@ -12,7 +12,8 @@ class PointWallet {
   });
 
   factory PointWallet.fromJson(Map<String, dynamic> json) {
-    // 서버는 숫자로 반환. (구버전 Mock의 객체 형태도 방어적으로 처리)
+    // 서버는 숫자로 반환 (staging 검증 2026-07-18: 만료 예정 없으면 0).
+    // 구버전 Mock의 객체 형태도 방어적으로 처리
     final raw = json['expiring_soon'];
     int expiring = 0;
     if (raw is num) {
@@ -65,7 +66,7 @@ class PointTransaction {
       amount: json['amount'] as int? ?? 0,
       balanceAfter: json['balance_after'] as int? ?? 0,
       refType: json['ref_type'] as String?,
-      // 서버 ref_id는 INTEGER — String/숫자 모두 안전하게 처리
+      // 서버 ref_id는 INTEGER (staging 검증 2026-07-18) — 문자열로 정규화
       refId: json['ref_id']?.toString(),
       description: json['description'] as String? ?? '',
       createdAt: json['created_at'] as String?,
@@ -93,6 +94,8 @@ class PointTransaction {
         return '행사 사용';
       case 'use_admin':
         return '관리자 차감';
+      case 'use_nfc_card':
+        return 'NFC 카드';
       case 'transfer_out':
         return '그룹 이전';
       case 'transfer_in':

@@ -4,10 +4,16 @@ import 'package:image_picker/image_picker.dart';
 import '../providers/cards_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
-import '../../../core/constants/app_constants.dart';
 import '../../../routes/app_router.dart';
 import '../widgets/business_card_widget.dart';
+import '../widgets/card_template_styles.dart';
 import '../models/card_model.dart';
+
+// ── 이력 태그 유형 (v1.7 스펙: career·education — 공개 명함 뷰어에서 섹션으로 표시) ──
+const Map<String, String> _resumeTypes = {
+  'career': '경력',
+  'education': '학력',
+};
 
 // ── SNS 플랫폼 목록 ─────────────────────────────────────
 const _snsPlatforms = [
@@ -46,8 +52,8 @@ class _CardCreateScreenState extends State<CardCreateScreen>
   final _websiteCtrl = TextEditingController();
   final _bioCtrl     = TextEditingController();
 
-  String _selectedTemplate = 'modern_blue';
-  bool   _isPublic         = false;
+  String _selectedTemplate = 'default'; // 브랜드 기본: 엘리드(네이비×골드)
+  bool   _isPublic         = true; // 공개 명함이 기본 (QR/링크 공유 가능)
 
   // ── 명함 사진 (avatar) ──────────────────────────────────
   String? _pendingAvatarPath; // 로컬 선택 경로 (미업로드)
@@ -245,6 +251,40 @@ class _CardCreateScreenState extends State<CardCreateScreen>
     }
   }
 
+  // ── 이력 추가 다이얼로그 ─────────────────────────────────
+  // 이력 = tag_type이 career/education인 태그
+  // 기간은 tag_period 필드로 분리 전송 (서버 마이그레이션 0026)
+  void _showAddCareerDialog({int? editIndex}) {
+    final existing = editIndex != null ? _tags[editIndex] : null;
+    final valueCtrl = TextEditingController(text: existing?.tagValue ?? '');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _CareerInputSheet(
+        initialType: existing?.tagType ?? 'career',
+        initialPeriod: existing?.tagPeriod ?? '',
+        valueCtrl: valueCtrl,
+        isEdit: editIndex != null,
+        onSave: (type, value, period) {
+          setState(() {
+            final tag = CardTag(
+              tagType: type,
+              tagValue: value,
+              tagPeriod: period.isEmpty ? null : period,
+            );
+            if (editIndex != null) {
+              _tags[editIndex] = tag;
+            } else {
+              _tags.add(tag);
+            }
+          });
+        },
+      ),
+    );
+  }
+
   // ── 태그 추가 다이얼로그 ─────────────────────────────────
   void _showAddTagDialog({int? editIndex}) {
     final typeCtrl = TextEditingController(
@@ -320,7 +360,7 @@ class _CardCreateScreenState extends State<CardCreateScreen>
           controller: _tabCtrl,
           tabs: const [
             Tab(text: '기본 정보'),
-            Tab(text: '태그 · SNS'),
+            Tab(text: '이력 · 태그 · SNS'),
           ],
         ),
         actions: [
@@ -418,43 +458,72 @@ class _CardCreateScreenState extends State<CardCreateScreen>
           const Text('템플릿', style: AppTextStyles.label),
           const SizedBox(height: 8),
           SizedBox(
-            height: 40,
+            height: 44,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: AppConstants.cardTemplates.length,
+              itemCount: kCardTemplateStyles.length,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, i) {
-                final tmpl = AppConstants.cardTemplates[i];
-                final isSelected = _selectedTemplate == tmpl['id'];
+                final tmpl = kCardTemplateStyles[i];
+                final isSelected = _selectedTemplate == tmpl.id;
                 return GestureDetector(
                   onTap: () =>
-                      setState(() => _selectedTemplate = tmpl['id']!),
+                      setState(() => _selectedTemplate = tmpl.id),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
+                        horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
                       color: isSelected
                           ? AppColors.primary
                           : AppColors.surfaceVariant,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(22),
                       border: Border.all(
                         color: isSelected
                             ? AppColors.primary
                             : AppColors.border,
                       ),
                     ),
-                    child: Text(
-                      tmpl['name']!,
-                      style: TextStyle(
-                        color: isSelected
-                            ? Colors.white
-                            : AppColors.textSecondary,
-                        fontSize: 13,
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                      ),
+                    child: Row(
+                      children: [
+                        // 2컬러 스와치 (그라데이션 + 악센트 도트)
+                        Container(
+                          width: 22,
+                          height: 22,
+                          decoration: BoxDecoration(
+                            gradient: tmpl.gradient,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.8),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Align(
+                            alignment: const Alignment(0.5, 0.5),
+                            child: Container(
+                              width: 7,
+                              height: 7,
+                              decoration: BoxDecoration(
+                                color: tmpl.accent,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 7),
+                        Text(
+                          tmpl.name,
+                          style: TextStyle(
+                            color: isSelected
+                                ? Colors.white
+                                : AppColors.textSecondary,
+                            fontSize: 13,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 );
@@ -590,7 +659,24 @@ class _CardCreateScreenState extends State<CardCreateScreen>
               ],
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 16),
+
+          // ── 이력·태그·SNS 입력으로 이동
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _tabCtrl.animateTo(1),
+              icon: const Icon(Icons.history_edu_outlined, size: 18),
+              label: const Text('이력 · 태그 · SNS 추가'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: BorderSide(
+                    color: AppColors.primary.withValues(alpha: 0.4)),
+                minimumSize: const Size.fromHeight(48),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
 
           SizedBox(
             width: double.infinity,
@@ -608,14 +694,119 @@ class _CardCreateScreenState extends State<CardCreateScreen>
   }
 
   // ════════════════════════════════════════════════════════
-  // 탭 2: 태그 · SNS
+  // 탭 2: 이력 · 태그 · SNS
   // ════════════════════════════════════════════════════════
   Widget _buildTab2() {
+    // 이력(경력/학력) 태그와 일반 태그 분리 — 원본 _tags 인덱스 유지
+    final resumeEntries = _tags
+        .asMap()
+        .entries
+        .where((e) => _resumeTypes.containsKey(e.value.tagType))
+        .toList();
+    final plainTagEntries = _tags
+        .asMap()
+        .entries
+        .where((e) => !_resumeTypes.containsKey(e.value.tagType))
+        .toList();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── 이력 섹션 (경력/학력 — 개수 제한 없음)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('이력', style: AppTextStyles.h4),
+              TextButton.icon(
+                onPressed: () => _showAddCareerDialog(),
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('추가'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                ),
+              ),
+            ],
+          ),
+          Text(
+            '경력·학력을 추가하세요. 공유된 명함의 상세 이력에 표시됩니다.',
+            style: AppTextStyles.caption,
+          ),
+          const SizedBox(height: 12),
+
+          if (resumeEntries.isEmpty)
+            _EmptyHint(
+              icon: Icons.history_edu_outlined,
+              text: '아직 이력이 없습니다.\n+ 추가 버튼을 눌러 경력·학력을 추가하세요.',
+            )
+          else
+            Column(
+              children: resumeEntries.map((entry) {
+                final i = entry.key;
+                final tag = entry.value;
+                final isCareer = tag.tagType == 'career';
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 2),
+                    leading: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        isCareer
+                            ? Icons.work_outline
+                            : Icons.school_outlined,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    title: Text(tag.tagValue, style: AppTextStyles.body1),
+                    subtitle: Text(
+                      [
+                        _resumeTypes[tag.tagType]!,
+                        if (tag.tagPeriod != null && tag.tagPeriod!.isNotEmpty)
+                          tag.tagPeriod!,
+                      ].join(' · '),
+                      style: AppTextStyles.caption,
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined,
+                              size: 18, color: AppColors.textSecondary),
+                          onPressed: () =>
+                              _showAddCareerDialog(editIndex: i),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline,
+                              size: 18, color: Colors.red),
+                          onPressed: () =>
+                              setState(() => _tags.removeAt(i)),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          const SizedBox(height: 28),
+
           // ── 태그 섹션
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -639,7 +830,7 @@ class _CardCreateScreenState extends State<CardCreateScreen>
           ),
           const SizedBox(height: 12),
 
-          if (_tags.isEmpty)
+          if (plainTagEntries.isEmpty)
             _EmptyHint(
               icon: Icons.label_outline,
               text: '아직 태그가 없습니다.\n+ 추가 버튼을 눌러 태그를 추가하세요.',
@@ -648,7 +839,7 @@ class _CardCreateScreenState extends State<CardCreateScreen>
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: _tags.asMap().entries.map((entry) {
+              children: plainTagEntries.map((entry) {
                 final i = entry.key;
                 final tag = entry.value;
                 return Chip(
@@ -751,6 +942,148 @@ class _CardCreateScreenState extends State<CardCreateScreen>
               }).toList(),
             ),
           const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// 이력 입력 바텀시트 (경력/학력)
+// ════════════════════════════════════════════════════════════
+class _CareerInputSheet extends StatefulWidget {
+  final String initialType;
+  final String initialPeriod;
+  final TextEditingController valueCtrl;
+  final bool isEdit;
+  final void Function(String type, String value, String period) onSave;
+
+  const _CareerInputSheet({
+    required this.initialType,
+    required this.initialPeriod,
+    required this.valueCtrl,
+    required this.isEdit,
+    required this.onSave,
+  });
+
+  @override
+  State<_CareerInputSheet> createState() => _CareerInputSheetState();
+}
+
+class _CareerInputSheetState extends State<_CareerInputSheet> {
+  late String _type;
+  late final TextEditingController _periodCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _type = widget.initialType;
+    _periodCtrl = TextEditingController(text: widget.initialPeriod);
+  }
+
+  @override
+  void dispose() {
+    _periodCtrl.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final v = widget.valueCtrl.text.trim();
+    if (v.isEmpty) return;
+    // 기간은 tag_value에 병합하지 않고 tag_period로 분리 전송
+    widget.onSave(_type, v, _periodCtrl.text.trim());
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isCareer = _type == 'career';
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 핸들
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Text(widget.isEdit ? '이력 수정' : '이력 추가', style: AppTextStyles.h3),
+          const SizedBox(height: 6),
+          Text(
+            '경력·학력을 입력하세요. 개수 제한이 없습니다.',
+            style: AppTextStyles.body2,
+          ),
+          const SizedBox(height: 20),
+
+          // 유형 선택
+          Row(
+            children: _resumeTypes.entries.map((e) {
+              final selected = _type == e.key;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  label: Text(e.value),
+                  selected: selected,
+                  onSelected: (_) => setState(() => _type = e.key),
+                  selectedColor: AppColors.primary,
+                  labelStyle: TextStyle(
+                    color: selected ? Colors.white : AppColors.textSecondary,
+                    fontWeight:
+                        selected ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 16),
+
+          TextField(
+            controller: widget.valueCtrl,
+            textInputAction: TextInputAction.next,
+            decoration: InputDecoration(
+              labelText: '내용 *',
+              hintText: isCareer
+                  ? '예) ELID Corp · 시니어 개발자'
+                  : '예) 서울대학교 경영학과 졸업',
+              prefixIcon: Icon(
+                isCareer ? Icons.work_outline : Icons.school_outlined,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _periodCtrl,
+            textInputAction: TextInputAction.done,
+            decoration: const InputDecoration(
+              labelText: '기간 (선택)',
+              hintText: '예) 2024 ~ 현재',
+              prefixIcon: Icon(Icons.calendar_today_outlined),
+            ),
+            onSubmitted: (_) => _submit(),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: _submit,
+            child: Text(widget.isEdit ? '수정 완료' : '추가하기'),
+          ),
         ],
       ),
     );

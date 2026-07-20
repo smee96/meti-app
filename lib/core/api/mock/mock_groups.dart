@@ -32,7 +32,7 @@ class MockGroups {
         // ── 정식 멤버 그룹 (my_status: active) ──────────────────
         {
           'id':               1,
-          'name':             'METI 개발자 모임',
+          'name':             'ELID 개발자 모임',
           'description':      'Flutter & Dart 개발자 커뮤니티',
           'purpose':          '플러터와 다트 개발자들의 지식 공유 및 네트워킹 스터디 모임',
           'visibility':       'public',
@@ -47,7 +47,7 @@ class MockGroups {
         // ── 가입 신청 중 그룹 (my_status: pending) ──────────────
         {
           'id':               2,
-          'name':             'METI 디자이너 모임',
+          'name':             'ELID 디자이너 모임',
           'description':      'UI/UX 디자이너들의 포트폴리오 공유 그룹',
           'purpose':          '디자인 트렌드 공유 및 피드백 스터디',
           'visibility':       'public',

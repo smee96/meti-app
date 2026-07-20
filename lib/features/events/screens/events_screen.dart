@@ -221,7 +221,7 @@ class _EventCard extends StatelessWidget {
     if (isoDate == null || isoDate.isEmpty) return '';
     try {
       final dt = DateTime.parse(isoDate).toLocal();
-      return DateFormat('MM/dd HH:mm', 'ko').format(dt);
+      return DateFormat('MM/dd HH:mm').format(dt);
     } catch (_) {
       return isoDate;
     }

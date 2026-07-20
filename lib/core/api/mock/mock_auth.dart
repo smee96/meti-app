@@ -198,6 +198,23 @@ class MockAuth {
     };
   }
 
+  // ── 웹 세션 원타임 토큰 — POST /auth/web-session-token ────────
+  // 외부 브라우저 웹 충전 페이지 자동 로그인용 (서버 회신 2026-07-16 §C-2)
+  // 1회용 · 5분 만료. 앱은 발급만 하고 교환은 웹이 수행.
+  static int _webSessionTokenSeq = 0;
+
+  static Map<String, dynamic> issueWebSessionToken(String accessToken) {
+    final email = MockStore.accessTokens[accessToken];
+    if (email == null) throw MockApiException('인증이 필요합니다.', 401);
+    return {
+      'success': true,
+      'data': {
+        'token': 'mock-ott-${++_webSessionTokenSeq}',
+        'expires_in': 300,
+      },
+    };
+  }
+
   // ── 로그아웃 — POST /auth/logout ─────────────────────────────
   static Map<String, dynamic> logout(String? accessToken) {
     if (accessToken != null) MockStore.accessTokens.remove(accessToken);
@@ -214,7 +231,7 @@ class MockAuth {
       'success': true,
       'data': {
         'group_id':   1,
-        'group_name': 'METI 개발자 모임',
+        'group_name': 'ELID 개발자 모임',
         'label':      '일반 초대',
         'max_uses':   100,
         'used_count': 3,
@@ -234,7 +251,7 @@ class MockAuth {
     }
     return {
       'success': true,
-      'data': {'group_id': 1, 'group_name': 'METI 개발자 모임'},
+      'data': {'group_id': 1, 'group_name': 'ELID 개발자 모임'},
       'message': '그룹에 가입되었습니다.',
     };
   }

@@ -106,6 +106,7 @@ class MockStore {
       'created_at': '2026-01-01 00:00:00',
       'updated_at': '2026-01-01 00:00:00',
       'sns_count': 0,
+      'share_url': 'https://staging.the-meti.pages.dev/card/1',
     },
     {
       'id': 2,
@@ -134,6 +135,7 @@ class MockStore {
       'created_at': '2026-02-01 00:00:00',
       'updated_at': '2026-02-01 00:00:00',
       'sns_count': 2,
+      'share_url': 'https://staging.the-meti.pages.dev/card/2',
     },
   ];
 
@@ -215,7 +217,7 @@ class MockStore {
       {
         'id': 1,
         'group_id': 1,
-        'title': 'METI 개발자 네트워킹 밋업 2026',
+        'title': 'ELID 개발자 네트워킹 밋업 2026',
         'description': 'Flutter & Dart 개발자들의 오프라인 네트워킹 모임입니다.',
         'location': '서울 강남구 테헤란로 123',
         'starts_at': '2026-07-10T18:00:00',
@@ -227,7 +229,7 @@ class MockStore {
         'participant_count': 12,
         'is_joined': false,
         'entry_fee': 0,
-        'group_name': 'METI 개발자 모임',
+        'group_name': 'ELID 개발자 모임',
         'organizer_name': '홍길동',
         'creation_cost': 1000,
         'created_at': '2026-06-01T00:00:00Z',
@@ -247,7 +249,7 @@ class MockStore {
         'participant_count': 45,
         'is_joined': true,
         'entry_fee': 0,
-        'group_name': 'METI 개발자 모임',
+        'group_name': 'ELID 개발자 모임',
         'organizer_name': '홍길동',
         'creation_cost': 3000,
         'created_at': '2026-06-10T00:00:00Z',
@@ -267,7 +269,7 @@ class MockStore {
         'participant_count': 18,
         'is_joined': false,
         'entry_fee': 0,
-        'group_name': 'METI 개발자 모임',
+        'group_name': 'ELID 개발자 모임',
         'organizer_name': '홍길동',
         'creation_cost': 1000,
         'created_at': '2026-05-01T00:00:00Z',
@@ -304,7 +306,7 @@ class MockStore {
       {
         'id': 2,
         'group_id': 1,
-        'name': 'METI 굿즈 — 에코백',
+        'name': 'ELID 굿즈 — 에코백',
         'description': '그룹 로고가 새겨진 에코백입니다.',
         'type': 'physical',
         'price': 8000,

@@ -95,6 +95,10 @@ class ApiClient {
           return MockUsers.refreshToken(body!['refresh_token'] as String);
         }
         if (path == '/auth/logout') return MockUsers.logout(accessToken);
+        // 웹 충전 자동 로그인용 원타임 토큰
+        if (path == '/auth/web-session-token') {
+          return MockUsers.issueWebSessionToken(accessToken!);
+        }
         if (path == '/auth/forgot-password') {
           // v3.0 보안패치: reset_token 응답 제거 (서버가 이메일로만 전송)
           return {
@@ -123,6 +127,11 @@ class ApiClient {
         // 명함 생성 (v2.5: 플랜별 한도 체크)
         if (path == '/cards') {
           return MockUsers.createCard(accessToken!, body!);
+        }
+
+        // NFC 실물카드 신청 POST /cards/nfc/apply
+        if (path == '/cards/nfc/apply') {
+          return MockUsers.applyNfc(accessToken!, body ?? {});
         }
 
         // v2.9: 프로필 사진 업로드 POST /auth/me/avatar
@@ -241,27 +250,27 @@ class ApiClient {
           return MockUsers.recordAttendances(accessToken!, sid, body ?? {});
         }
 
-        // 1:1 채팅방 시작/조회 POST /chat/direct
+        // ── 채팅 (서버 스펙 §2) ──
         if (path == '/chat/direct') {
-          return {
-            'success': true,
-            'data': {'room_id': 1, 'is_new': false},
-          };
+          return MockUsers.createDirectRoom(accessToken!, body ?? {});
         }
-
-        // 채팅 메시지 전송
-        if (path.endsWith('/messages')) {
-          return {
-            'success': true,
-            'data': {
-              'id': DateTime.now().millisecondsSinceEpoch % 100000,
-              'room_id': 1,
-              'sender_id': 1,
-              'message_type': 'text',
-              'content': body!['content'],
-              'created_at': DateTime.now().toIso8601String(),
-            },
-          };
+        if (path == '/chat/report') {
+          return MockUsers.reportChat(accessToken!, body ?? {});
+        }
+        if (path == '/chat/block') {
+          return MockUsers.blockChatUser(accessToken!, body ?? {});
+        }
+        // 채팅 메시지 전송 POST /chat/:roomId/messages
+        if (path.startsWith('/chat/') && path.endsWith('/messages')) {
+          final parts = path.split('/');
+          final rid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
+          return MockUsers.sendChatMessage(accessToken!, rid, body ?? {});
+        }
+        // 채팅 파일 업로드 POST /chat/:roomId/upload — 업로드 시 메시지 자동 생성
+        if (path.startsWith('/chat/') && path.endsWith('/upload')) {
+          final parts = path.split('/');
+          final rid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
+          return MockUsers.uploadChatFile(accessToken!, rid, body ?? {});
         }
       }
 
@@ -283,7 +292,22 @@ class ApiClient {
         }
 
         if (path == '/cards/contacts/list') {
-          return {'success': true, 'data': [], 'pagination': {'page': 1, 'limit': 20, 'total': 0}};
+          return MockUsers.getContacts(accessToken!);
+        }
+
+        // NFC 실물카드 GET /cards/nfc/config, /cards/nfc/applications
+        if (path == '/cards/nfc/config') {
+          return MockUsers.getNfcConfig();
+        }
+        if (path == '/cards/nfc/applications') {
+          return MockUsers.getNfcApplications(accessToken!);
+        }
+
+        // 명함 단건 조회 GET /cards/:id (public/contacts/qr 라우트 뒤에 위치해야 함)
+        final cardIdMatch = RegExp(r'^/cards/(\d+)$').firstMatch(path);
+        if (cardIdMatch != null) {
+          return MockUsers.getCard(
+              accessToken!, int.parse(cardIdMatch.group(1)!));
         }
         if (path == '/groups') return _mockGroups();
         // v2.9: /groups/mine (기존 /groups/me 대체)
@@ -367,9 +391,11 @@ class ApiClient {
           return {'success': true, 'data': []};
         }
 
-        if (path == '/chat') return {'success': true, 'data': []};
+        if (path == '/chat') return MockUsers.getChatRooms(accessToken!);
         if (path.startsWith('/chat/') && path.endsWith('/messages')) {
-          return {'success': true, 'data': []};
+          final parts = path.split('/');
+          final rid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
+          return MockUsers.getChatMessages(accessToken!, rid);
         }
         // 포인트 API (v2.8 경로)
         if (path == '/points/balance') return MockUsers.getPointWallet(accessToken!);
@@ -430,6 +456,13 @@ class ApiClient {
 
       // ── DELETE 라우팅 ──
       if (method == 'DELETE') {
+        // 채팅 메시지 삭제 DELETE /chat/:roomId/messages/:msgId
+        if (path.startsWith('/chat/') && path.contains('/messages/')) {
+          final parts = path.split('/');
+          final rid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
+          final mid = int.tryParse(parts.length >= 5 ? parts[4] : '0') ?? 0;
+          return MockUsers.deleteChatMessage(accessToken!, rid, mid);
+        }
         // v2.9: 그룹 탈퇴 / pending 신청 취소 DELETE /groups/:id/leave
         if (path.startsWith('/groups/') && path.endsWith('/leave')) {
           final parts = path.split('/');
@@ -566,7 +599,7 @@ class ApiClient {
     'success': true,
     'data': [
       {
-        'id': 1, 'name': 'METI 개발자 모임', 'description': 'Flutter & Dart 개발자 커뮤니티',
+        'id': 1, 'name': 'ELID 개발자 모임', 'description': 'Flutter & Dart 개발자 커뮤니티',
         'category': 'club', 'visibility': 'public', 'status': 'active',
         'plan': 'free', 'member_count': 24, 'admin_name': '홍길동',
       },
@@ -588,11 +621,11 @@ class ApiClient {
     'success': true,
     'data': [
       {
-        'id': 1, 'title': 'METI 네트워킹 밋업 2026', 'description': '글로벌 비즈니스 네트워킹 이벤트',
+        'id': 1, 'title': 'ELID 네트워킹 밋업 2026', 'description': '글로벌 비즈니스 네트워킹 이벤트',
         'location': '서울 강남구 테헤란로', 'starts_at': '2026-06-15T18:00:00Z',
         'ends_at': '2026-06-15T21:00:00Z', 'status': 'upcoming',
         'visibility': 'public', 'registration_type': 'free',
-        'group_name': 'METI 개발자 모임', 'organizer_name': '홍길동',
+        'group_name': 'ELID 개발자 모임', 'organizer_name': '홍길동',
         'participant_count': 34, 'max_participants': 100,
       },
       {
@@ -751,17 +784,21 @@ class ApiClient {
 
   // ─── Multipart Upload (v2.9) ─────────────────────────
   /// 파일 업로드 (multipart/form-data)
-  /// [path]     : API 경로 (예: '/auth/me/avatar', '/cards/1/avatar')
+  /// [path]     : API 경로 (예: '/auth/me/avatar', '/chat/1/upload')
   /// [filePath] : 로컬 파일 경로
-  /// [fieldName]: form-data 필드명 (기본값 'avatar')
+  /// [fieldName]: form-data 필드명 (기본값 'avatar', 채팅 업로드는 'file')
+  /// [fields]   : 추가 form-data 필드 (예: {'file_type': 'image'})
   Future<Map<String, dynamic>> uploadFile(
     String path,
     String filePath, {
     String fieldName = 'avatar',
+    Map<String, String>? fields,
   }) async {
-    // Mock 모드: 실제 파일 없이 바로 mock dispatch
+    // Mock 모드: 실제 파일 없이 파일명만 넘겨 mock dispatch
     if (AppConstants.useMock) {
-      return _mockDispatch('POST', path);
+      final fileName = filePath.split(RegExp(r'[/\\]')).last;
+      return _mockDispatch('POST', path,
+          body: {'file_name': fileName, ...?fields});
     }
 
     final accessToken = await _getAccessToken();
@@ -773,6 +810,7 @@ class ApiClient {
     request.files.add(
       await http.MultipartFile.fromPath(fieldName, filePath),
     );
+    if (fields != null) request.fields.addAll(fields);
     final streamedResponse = await _client.send(request);
     final response = await http.Response.fromStream(streamedResponse);
     return _handleResponse(response, retryRequest: () async {
@@ -780,6 +818,7 @@ class ApiClient {
       final r = http.MultipartRequest('POST', uri);
       if (newToken != null) r.headers['Authorization'] = 'Bearer $newToken';
       r.files.add(await http.MultipartFile.fromPath(fieldName, filePath));
+      if (fields != null) r.fields.addAll(fields);
       return http.Response.fromStream(await _client.send(r));
     });
   }

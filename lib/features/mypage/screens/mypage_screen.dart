@@ -25,6 +25,20 @@ class _MyPageScreenState extends State<MyPageScreen> {
     });
   }
 
+  // ── 미구현 메뉴 공통 안내 ──────────────────────────────
+  void _showComingSoon(BuildContext context) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: const Text('준비 중인 기능입니다.'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+  }
+
   // ── 프로필 수정 바텀시트 (T7 v2.9) ──────────────────────
   void _showEditProfileSheet(BuildContext context) {
     final auth = context.read<AuthProvider>();
@@ -248,7 +262,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () {},
+            onPressed: () => _showComingSoon(context),
             tooltip: '설정',
           ),
         ],
@@ -283,12 +297,12 @@ class _MyPageScreenState extends State<MyPageScreen> {
                 _MenuItem(
                   icon: Icons.lock_outline,
                   label: '비밀번호 변경',
-                  onTap: () {},
+                  onTap: () => _showComingSoon(context),
                 ),
                 _MenuItem(
                   icon: Icons.notifications_outlined,
                   label: '알림 설정',
-                  onTap: () {},
+                  onTap: () => _showComingSoon(context),
                 ),
               ]),
 

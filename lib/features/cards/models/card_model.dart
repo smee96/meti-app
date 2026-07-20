@@ -1,3 +1,5 @@
+import '../../../core/constants/app_constants.dart';
+
 class SnsLink {
   final int? id;
   final String platform;
@@ -28,17 +30,21 @@ class SnsLink {
 class CardTag {
   final String tagType;
   final String tagValue;
+  final String? tagPeriod; // 이력(career/education) 기간 — 서버 card_tags.tag_period
 
-  CardTag({required this.tagType, required this.tagValue});
+  CardTag({required this.tagType, required this.tagValue, this.tagPeriod});
 
   factory CardTag.fromJson(Map<String, dynamic> json) => CardTag(
         tagType: json['tag_type'] as String? ?? '',
         tagValue: json['tag_value'] as String? ?? '',
+        tagPeriod: json['tag_period'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
         'tag_type': tagType,
         'tag_value': tagValue,
+        if (tagPeriod != null && tagPeriod!.isNotEmpty)
+          'tag_period': tagPeriod,
       };
 }
 
@@ -94,6 +100,7 @@ class CardModel {
   final int isActive;
   final String? createdAt;
   final String? updatedAt;
+  final String? shareUrl; // 서버가 내려주는 공유 페이지 URL (도메인 변경에 앱 업데이트 불필요)
   final int snsCount;
   final List<SnsLink> snsLinks;
   final List<CardTag> tags;
@@ -118,6 +125,7 @@ class CardModel {
     required this.isActive,
     this.createdAt,
     this.updatedAt,
+    this.shareUrl,
     this.snsCount = 0,
     this.snsLinks = const [],
     this.tags = const [],
@@ -143,6 +151,7 @@ class CardModel {
         isActive: json['is_active'] as int? ?? 1,
         createdAt: json['created_at'] as String?,
         updatedAt: json['updated_at'] as String?,
+        shareUrl: json['share_url'] as String?,
         snsCount: json['sns_count'] as int? ?? 0,
         snsLinks: (json['sns_links'] as List<dynamic>?)
                 ?.map((e) => SnsLink.fromJson(e as Map<String, dynamic>))
@@ -160,6 +169,10 @@ class CardModel {
 
   bool get isPrimaryCard => isPrimary == 1;
   bool get isPublicCard  => isPublic  == 1;
+
+  /// 공유 페이지 URL — 서버 share_url 우선, 없으면 웹 공유 경로(/card/:id)로 폴백
+  String get resolvedShareUrl =>
+      shareUrl ?? '${AppConstants.webBaseUrl}/card/$id';
 
   // v2.9: 부분 업데이트용 copyWith
   CardModel copyWith({
@@ -193,6 +206,7 @@ class CardModel {
       isActive:    isActive,
       createdAt:   createdAt,
       updatedAt:   updatedAt,
+      shareUrl:    shareUrl,
       snsCount:    snsLinks != null ? snsLinks.length : snsCount,
       snsLinks:    snsLinks  ?? this.snsLinks,
       tags:        tags      ?? this.tags,

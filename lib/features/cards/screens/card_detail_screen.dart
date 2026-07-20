@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/card_model.dart';
 import '../providers/cards_provider.dart';
@@ -12,6 +13,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../chat/screens/chat_room_screen.dart';
 import 'card_create_screen.dart';
+import 'nfc_applications_screen.dart';
+import 'nfc_apply_screen.dart';
 import 'qr_show_screen.dart';
 
 class CardDetailScreen extends StatefulWidget {
@@ -23,25 +26,57 @@ class CardDetailScreen extends StatefulWidget {
 }
 
 class _CardDetailScreenState extends State<CardDetailScreen> {
-  late CardModel _card;
   final ApiClient _api = ApiClient();
+  late CardModel _card;
   int? _myUserId;
   bool _isStartingChat = false;
+
+  // NFC 실물카드 (핸드오프 §5-2) — 내 명함일 때만 신청 버튼·상태 배지 노출
+  Map<String, dynamic>? _nfcApplication;
+
+  static const _resumeTypes = {'career', 'education'};
+  List<CardTag> get _resumeTags =>
+      _card.tags.where((t) => _resumeTypes.contains(t.tagType)).toList();
+  List<CardTag> get _plainTags =>
+      _card.tags.where((t) => !_resumeTypes.contains(t.tagType)).toList();
+
+  bool get _isMyCard => _myUserId != null && _card.userId == _myUserId;
+
+  bool get _nfcInProgress {
+    final status = _nfcApplication?['status'] as String?;
+    return status == 'pending' || status == 'approved';
+  }
+
+  String? get _nfcStatusLabel {
+    switch (_nfcApplication?['status'] as String?) {
+      case 'pending':
+        return '신청됨';
+      case 'approved':
+        return '제작중';
+      case 'issued':
+        return '발급완료';
+    }
+    return null;
+  }
+
+  Color get _nfcStatusColor {
+    switch (_nfcApplication?['status'] as String?) {
+      case 'pending':
+        return AppColors.info;
+      case 'approved':
+        return AppColors.accent;
+      case 'issued':
+        return AppColors.success;
+    }
+    return AppColors.textTertiary;
+  }
 
   @override
   void initState() {
     super.initState();
     _card = widget.card;
-    _loadMyUserId();
+    _loadNfcStatus();
   }
-
-  Future<void> _loadMyUserId() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (mounted) setState(() => _myUserId = prefs.getInt(AppConstants.keyUserId));
-  }
-
-  /// 내 명함이 아닌 상대방 명함일 때만 채팅 가능
-  bool get _isMyCard => _myUserId != null && _card.userId == _myUserId;
 
   // ── 채팅하기 — POST /chat/direct 로 1:1 방 생성/조회 후 입장 ──
   Future<void> _startChat() async {
@@ -52,13 +87,15 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
           body: {'target_user_id': _card.userId});
       if (!mounted) return;
       if (response['success'] == true) {
-        final roomId = response['data']['room_id'] as int;
+        final room = response['data'] as Map<String, dynamic>;
+        final roomId = (room['room_id'] ?? room['id']) as int;
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => ChatRoomScreen(
               roomId: roomId,
               roomName: _card.name,
+              otherUserId: _card.userId,
             ),
           ),
         );
@@ -67,6 +104,45 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
       if (mounted) showErrorSnackBar(context, e.message);
     } finally {
       if (mounted) setState(() => _isStartingChat = false);
+    }
+  }
+
+  /// 이 명함의 최근 NFC 신청 상태 조회 (내 명함일 때만)
+  Future<void> _loadNfcStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final myId = prefs.getInt(AppConstants.keyUserId);
+    if (!mounted) return;
+    setState(() => _myUserId = myId);
+    if (myId == null || _card.userId != myId) return;
+
+    try {
+      final response = await _api.get('/cards/nfc/applications');
+      if (!mounted) return;
+      if (response['success'] == true) {
+        final forThisCard = (response['data'] as List)
+            .where((a) => a['card_id'] == _card.id)
+            .toList();
+        setState(() => _nfcApplication = forThisCard.isNotEmpty
+            ? Map<String, dynamic>.from(forThisCard.first as Map)
+            : null);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _openNfc() async {
+    if (_nfcInProgress) {
+      // 진행 중 신청은 중복 신청(409) 대신 내역으로 이동
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const NfcApplicationsScreen()),
+      );
+      _loadNfcStatus();
+    } else {
+      final applied = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => NfcApplyScreen(card: _card)),
+      );
+      if (applied == true) _loadNfcStatus();
     }
   }
 
@@ -92,6 +168,20 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
     } else {
       showErrorSnackBar(context, '사진 업로드에 실패했습니다.');
     }
+  }
+
+  // ── 명함 공유 ────────────────────────────────────────────
+  // 공개 명함 링크를 시스템 공유 시트로 전송 (카톡·문자 등)
+  Future<void> _handleShare() async {
+    if (_card.isPublic != 1) {
+      showErrorSnackBar(context, '비공개 명함은 공유할 수 없습니다.\n수정에서 공개로 전환한 뒤 공유해주세요.');
+      return;
+    }
+    final url = _card.resolvedShareUrl;
+    await Share.share(
+      '[ELID] ${_card.name}님의 명함\n$url',
+      subject: 'ELID 명함 — ${_card.name}',
+    );
   }
 
   Future<void> _handleDelete() async {
@@ -165,6 +255,11 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
         title: const Text('명함 상세'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.share_outlined),
+            tooltip: '명함 공유',
+            onPressed: _handleShare,
+          ),
+          IconButton(
             icon: const Icon(Icons.qr_code),
             tooltip: 'QR 코드',
             onPressed: () => Navigator.push(
@@ -188,7 +283,11 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                 );
                 if (!mounted) return;
                 if (result == true) {
-                  final updated = await provider.getCardDetail(cardId);
+                  // 단건 조회 실패 시 목록(updateCard가 갱신)에서 폴백
+                  final updated = await provider.getCardDetail(cardId) ??
+                      provider.myCards
+                          .where((c) => c.id == cardId)
+                          .firstOrNull;
                   if (mounted) setState(() => _card = updated ?? _card);
                 }
               } else if (value == 'delete') {
@@ -275,6 +374,45 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                 minimumSize: const Size(double.infinity, 48),
               ),
             ),
+
+            // ── NFC 실물카드 (내 명함만) ─────────────────────
+            if (_isMyCard) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _openNfc,
+                icon: const Icon(Icons.nfc),
+                label: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(_nfcInProgress
+                        ? 'NFC 카드 신청 내역'
+                        : 'NFC 실물카드 신청'),
+                    if (_nfcStatusLabel != null) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _nfcStatusColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          _nfcStatusLabel!,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: _nfcStatusColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
 
             // ── 기본 정보 ────────────────────────────────────
@@ -350,14 +488,65 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
               const SizedBox(height: 20),
             ],
 
-            // ── 태그 (tags[]) ────────────────────────────────
-            if (_card.tags.isNotEmpty) ...[
+            // ── 이력 (career/education 태그 — 공개 뷰어와 동일하게 분리 표시) ──
+            if (_resumeTags.isNotEmpty) ...[
+              const Text('이력', style: AppTextStyles.h4),
+              const SizedBox(height: 8),
+              ..._resumeTags.map((tag) {
+                final isCareer = tag.tagType == 'career';
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: Icon(
+                          isCareer
+                              ? Icons.work_outline
+                              : Icons.school_outlined,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(tag.tagValue, style: AppTextStyles.body1),
+                            Text(
+                              [
+                                isCareer ? '경력' : '학력',
+                                if (tag.tagPeriod != null &&
+                                    tag.tagPeriod!.isNotEmpty)
+                                  tag.tagPeriod!,
+                              ].join(' · '),
+                              style: AppTextStyles.caption,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              const SizedBox(height: 20),
+            ],
+
+            // ── 태그 (이력 제외 일반 태그) ────────────────────
+            if (_plainTags.isNotEmpty) ...[
               const Text('태그', style: AppTextStyles.h4),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: _card.tags.map((tag) {
+                children: _plainTags.map((tag) {
                   final label = tag.tagValue.isNotEmpty
                       ? tag.tagValue
                       : tag.tagType;

@@ -22,7 +22,7 @@ tags:
     timeout: 3000
 
 # 어드민 화면 확인
-- assertVisible: "METI 개발자 모임"
+- assertVisible: "ELID 개발자 모임"
 
 # 레슨 탭 — 좌표 탭 (Tab(child: Row(...)) 구조라 text tap 불가, y≈9%: tab bar)
 - tapOn:

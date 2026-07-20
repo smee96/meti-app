@@ -31,7 +31,14 @@ class _CardsHomeScreenState extends State<CardsHomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const MetiLogo(size: 32, showText: true),
+        title: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ElidSymbol(size: 28),
+            SizedBox(width: 8),
+            ElidWordmark(fontSize: 19),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.qr_code_scanner),

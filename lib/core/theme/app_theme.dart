@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // ── Brand — 잉크 네이비 (METI 디자인 토큰) ───────────────
-  static const Color primary = Color(0xFF0B1E40);       // navy (메인)
-  static const Color primaryLight = Color(0xFF1C3D72);  // navyGlow
-  static const Color primaryDark = Color(0xFF06122A);   // navyDeep
-  // 명함 그라데이션 별칭
+  // Brand Colors (ELID 브랜드 토큰 — elid_brand_kit/tokens 계승)
+  static const Color primary = Color(0xFF0B1E40);       // ELID Navy
+  static const Color primaryLight = Color(0xFF1C3D72);  // Navy Glow
+  static const Color primaryDark = Color(0xFF06122A);   // Navy Deep
+  static const Color gold = Color(0xFFC9A86A);          // ELID Gold (악센트/전환)
+  static const Color goldDeep = Color(0xFF9A7333);      // Gold Deep (밝은 배경 텍스트 대비)
+  static const Color accent = Color(0xFF3b82f6);        // Blue-500
+  static const Color accentLight = Color(0xFF93c5fd);   // Blue-300
+  // 명함 그라데이션 별칭 (네이비 계열)
   static const Color navy = Color(0xFF0B1E40);
   static const Color navyGlow = Color(0xFF1C3D72);
   static const Color navyDeep = Color(0xFF06122A);
-
-  // ── Accent — 골드(샴페인) ─────────────────────────────────
-  static const Color accent = Color(0xFFC9A86A);        // gold (금박)
-  static const Color accentLight = Color(0xFFE2CFA4);   // 밝은 골드
-  static const Color gold = Color(0xFFC9A86A);
-  static const Color goldDeep = Color(0xFF9A7333);
 
   // Semantic Colors
   static const Color success = Color(0xFF1B9C73);
@@ -36,7 +34,7 @@ class AppColors {
   static const Color textOnPrimary = Color(0xFFFFFFFF);
 
   // Card
-  static const Color cardShadow = Color(0x2906122A);    // navyDeep ~16%
+  static const Color cardShadow = Color(0x1A0B1E40);
 }
 
 class AppTheme {

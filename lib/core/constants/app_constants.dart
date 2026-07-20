@@ -33,6 +33,19 @@ class AppConfig {
     }
   }
 
+  /// 웹 공유 페이지 Base URL (API 프리픽스 없음)
+  /// 원칙적으로 서버가 내려주는 share_url을 쓰고, 이 값은 폴백 전용
+  static String get webBaseUrl {
+    switch (env) {
+      case AppEnv.staging:
+        return 'https://staging.the-meti.pages.dev';
+      case AppEnv.production:
+        return 'https://the-meti.pages.dev';
+      case AppEnv.mock:
+        return 'https://staging.the-meti.pages.dev';
+    }
+  }
+
   /// 환경 이름 표시용
   static String get envLabel {
     switch (env) {
@@ -58,6 +71,7 @@ class AppConstants {
   // ── 모드 / URL — AppConfig 위임 ───────────────────────
   static bool   get useMock => AppConfig.useMock;
   static String get baseUrl => AppConfig.baseUrl;
+  static String get webBaseUrl => AppConfig.webBaseUrl;
 
   // Storage Keys
   static const String keyAccessToken  = 'access_token';
@@ -152,12 +166,6 @@ class AppConstants {
     'github', 'youtube', 'tiktok', 'website',
   ];
 
-  // Card Templates
-  static const List<Map<String, String>> cardTemplates = [
-    {'id': 'default',     'name': '기본'},
-    {'id': 'modern_blue', 'name': '모던 블루'},
-    {'id': 'classic',     'name': '클래식'},
-    {'id': 'minimal',     'name': '미니멀'},
-    {'id': 'dark',        'name': '다크'},
-  ];
+  // Card Templates — features/cards/widgets/card_template_styles.dart 로 이전
+  // (id·이름·2컬러 그라데이션·악센트를 한 곳에서 관리)
 }

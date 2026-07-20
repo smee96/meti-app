@@ -1,0 +1,46 @@
+appId: com.meti.meti_app
+---
+# 검증: 명함 수정 → 저장 → 상세 화면 즉시 갱신 (GET /cards/:id mock 라우트 추가 검증)
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "시작하기"
+    timeout: 15000
+- tapOn: "시작하기"
+- extendedWaitUntil:
+    visible: "로그인"
+    timeout: 8000
+- tapOn: "name@company.com"
+- inputText: "test@meti.dev"
+- tapOn: "••••••••"
+- inputText: "MetiTest1234!"
+- hideKeyboard
+- tapOn: "로그인"
+- extendedWaitUntil:
+    visible: "명함 만들기"
+    timeout: 8000
+
+# 첫 번째 명함 진입
+- tapOn:
+    point: "50%, 59%"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# 수정 메뉴 진입 (점 3개 메뉴)
+- tapOn:
+    point: "95%, 6%"
+- waitForAnimationToEnd
+- tapOn: "수정"
+- waitForAnimationToEnd
+
+# 이름 변경
+- tapOn: "이름 \\*"
+- eraseText
+- inputText: "EditedName"
+- hideKeyboard
+- tapOn: "저장"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# 상세 화면으로 복귀 — 새 이름이 즉시 보여야 함
+- assertVisible: "EditedName"

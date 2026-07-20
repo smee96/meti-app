@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/api/api_client.dart';
+import '../../../core/utils/server_date.dart';
 import '../models/point_model.dart';
 
 class PointProvider extends ChangeNotifier {
@@ -47,7 +48,15 @@ class PointProvider extends ChangeNotifier {
         final list = res['data'] as List<dynamic>? ?? [];
         _transactions = list
             .map((e) => PointTransaction.fromJson(e as Map<String, dynamic>))
-            .toList();
+            .toList()
+          ..sort((a, b) {
+            final aDt = tryParseServerDate(a.createdAt);
+            final bDt = tryParseServerDate(b.createdAt);
+            if (aDt == null && bDt == null) return 0;
+            if (aDt == null) return 1; // 날짜 없는 항목은 뒤로
+            if (bDt == null) return -1;
+            return bDt.compareTo(aDt); // 최신순
+          });
         notifyListeners();
       }
     } on ApiException catch (e) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/common_widgets.dart';
 import '../../../routes/app_router.dart';
 
 // ── 페이지 데이터 모델 ─────────────────────────────────────
@@ -61,7 +62,7 @@ const List<_IntroPage> _kPages = [
     badgeIcon: Icons.nfc,
     tag: 'EVENT & NFC CHECK-IN',
     title: 'NFC 태그 하나로\n입장 + 명함 교환',
-    description: '행사 개설부터 참가 신청, NFC 체크인까지\n모든 과정이 METI 안에 있습니다.',
+    description: '행사 개설부터 참가 신청, NFC 체크인까지\n모든 과정이 ELID 안에 있습니다.',
     exampleLabel: '활용 예시',
     exampleText: 'B2B 전시회 NFC 태그 →\n입장 확인 + 주최자 명함 자동 수신',
     bullets: ['행사 개설·참가 신청 원스톱', 'NFC 체크인 & 명함 교환 동시'],
@@ -74,7 +75,7 @@ const List<_IntroPage> _kPages = [
     tag: 'GET STARTED',
     title: '지금 바로\n첫 명함을 만드세요',
     description: '3분이면 완성, 무료로 시작하세요.\n전 세계 네트워크가 손안에 있습니다.',
-    exampleLabel: 'METI와 함께',
+    exampleLabel: 'ELID와 함께',
     exampleText: '종이 명함 0장 · 분실 걱정 0%\n글로벌 네트워크는 지금도 연결 중',
     bullets: ['무료로 즉시 시작', '언제든 플랜 업그레이드'],
     gradient: [Color(0xFF0f2460), Color(0xFF1e3a8a)],
@@ -153,45 +154,19 @@ class _IntroScreenState extends State<IntroScreen>
             ),
           ),
 
-          // ── 상단: METI 로고 + 닫기 ──────────────────────
+          // ── 상단: ELID 로고 + 닫기 ──────────────────────
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // METI 로고
-                  Row(
+                  // ELID 로고
+                  const Row(
                     children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'M',
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontSize: 19,
-                              fontWeight: FontWeight.w900,
-                              height: 1,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 9),
-                      const Text(
-                        'METI',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 3,
-                        ),
-                      ),
+                      ElidSymbol(size: 32),
+                      SizedBox(width: 9),
+                      ElidWordmark(fontSize: 18, onDark: true),
                     ],
                   ),
                   // 닫기
