@@ -6,7 +6,9 @@ import '../../../core/widgets/common_widgets.dart';
 import '../models/event_model.dart';
 
 class EventsScreen extends StatefulWidget {
-  const EventsScreen({super.key});
+  /// true면 네트워크 탭 안에 임베드 — 자체 Scaffold/AppBar 없이 내부 탭+본문만 렌더
+  final bool embedded;
+  const EventsScreen({super.key, this.embedded = false});
 
   @override
   State<EventsScreen> createState() => _EventsScreenState();
@@ -123,22 +125,39 @@ class _EventsScreenState extends State<EventsScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.embedded) {
+      return Column(
+        children: [
+          Container(color: AppColors.surface, child: _buildTabBar()),
+          Expanded(child: _buildBody()),
+        ],
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('이벤트'),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppColors.primary,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textSecondary,
-          tabs: const [
-            Tab(text: '전체'),
-            Tab(text: '예정'),
-            Tab(text: '진행중'),
-          ],
-        ),
+        bottom: _buildTabBar(),
       ),
-      body: _isLoading
+      body: _buildBody(),
+    );
+  }
+
+  TabBar _buildTabBar() {
+    return TabBar(
+      controller: _tabController,
+      indicatorColor: AppColors.primary,
+      labelColor: AppColors.primary,
+      unselectedLabelColor: AppColors.textSecondary,
+      tabs: const [
+        Tab(text: '전체'),
+        Tab(text: '예정'),
+        Tab(text: '진행중'),
+      ],
+    );
+  }
+
+  Widget _buildBody() {
+    return _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.primary))
           : _events.isEmpty
@@ -159,8 +178,7 @@ class _EventsScreenState extends State<EventsScreen>
                       onLeave: () => _handleLeave(_events[i]),
                     ),
                   ),
-                ),
-    );
+                );
   }
 }
 

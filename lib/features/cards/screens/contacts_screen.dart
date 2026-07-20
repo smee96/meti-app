@@ -11,7 +11,9 @@ import 'card_detail_screen.dart';
 import 'qr_scan_screen.dart';
 
 class ContactsScreen extends StatefulWidget {
-  const ContactsScreen({super.key});
+  /// true면 네트워크 탭 안에 임베드 — 자체 Scaffold/AppBar 없이 본문만 렌더
+  final bool embedded;
+  const ContactsScreen({super.key, this.embedded = false});
 
   @override
   State<ContactsScreen> createState() => _ContactsScreenState();
@@ -92,9 +94,15 @@ class _ContactsScreenState extends State<ContactsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.embedded) return _buildBody();
     return Scaffold(
       appBar: AppBar(title: const Text('명함첩')),
-      body: Consumer<CardsProvider>(
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    return Consumer<CardsProvider>(
         builder: (context, provider, _) {
           if (provider.isLoading && provider.contacts.isEmpty) {
             return const Center(
@@ -147,7 +155,6 @@ class _ContactsScreenState extends State<ContactsScreen> {
             ),
           );
         },
-      ),
     );
   }
 }

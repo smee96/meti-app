@@ -6,7 +6,9 @@ import '../../../routes/app_router.dart';
 import 'group_admin_screen.dart';
 
 class GroupsScreen extends StatefulWidget {
-  const GroupsScreen({super.key});
+  /// true면 네트워크 탭 안에 임베드 — 자체 Scaffold/AppBar 없이 내부 탭+본문만 렌더
+  final bool embedded;
+  const GroupsScreen({super.key, this.embedded = false});
 
   @override
   State<GroupsScreen> createState() => _GroupsScreenState();
@@ -69,19 +71,32 @@ class _GroupsScreenState extends State<GroupsScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.embedded) {
+      // 네트워크 탭 임베드: 내부 탭바(+ 그룹 개설 버튼)를 본문 상단에 배치
+      return Column(
+        children: [
+          Container(
+            color: AppColors.surface,
+            child: Row(
+              children: [
+                Expanded(child: _buildTabBar()),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  tooltip: '그룹 개설 신청',
+                  color: AppColors.textSecondary,
+                  onPressed: _showCreateGroupSheet,
+                ),
+              ],
+            ),
+          ),
+          Expanded(child: _buildTabBarView()),
+        ],
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('그룹'),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppColors.primary,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textSecondary,
-          tabs: const [
-            Tab(text: '그룹 탐색'),
-            Tab(text: '내 그룹'),
-          ],
-        ),
+        bottom: _buildTabBar(),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -90,13 +105,30 @@ class _GroupsScreenState extends State<GroupsScreen>
           ),
         ],
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildExploreTab(),
-          _buildMyGroupsTab(),
-        ],
-      ),
+      body: _buildTabBarView(),
+    );
+  }
+
+  TabBar _buildTabBar() {
+    return TabBar(
+      controller: _tabController,
+      indicatorColor: AppColors.primary,
+      labelColor: AppColors.primary,
+      unselectedLabelColor: AppColors.textSecondary,
+      tabs: const [
+        Tab(text: '그룹 탐색'),
+        Tab(text: '내 그룹'),
+      ],
+    );
+  }
+
+  Widget _buildTabBarView() {
+    return TabBarView(
+      controller: _tabController,
+      children: [
+        _buildExploreTab(),
+        _buildMyGroupsTab(),
+      ],
     );
   }
 
