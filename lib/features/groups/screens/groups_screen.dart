@@ -6,7 +6,7 @@ import '../../../routes/app_router.dart';
 import 'group_admin_screen.dart';
 
 class GroupsScreen extends StatefulWidget {
-  /// 임베드 모드: 명함첩 허브 세그먼트 안에 넣을 때 외부 AppBar 없이 렌더
+  /// true면 네트워크 탭 안에 임베드 — 자체 Scaffold/AppBar 없이 내부 탭+본문만 렌더
   final bool embedded;
   const GroupsScreen({super.key, this.embedded = false});
 
@@ -69,67 +69,34 @@ class _GroupsScreenState extends State<GroupsScreen>
     setState(() => _isMyGroupsLoading = false);
   }
 
-  // 내부 탭(그룹 탐색 | 내 그룹) + 개설 버튼 — 임베드/독립 공통
-  Widget _buildInnerTabBar() {
-    return Material(
-      color: AppColors.surface,
-      child: Row(
+  @override
+  Widget build(BuildContext context) {
+    if (widget.embedded) {
+      // 네트워크 탭 임베드: 내부 탭바(+ 그룹 개설 버튼)를 본문 상단에 배치
+      return Column(
         children: [
-          Expanded(
-            child: TabBar(
-              controller: _tabController,
-              indicatorColor: AppColors.primary,
-              labelColor: AppColors.primary,
-              unselectedLabelColor: AppColors.textSecondary,
-              tabs: const [
-                Tab(text: '그룹 탐색'),
-                Tab(text: '내 그룹'),
+          Container(
+            color: AppColors.surface,
+            child: Row(
+              children: [
+                Expanded(child: _buildTabBar()),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  tooltip: '그룹 개설 신청',
+                  color: AppColors.textSecondary,
+                  onPressed: _showCreateGroupSheet,
+                ),
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: '그룹 개설 신청',
-            onPressed: _showCreateGroupSheet,
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final content = TabBarView(
-      controller: _tabController,
-      children: [
-        _buildExploreTab(),
-        _buildMyGroupsTab(),
-      ],
-    );
-
-    // 임베드 모드: 명함첩 허브 안 — 외부 AppBar 없이 내부 탭바 + 본문만
-    if (widget.embedded) {
-      return Column(
-        children: [
-          _buildInnerTabBar(),
-          Expanded(child: content),
+          Expanded(child: _buildTabBarView()),
         ],
       );
     }
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('그룹'),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppColors.primary,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textSecondary,
-          tabs: const [
-            Tab(text: '그룹 탐색'),
-            Tab(text: '내 그룹'),
-          ],
-        ),
+        bottom: _buildTabBar(),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -138,7 +105,30 @@ class _GroupsScreenState extends State<GroupsScreen>
           ),
         ],
       ),
-      body: content,
+      body: _buildTabBarView(),
+    );
+  }
+
+  TabBar _buildTabBar() {
+    return TabBar(
+      controller: _tabController,
+      indicatorColor: AppColors.primary,
+      labelColor: AppColors.primary,
+      unselectedLabelColor: AppColors.textSecondary,
+      tabs: const [
+        Tab(text: '그룹 탐색'),
+        Tab(text: '내 그룹'),
+      ],
+    );
+  }
+
+  Widget _buildTabBarView() {
+    return TabBarView(
+      controller: _tabController,
+      children: [
+        _buildExploreTab(),
+        _buildMyGroupsTab(),
+      ],
     );
   }
 
@@ -257,7 +247,6 @@ class _GroupsScreenState extends State<GroupsScreen>
                     label: const Text('관리'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.accent,
-                      foregroundColor: AppColors.primaryDark,
                       minimumSize: const Size(0, 32),
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       textStyle: const TextStyle(fontSize: 12),
@@ -484,7 +473,7 @@ class _GroupCard extends StatelessWidget {
                       // v2.5: 관리자 그룹이면 멤버수/한도 표시
                       Builder(builder: (_) {
                         final memberCount = group['member_count'] ?? 0;
-                        final maxLimit = group['max_members'] as int?;
+                        final maxLimit = group['max_group_members'] as int?;
                         if (showRole && maxLimit != null) {
                           final isAtLimit = memberCount >= maxLimit;
                           return Text(
@@ -593,6 +582,8 @@ class _GroupDetailSheetState extends State<_GroupDetailSheet> {
   bool _showJoinForm = false;
   bool _isLoading = false;
 
+  // 생년월일 (선택)
+  DateTime? _birthDate;
   final _messageCtrl = TextEditingController();
 
   @override
@@ -601,12 +592,46 @@ class _GroupDetailSheetState extends State<_GroupDetailSheet> {
     super.dispose();
   }
 
+  bool _calculateIsMinor() {
+    if (_birthDate == null) return false;
+    final today = DateTime.now();
+    final age = today.year -
+        _birthDate!.year -
+        ((today.month < _birthDate!.month ||
+                (today.month == _birthDate!.month &&
+                    today.day < _birthDate!.day))
+            ? 1
+            : 0);
+    return age < 19;
+  }
+
+  Future<void> _pickBirthDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime(2000),
+      firstDate: DateTime(1930),
+      lastDate: DateTime.now(),
+      helpText: '생년월일 선택',
+      confirmText: '확인',
+      cancelText: '취소',
+    );
+    if (picked != null) {
+      setState(() => _birthDate = picked);
+    }
+  }
+
   Future<void> _handleJoin() async {
     setState(() => _isLoading = true);
     try {
       final body = <String, dynamic>{};
       if (_messageCtrl.text.trim().isNotEmpty) {
         body['message'] = _messageCtrl.text.trim();
+      }
+      if (_birthDate != null) {
+        final bd =
+            '${_birthDate!.year.toString().padLeft(4, '0')}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}';
+        body['birth_date'] = bd;
+        body['is_minor'] = _calculateIsMinor();
       }
       final groupId = widget.group['id'];
       final resp =
@@ -738,6 +763,7 @@ class _GroupDetailSheetState extends State<_GroupDetailSheet> {
   @override
   Widget build(BuildContext context) {
     final group = widget.group;
+    final hasMinor = group['has_minor'] == true || group['has_minor'] == 1;
 
     return Container(
       decoration: const BoxDecoration(
@@ -815,6 +841,10 @@ class _GroupDetailSheetState extends State<_GroupDetailSheet> {
                         ? Icons.lock_outline
                         : Icons.public,
                     label: group['visibility'] == 'private' ? '비공개' : '공개'),
+                if (hasMinor) ...[
+                  const SizedBox(width: 8),
+                  _InfoChip(icon: Icons.child_care, label: '청소년 포함'),
+                ],
               ],
             ),
             const SizedBox(height: 20),
@@ -836,6 +866,74 @@ class _GroupDetailSheetState extends State<_GroupDetailSheet> {
                 style: AppTextStyles.body2,
               ),
               const SizedBox(height: 16),
+
+              // 생년월일 (선택)
+              GestureDetector(
+                onTap: _pickBirthDate,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 13),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.border),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.cake_outlined,
+                          size: 18, color: AppColors.textSecondary),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _birthDate == null
+                              ? '생년월일 (선택)'
+                              : '${_birthDate!.year}년 ${_birthDate!.month}월 ${_birthDate!.day}일',
+                          style: TextStyle(
+                            color: _birthDate == null
+                                ? AppColors.textTertiary
+                                : AppColors.textPrimary,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      if (_birthDate != null)
+                        GestureDetector(
+                          onTap: () => setState(() => _birthDate = null),
+                          child: const Icon(Icons.close,
+                              size: 16, color: AppColors.textTertiary),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // 미성년자 안내
+              if (_birthDate != null && _calculateIsMinor()) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: AppColors.warning.withValues(alpha: 0.3)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info_outline,
+                          size: 16, color: AppColors.warning),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '만 19세 미만으로 처리됩니다.',
+                          style: TextStyle(
+                              fontSize: 12, color: AppColors.warning),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
 
               // 가입 메시지
               TextField(

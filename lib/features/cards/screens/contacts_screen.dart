@@ -11,7 +11,7 @@ import 'card_detail_screen.dart';
 import 'qr_scan_screen.dart';
 
 class ContactsScreen extends StatefulWidget {
-  /// 임베드 모드: 명함첩 허브 세그먼트 안에 넣을 때 Scaffold/AppBar 없이 본문만 렌더
+  /// true면 네트워크 탭 안에 임베드 — 자체 Scaffold/AppBar 없이 본문만 렌더
   final bool embedded;
   const ContactsScreen({super.key, this.embedded = false});
 
