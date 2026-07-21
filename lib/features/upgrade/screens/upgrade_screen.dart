@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../auth/providers/auth_provider.dart';
 
 /// 플랜 업그레이드 화면 (v2.6)
 /// - 한도 초과 다이얼로그에서 "Pro 구독하기" 버튼 누를 때 진입
@@ -297,21 +299,29 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 현재 플랜은 로그인 사용자 정보에서 읽는다 (free | pro | business)
+    final currentPlan = context.watch<AuthProvider>().user?.plan ?? 'free';
+    // 추천 배지는 "바로 다음 단계" 플랜에만 붙인다
+    final recommendedPlan = currentPlan == 'free'
+        ? 'pro'
+        : (currentPlan == 'pro' ? 'business' : null);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('플랜 업그레이드'),
         centerTitle: true,
         actions: [
-          // 구독 취소 버튼 (현재 구독 중인 경우 표시 — 실제 서비스에서는 플랜 상태로 제어)
-          TextButton(
-            onPressed: () => _handleCancelSubscription(context),
-            child: const Text(
-              '구독 취소',
-              style: TextStyle(
-                  color: AppColors.textSecondary, fontSize: 12),
+          // 구독 취소는 유료 플랜 구독 중일 때만 노출
+          if (currentPlan != 'free')
+            TextButton(
+              onPressed: () => _handleCancelSubscription(context),
+              child: const Text(
+                '구독 취소',
+                style: TextStyle(
+                    color: AppColors.textSecondary, fontSize: 12),
+              ),
             ),
-          ),
         ],
       ),
       body: Stack(
@@ -339,7 +349,7 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                   price: '무료',
                   icon: Icons.person_outline,
                   color: AppColors.textSecondary,
-                  isCurrent: true,
+                  isCurrent: currentPlan == 'free',
                   features: const [
                     '명함 기본 1장 (추가 5,000원/장)',  // v2.7
                     '그룹 멤버 최대 2명 관리',
@@ -358,8 +368,8 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                   price: '10,000P / 월',
                   icon: Icons.workspace_premium,
                   color: AppColors.accent,
-                  isCurrent: false,
-                  isRecommended: true,
+                  isCurrent: currentPlan == 'pro',
+                  isRecommended: recommendedPlan == 'pro',
                   features: const [
                     '명함 기본 3장 (추가 5,000원/장)',  // v2.7
                     '그룹 멤버 최대 10명 관리',
@@ -382,7 +392,8 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                   price: '500,000P / 월',
                   icon: Icons.business,
                   color: AppColors.primary,
-                  isCurrent: false,
+                  isCurrent: currentPlan == 'business',
+                  isRecommended: recommendedPlan == 'business',
                   features: const [
                     '명함 기본 10장 (추가 5,000원/장)',  // v2.7
                     '그룹 멤버 무제한 관리',
@@ -690,7 +701,8 @@ class _PlanCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (!isCurrent) ...[
+                // 현재 플랜이거나 신청 대상이 아닌 플랜(예: Pro 구독 중의 Free)은 버튼 숨김
+                if (!isCurrent && (onSelect != null || isLoading)) ...[
                   const SizedBox(height: 8),
                   SizedBox(
                     width: double.infinity,
