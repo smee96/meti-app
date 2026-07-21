@@ -192,6 +192,17 @@ class _NfcApplyScreenState extends State<NfcApplyScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── 실물카드 히어로 (브랜드 킷 card 아이콘) ──────
+              Center(
+                child: Image.asset(
+                  'assets/brand/elid_appicon_card_512.png',
+                  width: 120,
+                  height: 120,
+                  filterQuality: FilterQuality.medium,
+                ),
+              ),
+              const SizedBox(height: 20),
+
               // ── 대상 명함 ──────────────────────────────────
               const Text('신청 명함', style: AppTextStyles.h4),
               const SizedBox(height: 8),

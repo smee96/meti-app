@@ -53,6 +53,7 @@ class _CardCreateScreenState extends State<CardCreateScreen>
   final _bioCtrl     = TextEditingController();
 
   String _selectedTemplate = 'default'; // 브랜드 기본: 엘리드(네이비×골드)
+  String _selectedDesign   = 'classic'; // 레이아웃 디자인 (classic/center/leftbar)
   bool   _isPublic         = true; // 공개 명함이 기본 (QR/링크 공유 가능)
 
   // ── 명함 사진 (avatar) ──────────────────────────────────
@@ -80,7 +81,8 @@ class _CardCreateScreenState extends State<CardCreateScreen>
       _phoneCtrl.text   = c.phone    ?? '';
       _websiteCtrl.text = c.website  ?? '';
       _bioCtrl.text     = c.bio      ?? '';
-      _selectedTemplate = c.templateId;
+      _selectedTemplate = cardPaletteIdOf(c.templateId);
+      _selectedDesign   = cardDesignIdOf(c.templateId);
       _isPublic         = c.isPublic == 1;
       _tags.addAll(c.tags);
       _snsLinks.addAll(c.snsLinks);
@@ -111,7 +113,7 @@ class _CardCreateScreenState extends State<CardCreateScreen>
         phone: _phoneCtrl.text.isEmpty ? null : _phoneCtrl.text,
         bio: _bioCtrl.text.isEmpty ? null : _bioCtrl.text,
         cardType: 'personal',
-        templateId: _selectedTemplate,
+        templateId: composeTemplateId(_selectedTemplate, _selectedDesign),
         isPrimary: 0,
         isPublic: _isPublic ? 1 : 0,
         isActive: 1,
@@ -136,7 +138,7 @@ class _CardCreateScreenState extends State<CardCreateScreen>
       if (_phoneCtrl.text.isNotEmpty)   'phone':   _phoneCtrl.text.trim(),
       if (_websiteCtrl.text.isNotEmpty) 'website': _websiteCtrl.text.trim(),
       if (_bioCtrl.text.isNotEmpty)     'bio':     _bioCtrl.text.trim(),
-      'template_id': _selectedTemplate,
+      'template_id': composeTemplateId(_selectedTemplate, _selectedDesign),
       'is_public':   _isPublic ? 1 : 0,
       // v2.9: full-replace 방식
       'tags':      _tags.map((t) => t.toJson()).toList(),
@@ -530,6 +532,63 @@ class _CardCreateScreenState extends State<CardCreateScreen>
                 );
               },
             ),
+          ),
+          const SizedBox(height: 24),
+
+          // ── 디자인(레이아웃) 선택
+          const Text('디자인', style: AppTextStyles.label),
+          const SizedBox(height: 8),
+          Row(
+            children: kCardDesigns.map((d) {
+              final isSelected = _selectedDesign == d.id;
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _selectedDesign = d.id),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: EdgeInsets.only(
+                        right: d.id == kCardDesigns.last.id ? 0 : 8),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primary.withValues(alpha: 0.08)
+                          : AppColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.border,
+                        width: isSelected ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          d.icon,
+                          size: 22,
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          d.name,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.textSecondary,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
           const SizedBox(height: 28),
 

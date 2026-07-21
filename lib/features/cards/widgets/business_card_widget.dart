@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import '../models/card_model.dart';
 import 'card_template_styles.dart';
@@ -27,24 +29,32 @@ class BusinessCardWidget extends StatelessWidget {
       );
     }
 
-    // 세로형 명함 (기본)
-    return GestureDetector(
-      onTap: onTap,
-      child: _buildVerticalCard(style, textColor, subColor),
-    );
+    // 세로형 명함 — 디자인(레이아웃)별 분기 (template_id의 `__디자인` 접미사)
+    final design = cardDesignIdOf(card.templateId);
+    final Widget body = switch (design) {
+      'center' => _buildCenterCard(style, textColor, subColor),
+      'leftbar' => _buildLeftbarCard(style, textColor, subColor),
+      _ => _buildVerticalCard(style, textColor, subColor),
+    };
+    return GestureDetector(onTap: onTap, child: body);
   }
 
-  // ── 세로형 명함 ──────────────────────────────────
-  Widget _buildVerticalCard(
-      CardTemplateStyle style, Color textColor, Color subColor) {
+  // ── 공용 카드 프레임 — 브랜드 킷(2026-07-20) 명함 비주얼 DNA ──
+  // 라디얼 그라데이션(우상단 글로우→딥) + 골드 포일 헤어라인(.45) + 기요셰 사선 텍스처
+  Widget _cardFrame(CardTemplateStyle style,
+      {required Widget child, double radius = 20}) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: style.gradient,
-        borderRadius: BorderRadius.circular(20),
-        border: style.isLight
-            ? Border.all(color: style.accent.withValues(alpha: 0.25))
-            : null,
+        gradient: RadialGradient(
+          center: const Alignment(0.8, -1.1),
+          radius: 1.8,
+          colors: [style.start, style.end],
+        ),
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(
+          color: style.accent.withValues(alpha: style.isLight ? 0.30 : 0.45),
+        ),
         boxShadow: [
           BoxShadow(
             color: style.start.withValues(alpha: style.isLight ? 0.15 : 0.35),
@@ -53,36 +63,233 @@ class BusinessCardWidget extends StatelessWidget {
           ),
         ],
       ),
-      child: Stack(
-        children: [
-          // 배경 장식 원
-          Positioned(
-            right: -30,
-            top: -30,
-            child: Container(
-              width: 140,
-              height: 140,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.05),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: CustomPaint(
+                painter: _GuillochePainter(
+                  (style.isLight ? const Color(0xFF0E1726) : Colors.white)
+                      .withValues(alpha: 0.05),
+                ),
               ),
             ),
-          ),
-          Positioned(
-            left: -20,
-            bottom: -20,
-            child: Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.05),
-              ),
-            ),
-          ),
+            // Stack의 loose constraint로 콘텐츠가 좌상단에 붙지 않도록 전체 폭 강제
+            SizedBox(width: double.infinity, child: child),
+          ],
+        ),
+      ),
+    );
+  }
 
-          // 콘텐츠
-          Padding(
+  // ── 센터형: 아바타·이름·연락처 중앙 정렬, 장식 없이 미니멀 ──
+  Widget _buildCenterCard(
+      CardTemplateStyle style, Color textColor, Color subColor) {
+    return _cardFrame(
+      style,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // 아바타
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: style.accent
+                    .withValues(alpha: style.isLight ? 0.10 : 0.18),
+                border: Border.all(
+                    color: style.accent.withValues(alpha: 0.45), width: 2),
+              ),
+              child: Center(
+                child: Text(
+                  card.name.isNotEmpty ? card.name[0].toUpperCase() : 'E',
+                  style: TextStyle(
+                    color: style.isLight ? style.accent : textColor,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              card.name,
+              style: TextStyle(
+                  color: textColor, fontSize: 22, fontWeight: FontWeight.w700),
+              textAlign: TextAlign.center,
+            ),
+            if ((card.title ?? '').isNotEmpty || (card.company ?? '').isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  [card.title, card.company]
+                      .where((s) => s != null && s.isNotEmpty)
+                      .join(' · '),
+                  style: TextStyle(color: subColor, fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            // 악센트 짧은 구분선
+            Container(
+              width: 36,
+              height: 2,
+              margin: const EdgeInsets.symmetric(vertical: 16),
+              color: style.accent.withValues(alpha: 0.7),
+            ),
+            if (card.email != null && card.email!.isNotEmpty)
+              _centerContactRow(Icons.email_outlined, card.email!, subColor),
+            if (card.phone != null && card.phone!.isNotEmpty)
+              _centerContactRow(Icons.phone_outlined, card.phone!, subColor),
+            if (card.website != null && card.website!.isNotEmpty)
+              _centerContactRow(
+                  Icons.language_outlined, card.website!, subColor),
+            if (card.bio != null && card.bio!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                card.bio!,
+                style: TextStyle(color: subColor, fontSize: 12, height: 1.6),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+            const SizedBox(height: 4),
+            Text(
+              'ELID',
+              style: TextStyle(
+                color: style.accent,
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _centerContactRow(IconData icon, String text, Color subColor) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: subColor),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              text,
+              style: TextStyle(color: subColor, fontSize: 12),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── 라인형: 좌측 악센트 세로 바 + 좌측 정렬 콘텐츠 ──
+  Widget _buildLeftbarCard(
+      CardTemplateStyle style, Color textColor, Color subColor) {
+    return _cardFrame(
+      style,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 악센트 바
+            Container(
+              width: 6,
+              decoration: BoxDecoration(
+                color: style.accent,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  bottomLeft: Radius.circular(20),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(22),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'ELID',
+                      style: TextStyle(
+                        color: style.accent,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      card.name,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if ((card.title ?? '').isNotEmpty ||
+                        (card.company ?? '').isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          [card.title, card.company]
+                              .where((s) => s != null && s.isNotEmpty)
+                              .join(' · '),
+                          style: TextStyle(color: subColor, fontSize: 13),
+                        ),
+                      ),
+                    const SizedBox(height: 18),
+                    if (card.email != null && card.email!.isNotEmpty)
+                      _contactRow(Icons.email_outlined, card.email!,
+                          textColor, subColor),
+                    if (card.phone != null && card.phone!.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _contactRow(Icons.phone_outlined, card.phone!,
+                          textColor, subColor),
+                    ],
+                    if (card.website != null && card.website!.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _contactRow(Icons.language_outlined, card.website!,
+                          textColor, subColor),
+                    ],
+                    if (card.bio != null && card.bio!.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      Text(
+                        card.bio!,
+                        style: TextStyle(
+                            color: subColor, fontSize: 12, height: 1.6),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── 세로형 명함 (클래식) ──────────────────────────
+  Widget _buildVerticalCard(
+      CardTemplateStyle style, Color textColor, Color subColor) {
+    return _cardFrame(
+      style,
+      child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -343,8 +550,6 @@ class BusinessCardWidget extends StatelessWidget {
                 const SizedBox(height: 8),
               ],
             ),
-          ),
-        ],
       ),
     );
   }
@@ -369,23 +574,12 @@ class BusinessCardWidget extends StatelessWidget {
   // ── 컴팩트형 (목록용) ────────────────────────────
   Widget _buildCompactCard(
       CardTemplateStyle style, Color textColor, Color subColor) {
-    return Container(
+    return SizedBox(
       height: 90,
-      decoration: BoxDecoration(
-        gradient: style.gradient,
-        borderRadius: BorderRadius.circular(14),
-        border: style.isLight
-            ? Border.all(color: style.accent.withValues(alpha: 0.25))
-            : null,
-        boxShadow: [
-          BoxShadow(
-            color: style.start.withValues(alpha: style.isLight ? 0.12 : 0.25),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
+      child: _cardFrame(
+        style,
+        radius: 14,
+        child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
@@ -457,8 +651,34 @@ class BusinessCardWidget extends StatelessWidget {
               ),
             ),
           ],
+          ),
         ),
       ),
     );
   }
+}
+
+// ════════════════════════════════════════════════════════════
+// 기요셰 사선 텍스처 — 킷 스펙: repeating 115deg, 1px 라인 / 9px 간격
+// ════════════════════════════════════════════════════════════
+class _GuillochePainter extends CustomPainter {
+  final Color color;
+  const _GuillochePainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1;
+    final diag = math.sqrt(size.width * size.width + size.height * size.height);
+    canvas.translate(size.width / 2, size.height / 2);
+    canvas.rotate(25 * math.pi / 180); // 115deg 그라데이션 축 ⟂ 라인
+    for (double x = -diag; x <= diag; x += 9) {
+      canvas.drawLine(Offset(x, -diag), Offset(x, diag), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GuillochePainter oldDelegate) =>
+      oldDelegate.color != color;
 }

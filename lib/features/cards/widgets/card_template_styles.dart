@@ -115,9 +115,45 @@ const List<CardTemplateStyle> kCardTemplateStyles = [
 ];
 
 /// id → 스타일 조회 (알 수 없는 id는 기본 템플릿)
+/// 합성 id(`팔레트__디자인`)가 들어와도 팔레트 부분만 사용한다.
 CardTemplateStyle cardTemplateStyle(String id) {
+  final paletteId = cardPaletteIdOf(id);
   return kCardTemplateStyles.firstWhere(
-    (t) => t.id == id,
+    (t) => t.id == paletteId,
     orElse: () => kCardTemplateStyles.first,
   );
 }
+
+// ════════════════════════════════════════════════════════════
+// 명함 디자인(레이아웃) — 팔레트와 독립된 축
+// 저장 형식: template_id = `{팔레트}` (클래식) 또는 `{팔레트}__{디자인}`
+// 서버는 template_id를 자유 문자열로 저장(검증 없음)하므로 스키마 변경 불필요.
+// 웹 공유 페이지에는 `__` 앞부분만 팔레트로 파싱하도록 별도 전달.
+// ════════════════════════════════════════════════════════════
+
+class CardDesign {
+  final String id;
+  final String name;
+  final IconData icon;
+  const CardDesign({required this.id, required this.name, required this.icon});
+}
+
+const List<CardDesign> kCardDesigns = [
+  CardDesign(id: 'classic', name: '클래식', icon: Icons.badge_outlined),
+  CardDesign(id: 'center', name: '센터', icon: Icons.align_vertical_center),
+  CardDesign(id: 'leftbar', name: '라인', icon: Icons.view_sidebar_outlined),
+];
+
+/// template_id에서 팔레트 id 추출 (`navy__center` → `navy`)
+String cardPaletteIdOf(String templateId) => templateId.split('__').first;
+
+/// template_id에서 디자인 id 추출 — 없거나 모르는 값이면 클래식
+String cardDesignIdOf(String templateId) {
+  final parts = templateId.split('__');
+  if (parts.length < 2) return 'classic';
+  return kCardDesigns.any((d) => d.id == parts[1]) ? parts[1] : 'classic';
+}
+
+/// 팔레트 + 디자인 → 저장용 template_id (클래식은 접미사 생략 = 하위호환)
+String composeTemplateId(String paletteId, String designId) =>
+    designId == 'classic' ? paletteId : '${paletteId}__$designId';

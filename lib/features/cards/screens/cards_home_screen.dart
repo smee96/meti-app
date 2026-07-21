@@ -89,14 +89,14 @@ class _CardsHomeScreenState extends State<CardsHomeScreen> {
                         ),
                         const SizedBox(height: 20),
 
-                        // 빠른 액션
+                        // 빠른 액션 — 브랜드 킷(2026-07-20) 버튼 타일
                         Row(
                           children: [
                             Expanded(
                               child: _QuickActionCard(
-                                icon: Icons.qr_code,
+                                asset:
+                                    'assets/images/buttons/btn-qr-navy.png',
                                 label: 'QR 스캔',
-                                color: AppColors.primary,
                                 onTap: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -107,9 +107,9 @@ class _CardsHomeScreenState extends State<CardsHomeScreen> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: _QuickActionCard(
-                                icon: Icons.contacts_outlined,
+                                asset:
+                                    'assets/images/buttons/btn-book-navy.png',
                                 label: '명함첩',
-                                color: AppColors.accent,
                                 onTap: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -120,9 +120,9 @@ class _CardsHomeScreenState extends State<CardsHomeScreen> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: _QuickActionCard(
-                                icon: Icons.add_card_outlined,
+                                asset:
+                                    'assets/images/buttons/btn-add-navy.png',
                                 label: '명함 추가',
-                                color: AppColors.success,
                                 onTap: () async {
                                   final result = await Navigator.push(
                                     context,
@@ -226,16 +226,15 @@ class _CardsHomeScreenState extends State<CardsHomeScreen> {
   }
 }
 
+// 브랜드 킷 버튼 타일 (라벨은 이미지에 포함 — Semantics로 접근성 보완)
 class _QuickActionCard extends StatelessWidget {
-  final IconData icon;
+  final String asset;
   final String label;
-  final Color color;
   final VoidCallback onTap;
 
   const _QuickActionCard({
-    required this.icon,
+    required this.asset,
     required this.label,
-    required this.color,
     required this.onTap,
   });
 
@@ -243,27 +242,16 @@ class _QuickActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 26),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+      child: Semantics(
+        button: true,
+        label: label,
+        child: AspectRatio(
+          aspectRatio: 1,
+          child: Image.asset(
+            asset,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.medium,
+          ),
         ),
       ),
     );

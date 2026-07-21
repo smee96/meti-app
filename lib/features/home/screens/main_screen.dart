@@ -24,12 +24,13 @@ class _MainScreenState extends State<MainScreen> {
     MyPageScreen(),
   ];
 
+  // ELID 브랜드 킷(2026-07-20) 탭바 아이콘 — off(그레이)/on(잉크) PNG 세트
   final List<_NavItem> _navItems = const [
-    _NavItem(icon: Icons.home_outlined, activeIcon: Icons.home, label: '홈'),
-    _NavItem(icon: Icons.people_alt_outlined, activeIcon: Icons.people_alt, label: '네트워크'),
-    _NavItem(icon: Icons.chat_bubble_outline, activeIcon: Icons.chat_bubble, label: '채팅'),
-    _NavItem(icon: Icons.handshake_outlined, activeIcon: Icons.handshake, label: '제휴'),
-    _NavItem(icon: Icons.person_outline, activeIcon: Icons.person, label: '마이'),
+    _NavItem(asset: 'tab-home', label: '홈'),
+    _NavItem(asset: 'tab-network', label: '네트워크'),
+    _NavItem(asset: 'tab-chat', label: '채팅'),
+    _NavItem(asset: 'tab-partner', label: '제휴'),
+    _NavItem(asset: 'tab-my', label: '마이'),
   ];
 
   @override
@@ -54,8 +55,8 @@ class _MainScreenState extends State<MainScreen> {
           onTap: (index) => setState(() => _currentIndex = index),
           items: _navItems
               .map((item) => BottomNavigationBarItem(
-                    icon: Icon(item.icon),
-                    activeIcon: Icon(item.activeIcon),
+                    icon: _TabIcon(asset: item.asset, active: false),
+                    activeIcon: _TabIcon(asset: item.asset, active: true),
                     label: item.label,
                   ))
               .toList(),
@@ -66,12 +67,25 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 class _NavItem {
-  final IconData icon;
-  final IconData activeIcon;
+  final String asset;
   final String label;
-  const _NavItem({
-    required this.icon,
-    required this.activeIcon,
-    required this.label,
-  });
+  const _NavItem({required this.asset, required this.label});
+}
+
+/// 브랜드 킷 탭바 PNG 아이콘 (색상은 이미지에 포함 — off 그레이 / on 잉크)
+class _TabIcon extends StatelessWidget {
+  final String asset;
+  final bool active;
+  const _TabIcon({required this.asset, required this.active});
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      'assets/icons/tabbar/$asset${active ? '-on' : ''}.png',
+      width: 26,
+      height: 26,
+      // 원본 288px → 26dp 축소, 픽셀 계단 방지
+      filterQuality: FilterQuality.medium,
+    );
+  }
 }
