@@ -62,6 +62,17 @@ class _ChatRoomScreenState extends State<ChatRoomScreen>
     super.dispose();
   }
 
+  double _lastViewInset = 0;
+
+  @override
+  void didChangeMetrics() {
+    // 키보드가 열리면(하단 인셋 증가) 최신 메시지가 보이도록 스크롤
+    final view = WidgetsBinding.instance.platformDispatcher.views.first;
+    final inset = view.viewInsets.bottom;
+    if (inset > _lastViewInset) _scrollToBottom();
+    _lastViewInset = inset;
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -566,12 +577,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen>
 
           // 입력창
           Container(
-            padding: EdgeInsets.only(
-              left: 8,
-              right: 8,
-              top: 8,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 8,
-            ),
+            // 키보드 회피는 Scaffold(resizeToAvoidBottomInset)가 처리 —
+            // viewInsets를 여기서 또 더하면 이중 보정되어 목록이 짜부라진다
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
             decoration: BoxDecoration(
               color: AppColors.surface,
               border: const Border(top: BorderSide(color: AppColors.border)),
