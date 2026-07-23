@@ -83,6 +83,13 @@ class AppConstants {
   static const String keyUserPlan     = 'user_plan';
   static const String keyIsLoggedIn   = 'is_logged_in';
 
+  // NFC 실물카드 배송지 — 재신청 시 자동 채움용 (마지막 신청 정보 로컬 저장)
+  static const String keyNfcShipName    = 'nfc_ship_name';
+  static const String keyNfcShipPhone   = 'nfc_ship_phone';
+  static const String keyNfcShipZipcode = 'nfc_ship_zipcode';
+  static const String keyNfcShipAddress = 'nfc_ship_address';
+  static const String keyNfcShipDetail  = 'nfc_ship_detail';
+
   // Pagination
   static const int defaultPageSize = 20;
 

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/card_model.dart';
 import '../widgets/business_card_widget.dart';
 import '../../../core/api/api_client.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../core/utils/charge_launcher.dart';
@@ -32,11 +34,41 @@ class _NfcApplyScreenState extends State<NfcApplyScreen> {
 
   int? _price;
   bool _isSubmitting = false;
+  bool _prefilledFromHistory = false; // 이전 배송지 자동 채움 안내 배너용
 
   @override
   void initState() {
     super.initState();
     _loadConfig();
+    _prefillShipping();
+  }
+
+  /// 마지막 신청 시 저장한 배송지를 자동으로 채운다 (재신청 편의)
+  Future<void> _prefillShipping() async {
+    final prefs = await SharedPreferences.getInstance();
+    final name = prefs.getString(AppConstants.keyNfcShipName);
+    if (name == null || name.isEmpty || !mounted) return;
+    setState(() {
+      _nameCtrl.text = name;
+      _phoneCtrl.text = prefs.getString(AppConstants.keyNfcShipPhone) ?? '';
+      _zipcodeCtrl.text = prefs.getString(AppConstants.keyNfcShipZipcode) ?? '';
+      _addressCtrl.text = prefs.getString(AppConstants.keyNfcShipAddress) ?? '';
+      _detailCtrl.text = prefs.getString(AppConstants.keyNfcShipDetail) ?? '';
+      _prefilledFromHistory = true;
+    });
+  }
+
+  /// 신청 성공 시 배송지를 로컬에 저장 (다음 신청에서 자동 채움)
+  Future<void> _saveShipping() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(AppConstants.keyNfcShipName, _nameCtrl.text.trim());
+    await prefs.setString(AppConstants.keyNfcShipPhone, _phoneCtrl.text.trim());
+    await prefs.setString(
+        AppConstants.keyNfcShipZipcode, _zipcodeCtrl.text.trim());
+    await prefs.setString(
+        AppConstants.keyNfcShipAddress, _addressCtrl.text.trim());
+    await prefs.setString(
+        AppConstants.keyNfcShipDetail, _detailCtrl.text.trim());
   }
 
   @override
@@ -79,6 +111,8 @@ class _NfcApplyScreenState extends State<NfcApplyScreen> {
       });
       if (!mounted) return;
       if (response['success'] == true) {
+        await _saveShipping(); // 다음 신청 자동 채움용
+        if (!mounted) return;
         _showSuccessDialog(response['data'] as Map<String, dynamic>);
       }
     } on ApiException catch (e) {
@@ -161,6 +195,18 @@ class _NfcApplyScreenState extends State<NfcApplyScreen> {
         ],
       ),
     );
+  }
+
+  /// 자동 채운 배송지를 비워 새로 입력하도록 (배너도 숨김)
+  void _clearShippingFields() {
+    setState(() {
+      _nameCtrl.clear();
+      _phoneCtrl.clear();
+      _zipcodeCtrl.clear();
+      _addressCtrl.clear();
+      _detailCtrl.clear();
+      _prefilledFromHistory = false;
+    });
   }
 
   String _formatNumber(int n) => n.toString().replaceAllMapped(
@@ -248,7 +294,49 @@ class _NfcApplyScreenState extends State<NfcApplyScreen> {
               const SizedBox(height: 24),
 
               // ── 배송 정보 ──────────────────────────────────
-              const Text('배송 정보', style: AppTextStyles.h4),
+              Row(
+                children: [
+                  const Text('배송 정보', style: AppTextStyles.h4),
+                  const Spacer(),
+                  if (_prefilledFromHistory)
+                    TextButton.icon(
+                      onPressed: _clearShippingFields,
+                      icon: const Icon(Icons.refresh, size: 16),
+                      label: const Text('비우기'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.textSecondary,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                ],
+              ),
+              if (_prefilledFromHistory) ...[
+                const SizedBox(height: 4),
+                Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.info.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.history,
+                          size: 15, color: AppColors.info),
+                      const SizedBox(width: 6),
+                      const Expanded(
+                        child: Text(
+                          '이전 배송지를 불러왔어요. 필요하면 수정하세요.',
+                          style: TextStyle(
+                              fontSize: 12, color: AppColors.info),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               _buildField(_nameCtrl, '받는 사람 *', hint: '홍길동'),
               _buildField(_phoneCtrl, '연락처 *',

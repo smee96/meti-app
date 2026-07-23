@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/server_date.dart';
@@ -190,20 +191,53 @@ class _ApplicationTile extends StatelessWidget {
               ],
             ),
           ],
-          // 운송장 (발급완료 시)
+          // 운송장 (발급완료 시) — 번호 복사 버튼 포함
           if (trackingNo != null && trackingNo.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                const Icon(Icons.confirmation_number_outlined,
-                    size: 16, color: AppColors.success),
-                const SizedBox(width: 6),
-                Text(
-                  '${carrier ?? '택배'} $trackingNo',
-                  style: AppTextStyles.caption
-                      .copyWith(color: AppColors.success),
-                ),
-              ],
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.success.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.local_shipping,
+                      size: 16, color: AppColors.success),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          carrier ?? '택배',
+                          style: const TextStyle(
+                              fontSize: 11, color: AppColors.textTertiary),
+                        ),
+                        Text(
+                          trackingNo,
+                          style: AppTextStyles.body2.copyWith(
+                            color: AppColors.success,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: trackingNo));
+                      showSuccessSnackBar(context, '운송장 번호를 복사했어요.');
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: const Padding(
+                      padding: EdgeInsets.all(6),
+                      child: Icon(Icons.copy,
+                          size: 18, color: AppColors.success),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ],
