@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
+import '../../cards/services/card_design_catalog.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/common_widgets.dart';
 import '../../../routes/app_router.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -17,7 +17,6 @@ class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnim;
-  late Animation<double> _scaleAnim;
   late Animation<double> _buttonFadeAnim;
 
   bool _showButtons = false;
@@ -27,7 +26,7 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 900),
     );
     _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
@@ -35,16 +34,10 @@ class _SplashScreenState extends State<SplashScreen>
         curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
       ),
     );
-    _scaleAnim = Tween<double>(begin: 0.75, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.7, curve: Curves.elasticOut),
-      ),
-    );
     _buttonFadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.6, 1.0, curve: Curves.easeOut),
+        curve: const Interval(0.4, 1.0, curve: Curves.easeOut),
       ),
     );
 
@@ -54,8 +47,13 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _checkAuth() async {
-    // 로고 애니메이션 최소 표시 시간
-    await Future.delayed(const Duration(milliseconds: 1400));
+    // 명함 디자인 카탈로그 로드 (번들 폴백 내장 — 실패해도 진행)
+    // 스플래시 대기와 병렬 수행
+    final catalogFuture = CardDesignCatalog.instance.ensureLoaded();
+
+    // 스플래시 최소 표시 시간 (제품 결정 2026-07-23: 입장 시 2초)
+    await Future.delayed(const Duration(milliseconds: 2000));
+    await catalogFuture;
     if (!mounted) return;
 
     final auth = context.read<AuthProvider>();
@@ -127,178 +125,151 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primaryDark,
+      backgroundColor: Colors.white,
       body: Stack(
+        // 비배치 자식(Column)이 전폭이 아니어도 Stack이 화면 전체를 채우도록
+        fit: StackFit.expand,
         children: [
-          // 배경: 네이비 라디얼 그라데이션 (스플래시 A)
+          // 배경: 브랜드 스플래시 사진 (2026-07-23 elid_sp — 로고·태그라인 포함)
           Positioned.fill(
-            child: DecoratedBox(
-              decoration: const BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment(0, -1.2),
-                  radius: 1.4,
-                  colors: [
-                    AppColors.primaryLight,
-                    AppColors.primary,
-                    AppColors.primaryDark,
-                  ],
-                  stops: [0.0, 0.48, 1.0],
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              child: Image.asset(
+                'assets/images/elid_splash.png',
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
+              ),
+            ),
+          ),
+
+          // 하단 가독성 스크림 (버튼·로딩 영역)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 300,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.white.withValues(alpha: 0.0),
+                      Colors.white.withValues(alpha: 0.85),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-          // 기요셰 사선 텍스처
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.5,
-              child: CustomPaint(painter: GuillochePainter(spacing: 9)),
-            ),
-          ),
 
-          // 메인 콘텐츠
+          // 하단 콘텐츠 (버튼 / 로딩)
           SafeArea(
             child: Column(
               children: [
-                // 로고 영역 (상단 중앙)
-                Expanded(
-                  flex: 5,
-                  child: Center(
-                    child: FadeTransition(
-                      opacity: _fadeAnim,
-                      child: ScaleTransition(
-                        scale: _scaleAnim,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // 로고 심볼 ④ (명함 모티프)
-                            const ElidSymbol(size: 96),
-                            const SizedBox(height: 24),
-                            const ElidWordmark(
-                                fontSize: 36, onDark: true, wide: true),
-                            const SizedBox(height: 12),
-                            Text(
-                              '디지털 명함, 다시 우아하게',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.58),
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w600,
+                const Spacer(),
+
+                // 버튼 영역 (비로그인 시)
+                if (_showButtons)
+                  FadeTransition(
+                    opacity: _buttonFadeAnim,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 8,
+                      ),
+                      child: Column(
+                        children: [
+                          // 시작하기 버튼
+                          SizedBox(
+                            width: double.infinity,
+                            height: 54,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.pushReplacementNamed(
+                                  context,
+                                  AppRoutes.login,
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              child: const Text(
+                                '시작하기',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.5,
+                                ),
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 14),
+                          // 둘러보기 버튼
+                          SizedBox(
+                            width: double.infinity,
+                            height: 54,
+                            child: OutlinedButton(
+                              onPressed: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.intro,
+                                );
+                              },
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.primary,
+                                backgroundColor:
+                                    Colors.white.withValues(alpha: 0.6),
+                                side: const BorderSide(
+                                  color: AppColors.primary,
+                                  width: 1.5,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              child: const Text(
+                                '둘러보기',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ),
-
-                // 버튼 영역 (하단)
-                Expanded(
-                  flex: 3,
-                  child: _showButtons
-                      ? FadeTransition(
-                          opacity: _buttonFadeAnim,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 32,
-                              vertical: 24,
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                // 시작하기 버튼
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 54,
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      Navigator.pushReplacementNamed(
-                                        context,
-                                        AppRoutes.login,
-                                      );
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      foregroundColor: AppColors.primary,
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      '시작하기',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 14),
-                                // 둘러보기 버튼
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 54,
-                                  child: OutlinedButton(
-                                    onPressed: () {
-                                      Navigator.pushNamed(
-                                        context,
-                                        AppRoutes.intro,
-                                      );
-                                    },
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: Colors.white,
-                                      side: BorderSide(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.5,
-                                        ),
-                                        width: 1.5,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      '둘러보기',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                      : const SizedBox.shrink(),
-                ),
 
                 // 하단 로딩 인디케이터 (버튼 표시 전)
                 if (!_showButtons)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 60),
-                    child: FadeTransition(
-                      opacity: _fadeAnim,
-                      child: SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white.withValues(alpha: 0.5),
-                        ),
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 44),
+                    child: SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primary,
                       ),
                     ),
                   ),
 
                 // 하단 브랜드 표기
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 16, top: 12),
                   child: Text(
                     'ELID by METI',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.45),
+                      color: AppColors.textSecondary,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                       letterSpacing: 1.2,
