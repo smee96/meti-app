@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../core/utils/input_formatters.dart';
 import '../providers/cards_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
@@ -522,6 +523,7 @@ class _CardCreateScreenState extends State<CardCreateScreen>
             onChanged: (_) => setState(() {}),
             keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.next,
+            inputFormatters: [PhoneNumberFormatter()],
             decoration: const InputDecoration(
               labelText: '전화번호',
               prefixIcon: Icon(Icons.phone_outlined),

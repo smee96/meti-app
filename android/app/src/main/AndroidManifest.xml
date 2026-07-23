@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 주소검색(kpostal webview) 등 네트워크 접근용 -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="ELID"
         android:name="${applicationName}"

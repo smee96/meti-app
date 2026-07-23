@@ -232,7 +232,9 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ],
       ),
-      padding: const EdgeInsets.fromLTRB(22, 26, 22, 40),
+      // 하단 시스템 내비게이션 바(제스처/3버튼) 높이만큼 더해 버튼이 가려지지 않게
+      padding: EdgeInsets.fromLTRB(
+          22, 26, 22, 40 + MediaQuery.paddingOf(context).bottom),
       child: Form(
         key: _formKey,
         child: Column(

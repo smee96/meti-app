@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/card_model.dart';
+import '../../../core/utils/input_formatters.dart';
+import '../../../core/widgets/address_search_screen.dart';
 import '../widgets/business_card_widget.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/constants/app_constants.dart';
@@ -197,6 +200,21 @@ class _NfcApplyScreenState extends State<NfcApplyScreen> {
     );
   }
 
+  /// 우편번호 탭 → 다음(카카오) 주소검색 → 우편번호·주소 자동 채움
+  Future<void> _searchAddress() async {
+    FocusScope.of(context).unfocus();
+    final result = await Navigator.push<AddressResult>(
+      context,
+      MaterialPageRoute(builder: (_) => const AddressSearchScreen()),
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _zipcodeCtrl.text = result.zonecode;
+        _addressCtrl.text = result.address;
+      });
+    }
+  }
+
   /// 자동 채운 배송지를 비워 새로 입력하도록 (배너도 숨김)
   void _clearShippingFields() {
     setState(() {
@@ -341,10 +359,22 @@ class _NfcApplyScreenState extends State<NfcApplyScreen> {
               _buildField(_nameCtrl, '받는 사람 *', hint: '홍길동'),
               _buildField(_phoneCtrl, '연락처 *',
                   hint: '010-0000-0000',
-                  keyboardType: TextInputType.phone),
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: [PhoneNumberFormatter()]),
+              // 우편번호 — 탭하면 다음(카카오) 주소검색 → 우편번호·주소 자동 채움
               _buildField(_zipcodeCtrl, '우편번호 *',
-                  hint: '06134', keyboardType: TextInputType.number),
-              _buildField(_addressCtrl, '주소 *', hint: '서울 강남구 테헤란로 123'),
+                  hint: '탭하여 주소 검색',
+                  readOnly: true,
+                  onTap: _searchAddress,
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.search),
+                    tooltip: '주소 검색',
+                    onPressed: _searchAddress,
+                  )),
+              _buildField(_addressCtrl, '주소 *',
+                  hint: '주소 검색으로 채워집니다',
+                  readOnly: true,
+                  onTap: _searchAddress),
               _buildField(_detailCtrl, '상세 주소', hint: '동/호수 (선택)',
                   required: false),
               _buildField(_memoCtrl, '배송 메모', hint: '부재 시 경비실에 맡겨주세요 (선택)',
@@ -394,15 +424,23 @@ class _NfcApplyScreenState extends State<NfcApplyScreen> {
     String? hint,
     bool required = true,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    bool readOnly = false,
+    VoidCallback? onTap,
+    Widget? suffixIcon,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        readOnly: readOnly,
+        onTap: onTap,
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
+          suffixIcon: suffixIcon,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           isDense: true,
         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../core/utils/input_formatters.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
@@ -1105,6 +1106,7 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
                 TextField(
                   controller: priceCtrl,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [ThousandsFormatter()],
                   decoration: const InputDecoration(
                     labelText: '가격 *',
                     suffixText: 'P',
@@ -1202,7 +1204,7 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
                         return;
                       }
                       final price =
-                          int.tryParse(priceCtrl.text.trim()) ?? -1;
+                          int.tryParse(digitsOnly(priceCtrl.text)) ?? -1;
                       if (price < 0) {
                         showErrorSnackBar(ctx, '가격을 올바르게 입력해주세요.');
                         return;
@@ -1840,9 +1842,10 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
                   TextField(
                     controller: _transferAmountCtrl,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [ThousandsFormatter()],
                     decoration: const InputDecoration(
                       labelText: '이체할 포인트',
-                      hintText: '예: 1000',
+                      hintText: '예: 1,000',
                       suffixText: 'P',
                       prefixIcon: Icon(Icons.monetization_on_outlined),
                     ),
@@ -1855,7 +1858,7 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
                     children: [500, 1000, 3000, 5000].map((amt) {
                       return OutlinedButton(
                         onPressed: () {
-                          _transferAmountCtrl.text = '$amt';
+                          _transferAmountCtrl.text = _formatNumber(amt);
                         },
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size(0, 32),
@@ -1922,7 +1925,7 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
 
   // M1: 이체 처리
   Future<void> _handleTransfer(dynamic gid) async {
-    final amountText = _transferAmountCtrl.text.trim();
+    final amountText = digitsOnly(_transferAmountCtrl.text);
     final amount = int.tryParse(amountText);
     if (amount == null || amount <= 0) {
       showErrorSnackBar(context, '올바른 이체 금액을 입력해주세요.');
