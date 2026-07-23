@@ -694,7 +694,7 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
         builder: (ctx, setSheetState) => Padding(
           padding: EdgeInsets.only(
             left: 20, right: 20, top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+            bottom: sheetBottomPadding(ctx),
           ),
           child: SingleChildScrollView(
             child: Column(
@@ -1052,7 +1052,7 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
         builder: (ctx, setSheetState) => Padding(
           padding: EdgeInsets.only(
             left: 20, right: 20, top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+            bottom: sheetBottomPadding(ctx),
           ),
           child: SingleChildScrollView(
             child: Column(
@@ -1411,7 +1411,7 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
             left: 20,
             right: 20,
             top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+            bottom: sheetBottomPadding(ctx),
           ),
           child: SingleChildScrollView(
             child: Column(

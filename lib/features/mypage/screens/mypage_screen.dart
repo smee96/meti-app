@@ -106,7 +106,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                 left: 24,
                 right: 24,
                 top: 24,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 32,
+                bottom: sheetBottomPadding(ctx, 32),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,

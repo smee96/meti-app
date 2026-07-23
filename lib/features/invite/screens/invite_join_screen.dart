@@ -166,7 +166,7 @@ class _InviteJoinScreenState extends State<InviteJoinScreen> {
       builder: (ctx) => Padding(
         padding: EdgeInsets.only(
           left: 24, right: 24, top: 24,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          bottom: sheetBottomPadding(ctx),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

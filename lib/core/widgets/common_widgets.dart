@@ -279,6 +279,14 @@ void showSuccessSnackBar(BuildContext context, String message) {
   );
 }
 
+/// 바텀시트 하단 패딩 — 키보드(viewInsets)와 시스템 내비게이션 바(viewPadding)
+/// 중 큰 값 + 여유. viewInsets만 쓰면 3버튼/제스처 내비 기기에서
+/// 하단 버튼이 내비게이션 바에 가려진다.
+double sheetBottomPadding(BuildContext context, [double extra = 24]) {
+  final mq = MediaQuery.of(context);
+  return math.max(mq.viewInsets.bottom, mq.viewPadding.bottom) + extra;
+}
+
 /// 포인트 부족 오류 전용 스낵바
 /// - insufficient_points 응답 시 호출
 /// - 앱 내 현금 결제 금지 — '충전' 액션은 외부 브라우저 웹 충전 페이지로 연결 (핸드오프 §5-1)

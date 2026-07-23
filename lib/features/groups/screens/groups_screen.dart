@@ -774,7 +774,7 @@ class _GroupDetailSheetState extends State<_GroupDetailSheet> {
         left: 20,
         right: 20,
         top: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 28,
+        bottom: sheetBottomPadding(context, 28),
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -1044,7 +1044,7 @@ class _CreateGroupSheetState extends State<_CreateGroupSheet> {
         left: 20,
         right: 20,
         top: 24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 28,
+        bottom: sheetBottomPadding(context, 28),
       ),
       child: SingleChildScrollView(
         child: Column(
