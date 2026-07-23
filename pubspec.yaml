@@ -66,6 +66,7 @@ flutter_native_splash:
 flutter:
   uses-material-design: true
   assets:
+    - assets/card_design_catalog.json
     - assets/images/
     - assets/images/buttons/
     - assets/icons/

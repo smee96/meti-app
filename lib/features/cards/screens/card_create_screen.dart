@@ -6,7 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../routes/app_router.dart';
 import '../widgets/business_card_widget.dart';
-import '../widgets/card_template_styles.dart';
+import '../services/card_design_catalog.dart';
 import '../models/card_model.dart';
 
 // ── 이력 태그 유형 (v1.7 스펙: career·education — 공개 명함 뷰어에서 섹션으로 표시) ──
@@ -52,8 +52,8 @@ class _CardCreateScreenState extends State<CardCreateScreen>
   final _websiteCtrl = TextEditingController();
   final _bioCtrl     = TextEditingController();
 
-  String _selectedTemplate = 'default'; // 브랜드 기본: 엘리드(네이비×골드)
-  String _selectedDesign   = 'classic'; // 레이아웃 디자인 (classic/center/leftbar)
+  // 카탈로그 24종 template_id 그대로 저장 (서버 핸드오프 2026-07-22)
+  String _selectedTemplate = CardDesignCatalog.instance.defaultId;
   bool   _isPublic         = true; // 공개 명함이 기본 (QR/링크 공유 가능)
 
   // ── 명함 사진 (avatar) ──────────────────────────────────
@@ -81,8 +81,9 @@ class _CardCreateScreenState extends State<CardCreateScreen>
       _phoneCtrl.text   = c.phone    ?? '';
       _websiteCtrl.text = c.website  ?? '';
       _bioCtrl.text     = c.bio      ?? '';
-      _selectedTemplate = cardPaletteIdOf(c.templateId);
-      _selectedDesign   = cardDesignIdOf(c.templateId);
+      // 레거시 id는 alias로 신규 24종에 매핑해 선택 상태 표시 (저장은 사용자가 저장할 때)
+      _selectedTemplate =
+          CardDesignCatalog.instance.resolve(c.templateId).templateId;
       _isPublic         = c.isPublic == 1;
       _tags.addAll(c.tags);
       _snsLinks.addAll(c.snsLinks);
@@ -113,7 +114,7 @@ class _CardCreateScreenState extends State<CardCreateScreen>
         phone: _phoneCtrl.text.isEmpty ? null : _phoneCtrl.text,
         bio: _bioCtrl.text.isEmpty ? null : _bioCtrl.text,
         cardType: 'personal',
-        templateId: composeTemplateId(_selectedTemplate, _selectedDesign),
+        templateId: _selectedTemplate,
         isPrimary: 0,
         isPublic: _isPublic ? 1 : 0,
         isActive: 1,
@@ -138,7 +139,7 @@ class _CardCreateScreenState extends State<CardCreateScreen>
       if (_phoneCtrl.text.isNotEmpty)   'phone':   _phoneCtrl.text.trim(),
       if (_websiteCtrl.text.isNotEmpty) 'website': _websiteCtrl.text.trim(),
       if (_bioCtrl.text.isNotEmpty)     'bio':     _bioCtrl.text.trim(),
-      'template_id': composeTemplateId(_selectedTemplate, _selectedDesign),
+      'template_id': _selectedTemplate,
       'is_public':   _isPublic ? 1 : 0,
       // v2.9: full-replace 방식
       'tags':      _tags.map((t) => t.toJson()).toList(),
@@ -457,138 +458,12 @@ class _CardCreateScreenState extends State<CardCreateScreen>
           ),
           const SizedBox(height: 24),
 
-          // ── 템플릿 선택
-          const Text('템플릿', style: AppTextStyles.label),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 44,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: kCardTemplateStyles.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, i) {
-                final tmpl = kCardTemplateStyles[i];
-                final isSelected = _selectedTemplate == tmpl.id;
-                return GestureDetector(
-                  onTap: () =>
-                      setState(() => _selectedTemplate = tmpl.id),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.surfaceVariant,
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(
-                        color: isSelected
-                            ? AppColors.primary
-                            : AppColors.border,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        // 2컬러 스와치 (그라데이션 + 악센트 도트)
-                        Container(
-                          width: 22,
-                          height: 22,
-                          decoration: BoxDecoration(
-                            gradient: tmpl.gradient,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.8),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Align(
-                            alignment: const Alignment(0.5, 0.5),
-                            child: Container(
-                              width: 7,
-                              height: 7,
-                              decoration: BoxDecoration(
-                                color: tmpl.accent,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 7),
-                        Text(
-                          tmpl.name,
-                          style: TextStyle(
-                            color: isSelected
-                                ? Colors.white
-                                : AppColors.textSecondary,
-                            fontSize: 13,
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // ── 디자인(레이아웃) 선택
+          // ── 디자인 선택 (카탈로그 24종 썸네일 그리드)
           const Text('디자인', style: AppTextStyles.label),
           const SizedBox(height: 8),
-          Row(
-            children: kCardDesigns.map((d) {
-              final isSelected = _selectedDesign == d.id;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _selectedDesign = d.id),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin: EdgeInsets.only(
-                        right: d.id == kCardDesigns.last.id ? 0 : 8),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.primary.withValues(alpha: 0.08)
-                          : AppColors.surfaceVariant,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected
-                            ? AppColors.primary
-                            : AppColors.border,
-                        width: isSelected ? 1.5 : 1,
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          d.icon,
-                          size: 22,
-                          color: isSelected
-                              ? AppColors.primary
-                              : AppColors.textSecondary,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          d.name,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isSelected
-                                ? AppColors.primary
-                                : AppColors.textSecondary,
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
+          _DesignPickerGrid(
+            selectedId: _selectedTemplate,
+            onSelect: (id) => setState(() => _selectedTemplate = id),
           ),
           const SizedBox(height: 28),
 
@@ -1009,6 +884,101 @@ class _CardCreateScreenState extends State<CardCreateScreen>
 }
 
 // ════════════════════════════════════════════════════════════
+// 디자인 선택 그리드 — 카탈로그 24종 썸네일 (서버 호스팅 이미지)
+// 썸네일은 더미 텍스트가 박힌 미리보기 — 선택용으로만 쓰고
+// 실제 카드는 BusinessCardWidget이 실데이터로 렌더한다.
+// ════════════════════════════════════════════════════════════
+class _DesignPickerGrid extends StatelessWidget {
+  final String selectedId;
+  final ValueChanged<String> onSelect;
+  const _DesignPickerGrid({required this.selectedId, required this.onSelect});
+
+  @override
+  Widget build(BuildContext context) {
+    final designs = CardDesignCatalog.instance.designs;
+    if (designs.isEmpty) {
+      // 카탈로그 미로드(이론상 번들 폴백으로 발생하지 않음)
+      return const SizedBox(
+        height: 80,
+        child: Center(child: Text('디자인을 불러오는 중...')),
+      );
+    }
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        // 썸네일 1653×1020 + 이름 라벨 여유
+        childAspectRatio: 1.62 / 1.28,
+      ),
+      itemCount: designs.length,
+      itemBuilder: (context, i) {
+        final d = designs[i];
+        final isSelected = selectedId == d.templateId;
+        return GestureDetector(
+          onTap: () => onSelect(d.templateId),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color:
+                          isSelected ? AppColors.primary : AppColors.border,
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(7),
+                    child: Image.network(
+                      d.thumbnailUrl,
+                      fit: BoxFit.cover,
+                      // 오프라인/로드 전: 카탈로그 색으로 대체 표시
+                      loadingBuilder: (_, child, progress) =>
+                          progress == null
+                              ? child
+                              : Container(color: d.bgPrimary),
+                      errorBuilder: (_, __, ___) => Container(
+                        color: d.bgPrimary,
+                        child: Center(
+                          child: Icon(Icons.style_outlined,
+                              size: 16,
+                              color: d.onPrimary.withValues(alpha: 0.6)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                d.nameKo,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 10.5,
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.textSecondary,
+                  fontWeight:
+                      isSelected ? FontWeight.w700 : FontWeight.w400,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ════════════════════════════════════════════════════════════
 // 이력 입력 바텀시트 (경력/학력)
 // ════════════════════════════════════════════════════════════
 class _CareerInputSheet extends StatefulWidget {
@@ -1067,7 +1037,7 @@ class _CareerInputSheetState extends State<_CareerInputSheet> {
         left: 20,
         right: 20,
         top: 24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        bottom: sheetBottomPadding(context),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1177,7 +1147,7 @@ class _TagInputSheet extends StatelessWidget {
         left: 20,
         right: 20,
         top: 24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        bottom: sheetBottomPadding(context),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1283,7 +1253,7 @@ class _SnsInputSheetState extends State<_SnsInputSheet> {
         left: 20,
         right: 20,
         top: 24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        bottom: sheetBottomPadding(context),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
