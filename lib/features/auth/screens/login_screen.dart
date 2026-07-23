@@ -49,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
     auth.clearError();
 
     final success = await auth.login(
-      email: _emailCtrl.text.trim(),
+      email: _emailCtrl.text.trim().toLowerCase(),
       password: _passwordCtrl.text,
     );
 
@@ -246,6 +246,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _emailCtrl,
                 focusNode: _emailFocus,
                 keyboardType: TextInputType.emailAddress,
+                // 키보드 자동 대문자화 방지 (서버 노트 2026-07-22: 대문자 이메일 → 401)
+                textCapitalization: TextCapitalization.none,
+                autocorrect: false,
                 textInputAction: TextInputAction.next,
                 style: const TextStyle(
                     fontSize: 15, color: Color(0xFF0E1726)),

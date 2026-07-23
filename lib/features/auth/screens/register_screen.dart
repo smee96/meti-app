@@ -76,7 +76,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     auth.clearError();
 
     final result = await auth.register(
-      email: _emailCtrl.text.trim(),
+      email: _emailCtrl.text.trim().toLowerCase(),
       password: _passwordCtrl.text,
       name: _nameCtrl.text.trim(),
       // v2.8: accountType 파라미터 제거 — 서버 자동 고정
@@ -88,7 +88,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         context,
         AppRoutes.emailVerification,
         arguments: {
-          'email': _emailCtrl.text.trim(),
+          'email': _emailCtrl.text.trim().toLowerCase(),
           // v3.0 보안패치: verify_token 서버 응답에서 제거됨
         },
       );
@@ -157,6 +157,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         controller: _emailCtrl,
                         focusNode: _emailFocus,
                         keyboardType: TextInputType.emailAddress,
+                        // 키보드 자동 대문자화 방지 (서버 노트 2026-07-22)
+                        textCapitalization: TextCapitalization.none,
+                        autocorrect: false,
                         textInputAction: TextInputAction.next,
                         onEditingComplete: () {
                           _emailFocus.unfocus();

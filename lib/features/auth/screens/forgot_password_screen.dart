@@ -23,7 +23,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Future<void> _handleSubmit() async {
-    final email = _emailCtrl.text.trim();
+    final email = _emailCtrl.text.trim().toLowerCase();
     if (email.isEmpty) {
       showErrorSnackBar(context, '이메일을 입력해주세요');
       return;
@@ -78,6 +78,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         TextFormField(
           controller: _emailCtrl,
           keyboardType: TextInputType.emailAddress,
+          // 키보드 자동 대문자화 방지 (서버 노트 2026-07-22)
+          textCapitalization: TextCapitalization.none,
+          autocorrect: false,
           decoration: const InputDecoration(
             labelText: '이메일',
             hintText: 'example@email.com',
