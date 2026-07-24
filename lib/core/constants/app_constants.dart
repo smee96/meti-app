@@ -82,6 +82,12 @@ class AppConstants {
   static const String keyUserName     = 'user_name';
   static const String keyUserPlan     = 'user_plan';
   static const String keyIsLoggedIn   = 'is_logged_in';
+  /// 온보딩(둘러보기) 자동 노출 횟수 / 완주 여부
+  /// 최대 [onboardingMaxAutoShows]회까지 자동 노출하되,
+  /// 3장을 끝까지 본(완주) 사용자에겐 더 이상 띄우지 않는다.
+  static const String keyOnboardingShownCount = 'onboarding_shown_count';
+  static const String keyOnboardingCompleted  = 'onboarding_completed';
+  static const int onboardingMaxAutoShows = 3;
 
   // NFC 실물카드 배송지 — 재신청 시 자동 채움용 (마지막 신청 정보 로컬 저장)
   static const String keyNfcShipName    = 'nfc_ship_name';

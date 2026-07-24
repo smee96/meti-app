@@ -308,6 +308,12 @@ class _MyPageScreenState extends State<MyPageScreen> {
 
               _buildMenuSection('앱 정보', [
                 _MenuItem(
+                  icon: Icons.help_outline,
+                  label: '둘러보기 다시 보기',
+                  onTap: () =>
+                      Navigator.pushNamed(context, AppRoutes.intro),
+                ),
+                _MenuItem(
                   icon: Icons.info_outline,
                   label: '버전 정보',
                   trailing: const Text('v1.0.0', style: AppTextStyles.body2),

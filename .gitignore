@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# 로컬 APK 산출물 (배포용 빌드 결과)
+/dist/

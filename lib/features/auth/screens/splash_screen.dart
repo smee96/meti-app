@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 import '../../cards/services/card_design_catalog.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../routes/app_router.dart';
 
@@ -59,6 +60,26 @@ class _SplashScreenState extends State<SplashScreen>
     final auth = context.read<AuthProvider>();
     await auth.checkAuthState();
     if (!mounted) return;
+
+    // ── 온보딩 자동 노출 (핸드오프 2026-07-24 §4 + 노출 횟수 확장) ──
+    // 최대 3회까지 노출하되, 3장을 끝까지 본 사용자에겐 더 띄우지 않는다.
+    // (중간에 건너뛰면 아직 이해 못 한 것으로 보고 다음 실행에 다시 노출)
+    final prefs = await SharedPreferences.getInstance();
+    final onboardingDone =
+        prefs.getBool(AppConstants.keyOnboardingCompleted) ?? false;
+    final shownCount =
+        prefs.getInt(AppConstants.keyOnboardingShownCount) ?? 0;
+    if (!onboardingDone &&
+        shownCount < AppConstants.onboardingMaxAutoShows) {
+      await prefs.setInt(
+          AppConstants.keyOnboardingShownCount, shownCount + 1);
+      if (!mounted) return;
+      await Navigator.pushNamed(context, AppRoutes.intro);
+      if (!mounted) return;
+      // 온보딩에서 회원가입/로그인으로 화면을 교체한 경우, 스플래시가 뒤이어
+      // 라우팅하면 사용자를 낚아채게 되므로 여기서 흐름을 끝낸다.
+      if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
+    }
 
     // ── v2.5 딥링크: /invite/:token 감지 (Web URL 기반) ──
     // Flutter Web: Uri.base 로 현재 URL 확인
