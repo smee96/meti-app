@@ -21,6 +21,9 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
   final ApiClient _api = ApiClient();
   bool _isSubscribing = false;
 
+  /// 사용자가 탭으로 고른 플랜. null이면 추천(=바로 상위 플랜)을 기본 선택으로 사용.
+  String? _selectedPlan;
+
   // ── 구독 신청 처리 ──────────────────────────────────────
   Future<void> _handleSubscribe(
       BuildContext context, String plan, int pointsPerMonth) async {
@@ -305,6 +308,8 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
     final recommendedPlan = currentPlan == 'free'
         ? 'pro'
         : (currentPlan == 'pro' ? 'business' : null);
+    // 기본 선택 = 사용자가 탭한 플랜, 없으면 추천(바로 상위 플랜)
+    final selectedPlan = _selectedPlan ?? recommendedPlan;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -350,6 +355,8 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                   icon: Icons.person_outline,
                   color: AppColors.textSecondary,
                   isCurrent: currentPlan == 'free',
+                  isSelected: selectedPlan == 'free',
+                  onCardTap: null, // Free는 선택 대상 아님(구독 액션 없음)
                   features: const [
                     '명함 기본 1장 (추가 5,000원/장)',  // v2.7
                     '그룹 멤버 최대 2명 관리',
@@ -370,6 +377,10 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                   color: AppColors.accent,
                   isCurrent: currentPlan == 'pro',
                   isRecommended: recommendedPlan == 'pro',
+                  isSelected: selectedPlan == 'pro',
+                  onCardTap: currentPlan == 'pro'
+                      ? null
+                      : () => setState(() => _selectedPlan = 'pro'),
                   features: const [
                     '명함 기본 3장 (추가 5,000원/장)',  // v2.7
                     '그룹 멤버 최대 10명 관리',
@@ -394,6 +405,10 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                   color: AppColors.primary,
                   isCurrent: currentPlan == 'business',
                   isRecommended: recommendedPlan == 'business',
+                  isSelected: selectedPlan == 'business',
+                  onCardTap: currentPlan == 'business'
+                      ? null
+                      : () => setState(() => _selectedPlan = 'business'),
                   features: const [
                     '명함 기본 10장 (추가 5,000원/장)',  // v2.7
                     '그룹 멤버 무제한 관리',
@@ -543,8 +558,10 @@ class _PlanCard extends StatelessWidget {
   final Color color;
   final bool isCurrent;
   final bool isRecommended;
+  final bool isSelected;
   final List<String> features;
   final VoidCallback? onSelect;
+  final VoidCallback? onCardTap;
   final bool isLoading;
 
   const _PlanCard({
@@ -557,20 +574,26 @@ class _PlanCard extends StatelessWidget {
     required this.features,
     required this.isLoading,
     this.isRecommended = false,
+    this.isSelected = false,
     this.onSelect,
+    this.onCardTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    // 선택 상태(탭)가 우선. 굵은 테두리·그림자로 강조한다.
+    return GestureDetector(
+      onTap: onCardTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isRecommended ? color : AppColors.border,
-          width: isRecommended ? 2 : 1,
+          color: isSelected ? color : AppColors.border,
+          width: isSelected ? 2 : 1,
         ),
-        boxShadow: isRecommended
+        boxShadow: isSelected
             ? [
                 BoxShadow(
                   color: color.withValues(alpha: 0.15),
@@ -735,6 +758,7 @@ class _PlanCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

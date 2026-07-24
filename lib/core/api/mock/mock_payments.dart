@@ -391,8 +391,11 @@ class MockPayments {
     if (email == null) throw MockApiException('인증이 필요합니다.', 401);
 
     final user = MockStore.users.firstWhere((u) => u['email'] == email);
+    // google 분기는 원래 product_id로 플랜을 판별하지만, 앱은 plan을 함께 보낸다.
+    // product_id가 없으면 plan 값으로 폴백해 선택한 플랜을 정확히 반영한다.
     final plan = platform == 'google'
-        ? _planFromProductId(body['product_id'] as String? ?? '')
+        ? _planFromProductId(
+            (body['product_id'] as String?) ?? (body['plan'] as String?) ?? '')
         : (body['plan'] as String? ?? 'pro');
 
     const pointsMap = {'pro': 10000, 'business': 500000};
