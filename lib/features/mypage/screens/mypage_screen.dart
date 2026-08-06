@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../points/providers/point_provider.dart';
 import '../../points/screens/point_screen.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../routes/app_router.dart';
@@ -323,7 +324,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                   icon: Icons.description_outlined,
                   label: '이용약관',
                   onTap: () => launchUrl(
-                    Uri.parse('https://the-meti.pages.dev/terms'),
+                    Uri.parse('${AppConstants.webBaseUrl}/terms'),
                     mode: LaunchMode.externalApplication,
                   ),
                 ),
@@ -331,7 +332,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                   icon: Icons.privacy_tip_outlined,
                   label: '개인정보처리방침',
                   onTap: () => launchUrl(
-                    Uri.parse('https://the-meti.pages.dev/privacy'),
+                    Uri.parse('${AppConstants.webBaseUrl}/privacy'),
                     mode: LaunchMode.externalApplication,
                   ),
                 ),

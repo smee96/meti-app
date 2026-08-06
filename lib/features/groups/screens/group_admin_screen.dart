@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/utils/input_formatters.dart';
 import '../../../core/api/api_client.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../points/models/point_model.dart';
@@ -2172,7 +2173,8 @@ class _GroupAdminScreenState extends State<GroupAdminScreen>
 
   Future<void> _copyLink(dynamic link) async {
     final token = link['token'] as String? ?? '';
-    final url = 'https://the-meti.pages.dev/app/invite/$token';
+    // 환경 도메인 기준(prod=my-elid.com). 경로는 딥링크 대상(/app/invite/*·/invite/*)
+    final url = '${AppConstants.webBaseUrl}/app/invite/$token';
     await Clipboard.setData(ClipboardData(text: url));
     if (mounted) showSuccessSnackBar(context, '초대 링크가 복사되었습니다.');
   }

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  딥링크(Universal Links) — 서버 핸드오프 2026-08-04.
+  ⚠️ 활성화 남은 단계 (Apple 개발자 계정 확보 후):
+    1) Xcode에서 Runner 타겟 > Signing & Capabilities > Associated Domains 추가,
+       또는 pbxproj의 각 빌드구성에 CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements 연결
+    2) Apple Developer에서 App ID의 Associated Domains capability 활성 + 프로비저닝 갱신
+    3) 서버가 apple-app-site-association에 <TeamID>.<BundleID> 주입 (BundleID = com.meti.metiApp)
+-->
+<plist version="1.0">
+<dict>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:my-elid.com</string>
+	</array>
+</dict>
+</plist>

@@ -358,8 +358,9 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                   isSelected: selectedPlan == 'free',
                   onCardTap: null, // Free는 선택 대상 아님(구독 액션 없음)
                   features: const [
-                    '명함 기본 1장 (추가 5,000원/장)',  // v2.7
-                    '그룹 멤버 최대 2명 관리',
+                    '명함 3개 (추가 5,000원/장)',        // 서버 한도 2026-08-04
+                    '그룹 개설 3개 · 참여 무제한',
+                    '그룹 정원 2명',
                     '기본 명함 템플릿',
                     'QR 코드 공유',
                   ],
@@ -382,8 +383,9 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                       ? null
                       : () => setState(() => _selectedPlan = 'pro'),
                   features: const [
-                    '명함 기본 3장 (추가 5,000원/장)',  // v2.7
-                    '그룹 멤버 최대 10명 관리',
+                    '명함 10개 (추가 5,000원/장)',       // 서버 한도 2026-08-04
+                    '그룹 개설 10개 · 참여 무제한',
+                    '그룹 정원 10명',
                     '고급 명함 템플릿 전체 이용',
                     '월 10,000P 자동 지급',
                     '그룹 포인트 이체 기능',
@@ -410,8 +412,9 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
                       ? null
                       : () => setState(() => _selectedPlan = 'business'),
                   features: const [
-                    '명함 기본 10장 (추가 5,000원/장)',  // v2.7
-                    '그룹 멤버 무제한 관리',
+                    '명함 무제한',                        // 서버 한도 2026-08-04
+                    '그룹 개설 무제한 · 참여 무제한',
+                    '그룹 정원 무제한',
                     '전용 명함 디자인 제작',
                     '월 500,000P 자동 지급',
                     '그룹 포인트 이체 기능',

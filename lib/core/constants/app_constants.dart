@@ -28,7 +28,8 @@ class AppConfig {
       case AppEnv.staging:
         return 'https://staging.the-meti.pages.dev/api/v1';
       case AppEnv.production:
-        return 'https://the-meti.pages.dev/api/v1';
+        // 정식 도메인 (서버 핸드오프 2026-08-04). the-meti.pages.dev는 서버 폴백.
+        return 'https://my-elid.com/api/v1';
       case AppEnv.mock:
         return 'https://staging.the-meti.pages.dev/api/v1'; // mock 모드에서는 실제 요청 안 함
     }
@@ -41,7 +42,7 @@ class AppConfig {
       case AppEnv.staging:
         return 'https://staging.the-meti.pages.dev';
       case AppEnv.production:
-        return 'https://the-meti.pages.dev';
+        return 'https://my-elid.com';
       case AppEnv.mock:
         return 'https://staging.the-meti.pages.dev';
     }

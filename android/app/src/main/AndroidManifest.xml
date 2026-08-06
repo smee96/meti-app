@@ -26,6 +26,21 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
+            <!-- 딥링크 (App Links) — 서버 핸드오프 2026-08-04.
+                 명함 공유/QR/그룹 초대 링크를 앱에서 바로 열기.
+                 autoVerify는 서버 assetlinks.json에 릴리스 SHA256이 주입돼야 실제 검증됨. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https"/>
+                <data android:host="my-elid.com"/>
+                <data android:pathPrefix="/card/"/>
+                <data android:pathPrefix="/cards/qr/"/>
+                <data android:pathPrefix="/invite/"/>
+                <data android:pathPrefix="/app/invite/"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
