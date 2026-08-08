@@ -250,6 +250,25 @@ class ApiClient {
           return MockUsers.recordAttendances(accessToken!, sid, body ?? {});
         }
 
+        // 제휴 SSO launch-token 발급 POST /partner/services/:id/launch-token
+        // 목 토큰은 해피트리가 검증 못 하므로 게임 진입까지는 안 된다 —
+        // 흐름(발급→웹뷰 오픈)만 확인용. 실토큰은 ENV=staging.
+        if (path.startsWith('/partner/services/') &&
+            path.endsWith('/launch-token')) {
+          final mockJwt =
+              'mock.launch.token-${DateTime.now().millisecondsSinceEpoch}';
+          return {
+            'success': true,
+            'data': {
+              'token': mockJwt,
+              'expires_in': 300,
+              'open_mode': 'webview',
+              'launch_url':
+                  'https://happy-tree-game.pages.dev/play?token=$mockJwt',
+            },
+          };
+        }
+
         // ── 채팅 (서버 스펙 §2) ──
         if (path == '/chat/direct') {
           return MockUsers.createDirectRoom(accessToken!, body ?? {});
@@ -396,6 +415,21 @@ class ApiClient {
           final parts = path.split('/');
           final rid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
           return MockUsers.getChatMessages(accessToken!, rid);
+        }
+        // 제휴 파트너 목록 (스테이징 응답 미러 — 실개발은 ENV=staging)
+        if (path == '/partner/services') {
+          return {
+            'success': true,
+            'data': [
+              {
+                'id': 1,
+                'name': '해피트리',
+                'description': '힐링 트리 키우기 게임 (제휴 게임)',
+                'webview_url': 'https://happy-tree-game.pages.dev/play',
+                'open_mode': 'webview',
+              },
+            ],
+          };
         }
         // 포인트 API (v2.8 경로)
         if (path == '/points/balance') return MockUsers.getPointWallet(accessToken!);

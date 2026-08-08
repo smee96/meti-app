@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/cards/providers/cards_provider.dart';
+import 'features/partnership/providers/partnership_provider.dart';
 import 'features/points/providers/point_provider.dart';
 import 'features/schedules/providers/schedule_provider.dart';
 import 'routes/app_router.dart';
@@ -33,6 +34,7 @@ class ElidApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => CardsProvider()),
         ChangeNotifierProvider(create: (_) => PointProvider()),
+        ChangeNotifierProvider(create: (_) => PartnershipProvider()),
         ChangeNotifierProvider(create: (_) => ScheduleProvider()),
       ],
       child: MaterialApp(
