@@ -31,12 +31,20 @@
 스펙 문서를 따르고, 불명확하면 서버 세션과 같은 스펙을 보고 판단한 뒤
 근거를 기록한다.
 
-## 결정 필요 — 인박스에 올리고 진행
+## 결정 완료 (2026-08-08 대표 확정) — 번들ID는 `com.elid.*`로 통일
 
-**iOS 번들ID(`com.meti.metiApp`)와 Android applicationId(`com.meti.meti_app`)가
-불일치한다.** 웹뷰·딥링크 연동에서 혼선 소지가 있다. 지금 정리할지 그대로 갈지
-대표 판단이 필요하다 → `D:\project\mobin_ceo\reports\inbox\`에 올린다.
-서버의 `APPLE_APP_ID`/`ANDROID_PACKAGE` 설정값과 대조한 결과도 첨부한다.
+iOS 번들ID(`com.meti.metiApp`)·Android applicationId(`com.meti.meti_app`) 불일치
+건은 대표가 결정했다: **양 플랫폼 동일하게 `com.elid.app`으로 통일한다.**
+미출시 상태인 지금이 바꿀 수 있는 마지막 시점이라서다. 인박스 질의는 불필요.
+스토어 등록 시 `com.elid.app`이 선점돼 있으면 보유 도메인(my-elid.com) 기준
+`com.myelid.app`으로 하고, 확정값을 인박스로 보고한다.
+
+**실행 시점은 지금이 아니다.** 이번 주말 작업(제휴 진입 흐름)에서는 건드리지 말고,
+스토어 출시 준비 단계에서 서명·딥링크 작업과 묶어 진행한다. 변경할 때 서버 쪽
+`APPLE_APP_ID`/`ANDROID_PACKAGE`·Universal Links 설정과 **같은 시점에 맞춰야
+한다** — 서버 세션에는 통지문이 가 있다
+(`../the-meti/ELID_Decision_BundleID_2026-08-08.md`). 변경 착수 전에 서버 세션이
+그 문서를 봤는지 확인하고, 완료하면 인박스로 보고한다.
 
 ## 여유가 되면 (선택)
 
