@@ -47,7 +47,19 @@ class _SplashScreenState extends State<SplashScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkAuth());
   }
 
+  /// 시작 흐름. 어떤 이유로 실패하더라도 **스플래시가 무한 로딩으로 남지 않게**
+  /// 마지막에 시작 버튼을 띄운다 — 사용자가 앱을 껐다 켜는 것 말고 할 수 있는 게
+  /// 없는 상태를 만들지 않는다.
   Future<void> _checkAuth() async {
+    try {
+      await _runStartupFlow();
+    } catch (e) {
+      debugPrint('SplashScreen: 시작 흐름 실패 — 시작 버튼으로 폴백: $e');
+      if (mounted) setState(() => _showButtons = true);
+    }
+  }
+
+  Future<void> _runStartupFlow() async {
     // 명함 디자인 카탈로그 로드 (번들 폴백 내장 — 실패해도 진행)
     // 스플래시 대기와 병렬 수행
     final catalogFuture = CardDesignCatalog.instance.ensureLoaded();
@@ -78,7 +90,15 @@ class _SplashScreenState extends State<SplashScreen>
       if (!mounted) return;
       // 온보딩에서 회원가입/로그인으로 화면을 교체한 경우, 스플래시가 뒤이어
       // 라우팅하면 사용자를 낚아채게 되므로 여기서 흐름을 끝낸다.
-      if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
+      //
+      // 단, 끝내기 전에 버튼은 반드시 띄워 둔다. 그 화면(로그인/회원가입)은
+      // 스플래시 **위에** 얹힌 것이라 뒤로가기로 여기 돌아올 수 있는데,
+      // _showButtons가 false로 남으면 로딩 인디케이터만 도는 막다른 화면이 된다.
+      // (실기기 확인 2026-08-20: 온보딩 → '로그인' → 뒤로 = 영구 로딩)
+      if (!(ModalRoute.of(context)?.isCurrent ?? false)) {
+        setState(() => _showButtons = true);
+        return;
+      }
     }
 
     // ── v2.5 딥링크: /invite/:token 감지 (Web URL 기반) ──

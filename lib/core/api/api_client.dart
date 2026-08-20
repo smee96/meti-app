@@ -727,11 +727,11 @@ class ApiClient {
         return true;
       }
 
-      final response = await _client.post(
+      final response = await _send(_client.post(
         Uri.parse('${AppConstants.baseUrl}/auth/refresh'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'refresh_token': refreshToken}),
-      );
+      ));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true) {
@@ -786,6 +786,24 @@ class ApiClient {
     );
   }
 
+  // ─── 네트워크 타임아웃 ────────────────────────────────
+  // 모바일에서 연결이 끊기면 응답이 영영 오지 않을 수 있다. 타임아웃이 없으면
+  // 호출한 화면이 무한 로딩에 갇힌다 — 실기기에서 스플래시가 그렇게 멈췄다
+  // (2026-08-20). 오류로 던져야 각 화면의 기존 실패 처리가 동작한다.
+  static const Duration _timeout = Duration(seconds: 20);
+  static const Duration _uploadTimeout = Duration(seconds: 60);
+
+  Future<http.Response> _send(Future<http.Response> request,
+      {Duration? limit}) {
+    return request.timeout(
+      limit ?? _timeout,
+      onTimeout: () => throw ApiException(
+        '서버 응답이 없습니다. 네트워크 상태를 확인해주세요.',
+        statusCode: 408,
+      ),
+    );
+  }
+
   // ─── Public HTTP Methods ──────────────────────────────
   Future<Map<String, dynamic>> get(
     String path, {
@@ -798,10 +816,10 @@ class ApiClient {
       queryParameters: queryParams?.map((k, v) => MapEntry(k, v.toString())),
     );
     final headers = await _getHeaders(auth: auth);
-    final response = await _client.get(uri, headers: headers);
+    final response = await _send(_client.get(uri, headers: headers));
     return _handleResponse(response, retryRequest: () async {
       final h = await _getHeaders(auth: auth);
-      return _client.get(uri, headers: h);
+      return _send(_client.get(uri, headers: h));
     });
   }
 
@@ -814,10 +832,12 @@ class ApiClient {
 
     final uri = Uri.parse('${AppConstants.baseUrl}$path');
     final headers = await _getHeaders(auth: auth);
-    final response = await _client.post(uri, headers: headers, body: body != null ? jsonEncode(body) : null);
+    final response = await _send(
+        _client.post(uri, headers: headers, body: body != null ? jsonEncode(body) : null));
     return _handleResponse(response, retryRequest: () async {
       final h = await _getHeaders(auth: auth);
-      return _client.post(uri, headers: h, body: body != null ? jsonEncode(body) : null);
+      return _send(
+          _client.post(uri, headers: h, body: body != null ? jsonEncode(body) : null));
     });
   }
 
@@ -830,10 +850,12 @@ class ApiClient {
 
     final uri = Uri.parse('${AppConstants.baseUrl}$path');
     final headers = await _getHeaders(auth: auth);
-    final response = await _client.patch(uri, headers: headers, body: body != null ? jsonEncode(body) : null);
+    final response = await _send(
+        _client.patch(uri, headers: headers, body: body != null ? jsonEncode(body) : null));
     return _handleResponse(response, retryRequest: () async {
       final h = await _getHeaders(auth: auth);
-      return _client.patch(uri, headers: h, body: body != null ? jsonEncode(body) : null);
+      return _send(
+          _client.patch(uri, headers: h, body: body != null ? jsonEncode(body) : null));
     });
   }
 
@@ -866,15 +888,18 @@ class ApiClient {
       await http.MultipartFile.fromPath(fieldName, filePath),
     );
     if (fields != null) request.fields.addAll(fields);
-    final streamedResponse = await _client.send(request);
-    final response = await http.Response.fromStream(streamedResponse);
+    final response = await _send(
+      _client.send(request).then(http.Response.fromStream),
+      limit: _uploadTimeout,
+    );
     return _handleResponse(response, retryRequest: () async {
       final newToken = await _getAccessToken();
       final r = http.MultipartRequest('POST', uri);
       if (newToken != null) r.headers['Authorization'] = 'Bearer $newToken';
       r.files.add(await http.MultipartFile.fromPath(fieldName, filePath));
       if (fields != null) r.fields.addAll(fields);
-      return http.Response.fromStream(await _client.send(r));
+      return _send(_client.send(r).then(http.Response.fromStream),
+          limit: _uploadTimeout);
     });
   }
 
@@ -888,10 +913,12 @@ class ApiClient {
 
     final uri = Uri.parse('${AppConstants.baseUrl}$path');
     final headers = await _getHeaders(auth: auth);
-    final response = await _client.put(uri, headers: headers, body: body != null ? jsonEncode(body) : null);
+    final response = await _send(
+        _client.put(uri, headers: headers, body: body != null ? jsonEncode(body) : null));
     return _handleResponse(response, retryRequest: () async {
       final h = await _getHeaders(auth: auth);
-      return _client.put(uri, headers: h, body: body != null ? jsonEncode(body) : null);
+      return _send(
+          _client.put(uri, headers: h, body: body != null ? jsonEncode(body) : null));
     });
   }
 
@@ -907,14 +934,14 @@ class ApiClient {
     final request = http.Request('DELETE', uri);
     request.headers.addAll(headers);
     if (body != null) request.body = jsonEncode(body);
-    final streamedResponse = await _client.send(request);
-    final response = await http.Response.fromStream(streamedResponse);
+    final response =
+        await _send(_client.send(request).then(http.Response.fromStream));
     return _handleResponse(response, retryRequest: () async {
       final h = await _getHeaders(auth: auth);
       final r = http.Request('DELETE', uri);
       r.headers.addAll(h);
       if (body != null) r.body = jsonEncode(body);
-      return http.Response.fromStream(await _client.send(r));
+      return _send(_client.send(r).then(http.Response.fromStream));
     });
   }
 }
