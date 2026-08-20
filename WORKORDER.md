@@ -160,6 +160,11 @@ Apple Team ID가 없어 Associated Domains capability 연결은 못 한다(대�
 | 항목 | 막히는 작업 |
 |---|---|
 | **Apple 개발자 계정 → Team ID** | iOS 딥링크 capability, `DEVELOPMENT_TEAM`, 심사 제출 |
+
+> **Apple 계정은 신규 개설이다** (대표 확인 2026-08-20). `C:\prostore-app`의
+> `DEVELOPMENT_TEAM = J6QDR3AH72`는 **드롱기 소유 계정**이므로 재사용할 수 없다.
+> 개설에 비용과 리드타임이 있으므로 **iOS 관련 작업은 계정 확보 전제로 잡지 말고,
+> Android·공통 작업을 먼저 끝낸다.**
 | **Firebase 소유 Google 계정** | FCM 푸시 (v1 지시서 §4에서 계속 대기 중) |
 | Apple·Google 결제 자격증명 | 실결제 개방 (당분간 불필요 — 503 유지가 방침) |
 
