@@ -416,6 +416,20 @@ class ApiClient {
           final rid = int.tryParse(parts.length >= 3 ? parts[2] : '0') ?? 0;
           return MockUsers.getChatMessages(accessToken!, rid);
         }
+        // B-2 잔액 (스테이징 응답 미러). 실제 값은 해피트리에서 온다.
+        if (path.startsWith('/partner/services/') &&
+            path.endsWith('/balance')) {
+          return {
+            'success': true,
+            'data': {
+              'stars': 12,
+              'hearts': 3,
+              'hearts_max': 5,
+              'coins': 1250,
+              'level': 4,
+            },
+          };
+        }
         // 제휴 파트너 목록 (스테이징 응답 미러 — 실개발은 ENV=staging)
         if (path == '/partner/services') {
           return {
@@ -485,7 +499,10 @@ class ApiClient {
 
       // ── PUT 라우팅 (현재 미사용 — Schedule은 POST로 처리) ──
       if (method == 'PUT') {
-        // 추후 필요 시 여기에 추가
+        // 비밀번호 변경 PUT /auth/password
+        if (path == '/auth/password') {
+          return MockUsers.changePassword(accessToken!, body ?? {});
+        }
       }
 
       // ── DELETE 라우팅 ──
@@ -751,7 +768,22 @@ class ApiClient {
       return body as Map<String, dynamic>;
     }
     final errMsg = body['error'] ?? body['message'] ?? '알 수 없는 오류가 발생했습니다.';
-    throw ApiException(errMsg.toString(), statusCode: response.statusCode);
+
+    // 플랜 한도 초과 계열 응답(403)은 본문에 분기 정보를 함께 싣는다.
+    // 이걸 버리면 upgradeRequired가 항상 false가 되어 업그레이드 안내가 뜨지 않는다
+    // (Mock 경로에서만 채워지고 실서버에서는 누락되던 문제).
+    // 서버는 명함(cards.ts)·그룹(groups.ts) 양쪽에 같은 형태로 내려준다.
+    final map = body is Map<String, dynamic> ? body : const <String, dynamic>{};
+    throw ApiException(
+      errMsg.toString(),
+      statusCode: response.statusCode,
+      errorCode: map['error_code'] as String?,
+      upgradeRequired: map['upgrade_required'] == true,
+      extra: {
+        if (map['current'] != null) 'current': map['current'],
+        if (map['limit'] != null) 'limit': map['limit'],
+      },
+    );
   }
 
   // ─── Public HTTP Methods ──────────────────────────────

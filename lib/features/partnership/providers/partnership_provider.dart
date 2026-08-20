@@ -17,9 +17,12 @@ class PartnershipProvider extends ChangeNotifier {
   bool get isLoading => _loading;
   String? get error => _error;
 
-  /// B-2 잔액. 서버 프록시가 열리기 전까지는 항상 null(연동 준비 중).
+  /// B-2 잔액과 그 조회 상태.
   PartnerBalance? _balance;
   PartnerBalance? get balance => _balance;
+
+  PartnerBalanceStatus _balanceStatus = PartnerBalanceStatus.idle;
+  PartnerBalanceStatus get balanceStatus => _balanceStatus;
 
   Future<void> loadServices() async {
     _loading = true;
@@ -48,14 +51,58 @@ class PartnershipProvider extends ChangeNotifier {
     return PartnerLaunchTicket.fromJson(res['data'] as Map<String, dynamic>);
   }
 
-  /// B-2 잔액 조회 — 아직 연동 보류.
+  /// B-2 잔액 조회 — `GET /partner/services/:id/balance`.
   ///
-  /// 해피트리 잔액 API는 `X-HT-Partner-Key`(서버-서버 시크릿) 인증이라
-  /// 앱이 직접 부를 수 없고 ELID 서버 프록시를 거쳐야 한다(확정 회신 v0.1 §2,
-  /// ELID측 5~10초 캐시). 그 프록시는 해피트리 키 수령 후 서버가 구현한다
-  /// (회신 v0.2 §5-3). 엔드포인트가 열리면 여기서 호출만 붙이면 된다.
+  /// 해피트리 잔액 API는 `X-HT-Partner-Key`(서버-서버 시크릿) 인증이라 앱이 직접
+  /// 부를 수 없고 ELID 서버 프록시를 거친다(확정 회신 v0.1 §2, 서버측 10초 캐시).
+  /// 그 프록시는 2026-08-08에 열렸다(회신 v0.2 §5-1).
+  ///
+  /// [loadServices] 이후에 불러야 한다 — 목록에서 해피트리 서비스 id를 찾는다.
+  /// ⚠ `/services` 응답에 slug가 없어 지금은 이름으로 식별한다. 서버에 slug 추가를
+  /// 요청해 두었고, 오면 그 값으로 바꾼다.
   Future<void> loadBalance() async {
-    _balance = null;
+    PartnerService? happytree;
+    for (final s in _services) {
+      if (s.name.contains('해피트리') || s.name.toLowerCase().contains('happytree')) {
+        happytree = s;
+        break;
+      }
+    }
+    if (happytree == null) {
+      _balance = null;
+      _balanceStatus = PartnerBalanceStatus.idle;
+      notifyListeners();
+      return;
+    }
+
+    _balanceStatus = PartnerBalanceStatus.loading;
+    notifyListeners();
+
+    try {
+      final res = await _api.get('/partner/services/${happytree.id}/balance');
+      final data = res['data'] as Map<String, dynamic>?;
+      if (data == null) {
+        _balance = null;
+        _balanceStatus = PartnerBalanceStatus.error;
+      } else {
+        _balance = PartnerBalance.fromJson(data);
+        _balanceStatus = PartnerBalanceStatus.ok;
+      }
+    } on ApiException catch (e) {
+      _balance = null;
+      _balanceStatus = switch (e.statusCode) {
+        // 아직 해피트리에 플레이어가 없다 — 첫 SSO 진입 전 (정상 상태)
+        404 => PartnerBalanceStatus.notLinked,
+        // prod 파트너 키 미설정 — 서버가 아직 조회를 못 한다
+        503 => PartnerBalanceStatus.unavailable,
+        // 잔액 조회를 지원하지 않는 파트너
+        400 => PartnerBalanceStatus.idle,
+        _ => PartnerBalanceStatus.error,
+      };
+    } catch (_) {
+      _balance = null;
+      _balanceStatus = PartnerBalanceStatus.error;
+    }
     notifyListeners();
   }
 }

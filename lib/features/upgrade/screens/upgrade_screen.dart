@@ -24,6 +24,57 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
   /// 사용자가 탭으로 고른 플랜. null이면 추천(=바로 상위 플랜)을 기본 선택으로 사용.
   String? _selectedPlan;
 
+  /// 결제 준비 중 안내 (서버 503 정상 분기)
+  ///
+  /// 서버가 2026-08-20에 구독 검증 경로를 503으로 막았다 — 영수증을 Apple/Google에
+  /// 검증하지 않고 플랜을 내주던 구멍을 닫은 보안 조치다(서버 회신 §3).
+  /// 스토어 검증이 붙기 전까지 503이 **정상 응답**이므로, 빨간 오류 토스트가 아니라
+  /// 안내 다이얼로그로 처리한다. 서버가 명시적으로 요청한 사항이다.
+  Future<void> _showPaymentUnavailable(String serverMessage) async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.schedule_outlined, color: AppColors.primary),
+            SizedBox(width: 8),
+            Text('결제 준비 중'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              serverMessage.isNotEmpty
+                  ? serverMessage
+                  : '구독 결제 기능 준비 중입니다.',
+              style: const TextStyle(fontSize: 14, height: 1.5),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              '스토어 인앱 결제 연동이 끝나면 바로 이용하실 수 있습니다.\n'
+              '그때까지 현재 플랜은 그대로 유지됩니다.',
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('확인'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── 구독 신청 처리 ──────────────────────────────────────
   Future<void> _handleSubscribe(
       BuildContext context, String plan, int pointsPerMonth) async {
@@ -233,7 +284,11 @@ class _UpgradeScreenState extends State<UpgradeScreen> {
         ));
       }
     } on ApiException catch (e) {
-      if (mounted) {
+      if (!mounted) return;
+      // 503 = 결제 미개방(정상 상태). 오류로 흘리지 않는다.
+      if (e.statusCode == 503) {
+        await _showPaymentUnavailable(e.message);
+      } else {
         messenger.showSnackBar(SnackBar(
           content: Text(e.message),
           backgroundColor: AppColors.error,

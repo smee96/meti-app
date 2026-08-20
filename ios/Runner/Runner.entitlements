@@ -6,7 +6,7 @@
     1) Xcode에서 Runner 타겟 > Signing & Capabilities > Associated Domains 추가,
        또는 pbxproj의 각 빌드구성에 CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements 연결
     2) Apple Developer에서 App ID의 Associated Domains capability 활성 + 프로비저닝 갱신
-    3) 서버가 apple-app-site-association에 <TeamID>.<BundleID> 주입 (BundleID = com.meti.metiApp)
+    3) 서버가 apple-app-site-association에 <TeamID>.<BundleID> 주입 (BundleID = com.elid.app)
 -->
 <plist version="1.0">
 <dict>

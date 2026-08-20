@@ -1,4 +1,4 @@
-appId: com.meti.meti_app
+appId: com.elid.app
 ---
 # 검증: 이력 입력 → 2컬러 템플릿 → 저장 → 상세 확인
 - launchApp:

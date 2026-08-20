@@ -178,6 +178,30 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  // ─── 비밀번호 변경 — PUT /auth/password (로그인 상태) ──
+  /// 성공하면 null, 실패하면 사용자에게 보일 오류 메시지를 반환한다.
+  ///
+  /// 재설정(`resetPassword`)과 달리 로그인 상태에서 부르는 기능이라
+  /// 전역 [AuthStatus]를 건드리지 않는다 — 실패로 status가 error가 되면
+  /// 화면에 남아 있는 사용자가 비로그인 취급된다.
+  Future<String?> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final res = await _api.put('/auth/password', body: {
+        'current_password': currentPassword,
+        'new_password': newPassword,
+      });
+      if (res['success'] == true) return null;
+      return (res['error'] as String?) ?? '비밀번호 변경에 실패했습니다.';
+    } on ApiException catch (e) {
+      return e.message;
+    } catch (_) {
+      return '비밀번호 변경에 실패했습니다. 잠시 후 다시 시도해주세요.';
+    }
+  }
+
   // ─── 내 프로필 새로고침 ────────────────────────────────
   Future<void> refreshProfile() async {
     try {

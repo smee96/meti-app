@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common_widgets.dart';
+import '../../../core/widgets/password_policy_box.dart';
 import '../../../routes/app_router.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -31,15 +32,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String _password = '';
   String _confirm = '';
 
-  // ── 비밀번호 정책 체크 ────────────────────────────────
-  bool get _hasMinLength => _password.length >= 8;
-  bool get _hasUppercase => _password.contains(RegExp(r'[A-Z]'));
-  bool get _hasLowercase => _password.contains(RegExp(r'[a-z]'));
-  bool get _hasDigit => _password.contains(RegExp(r'[0-9]'));
-  bool get _hasSpecial =>
-      _password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>_\-]'));
-  bool get _allPoliciesMet =>
-      _hasMinLength && _hasUppercase && _hasLowercase && _hasDigit;
+  // ── 비밀번호 정책 체크 (비밀번호 변경 화면과 동일 기준) ──
+  PasswordPolicy get _policy => PasswordPolicy(_password);
+  bool get _allPoliciesMet => _policy.allMet;
 
   // 비밀번호 일치 여부 (한 글자라도 입력했을 때만 표시)
   bool get _confirmStarted => _confirm.isNotEmpty;
@@ -223,13 +218,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                       // ── 비밀번호 정책 체크리스트 ──────────
                       if (_password.isNotEmpty)
-                        _PasswordPolicyBox(
-                          hasMinLength: _hasMinLength,
-                          hasUppercase: _hasUppercase,
-                          hasLowercase: _hasLowercase,
-                          hasDigit: _hasDigit,
-                          hasSpecial: _hasSpecial,
-                        ),
+                        PasswordPolicyBox(policy: _policy),
 
                       const SizedBox(height: 16),
 
@@ -351,106 +340,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             );
           },
         ),
-      ),
-    );
-  }
-}
-
-// ── 비밀번호 정책 체크리스트 위젯 ─────────────────────────
-class _PasswordPolicyBox extends StatelessWidget {
-  final bool hasMinLength;
-  final bool hasUppercase;
-  final bool hasLowercase;
-  final bool hasDigit;
-  final bool hasSpecial;
-
-  const _PasswordPolicyBox({
-    required this.hasMinLength,
-    required this.hasUppercase,
-    required this.hasLowercase,
-    required this.hasDigit,
-    required this.hasSpecial,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '비밀번호 조건',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          _PolicyRow(met: hasMinLength, label: '8자 이상'),
-          _PolicyRow(met: hasUppercase, label: '영문 대문자 포함 (A-Z)'),
-          _PolicyRow(met: hasLowercase, label: '영문 소문자 포함 (a-z)'),
-          _PolicyRow(met: hasDigit, label: '숫자 포함 (0-9)'),
-          _PolicyRow(
-            met: hasSpecial,
-            label: '특수문자 포함 (선택)',
-            optional: true,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PolicyRow extends StatelessWidget {
-  final bool met;
-  final String label;
-  final bool optional;
-
-  const _PolicyRow({
-    required this.met,
-    required this.label,
-    this.optional = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = met
-        ? AppColors.success
-        : optional
-            ? AppColors.textTertiary
-            : AppColors.warning;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            child: Icon(
-              met ? Icons.check_circle : Icons.radio_button_unchecked,
-              key: ValueKey(met),
-              size: 15,
-              color: color,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: color,
-              fontWeight: met ? FontWeight.w500 : FontWeight.w400,
-            ),
-          ),
-        ],
       ),
     );
   }

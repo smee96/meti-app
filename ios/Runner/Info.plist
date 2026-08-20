@@ -37,6 +37,10 @@
 		</array>
 		<key>CFBundleVersion</key>
 		<string>$(FLUTTER_BUILD_NUMBER)</string>
+		<!-- 수출규정: 표준 HTTPS 외 암호화를 쓰지 않는다. false로 선언해두면
+		     App Store Connect 제출마다 뜨는 수출규정 질문이 아예 나오지 않는다. -->
+		<key>ITSAppUsesNonExemptEncryption</key>
+		<false/>
 		<key>LSApplicationQueriesSchemes</key>
 		<array>
 			<string>https</string>

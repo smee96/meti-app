@@ -26,20 +26,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
     });
   }
 
-  // ── 미구현 메뉴 공통 안내 ──────────────────────────────
-  void _showComingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: const Text('준비 중인 기능입니다.'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
-  }
-
   // ── 프로필 수정 바텀시트 (T7 v2.9) ──────────────────────
   void _showEditProfileSheet(BuildContext context) {
     final auth = context.read<AuthProvider>();
@@ -259,14 +245,10 @@ class _MyPageScreenState extends State<MyPageScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        // 설정 아이콘 제거 (2026-08-20) — 열리는 화면이 없어 '준비 중'만 띄우던
+        // 버튼이었다. 설정 항목은 아래 '계정' 섹션(비밀번호 변경·알림 설정)에 있다.
+        // 동작하지 않는 UI는 심사 리젝 사유가 된다.
         title: const Text('마이페이지'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => _showComingSoon(context),
-            tooltip: '설정',
-          ),
-        ],
       ),
       body: Consumer2<AuthProvider, PointProvider>(
         builder: (context, auth, point, _) {
@@ -298,12 +280,14 @@ class _MyPageScreenState extends State<MyPageScreen> {
                 _MenuItem(
                   icon: Icons.lock_outline,
                   label: '비밀번호 변경',
-                  onTap: () => _showComingSoon(context),
+                  onTap: () =>
+                      Navigator.pushNamed(context, AppRoutes.changePassword),
                 ),
                 _MenuItem(
                   icon: Icons.notifications_outlined,
                   label: '알림 설정',
-                  onTap: () => _showComingSoon(context),
+                  onTap: () => Navigator.pushNamed(
+                      context, AppRoutes.notificationSettings),
                 ),
               ]),
 

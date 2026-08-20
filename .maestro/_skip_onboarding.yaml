@@ -1,4 +1,4 @@
-appId: com.meti.meti_app
+appId: com.elid.app
 ---
 - swipe:
     direction: LEFT

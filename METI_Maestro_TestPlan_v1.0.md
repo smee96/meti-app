@@ -1,7 +1,7 @@
 # METI 네이티브 앱 — Maestro 테스트 플랜 v1.0
 
 > 작성일: 2026-06-06  
-> 대상 앱: METI (com.meti.app)  
+> 대상 앱: METI (com.elid.app)  
 > 테스트 환경: **Mock 모드** (외부 서버 불필요)  
 > 테스트 프레임워크: [Maestro](https://maestro.mobile.dev)
 
@@ -112,7 +112,7 @@ Main (바텀 탭 5개)
 
 ```yaml
 # .maestro/TC-001_onboarding.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp:
     clearState: true
@@ -143,7 +143,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-002_login.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp:
     clearState: true
@@ -185,7 +185,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-003_register.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp:
     clearState: true
@@ -228,7 +228,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-004_email_verify.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 # TC-003 이후 이어서 실행하거나, 이미 인증화면에 있다고 가정
 - assertVisible: "인증 코드"
@@ -250,7 +250,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-005_forgot_password.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp
 - runFlow:
@@ -277,7 +277,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-006_card_list.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp
 - runFlow: _login.yaml             # 공통 로그인 플로우
@@ -300,7 +300,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-007_card_create.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp
 - runFlow: _login.yaml
@@ -343,7 +343,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-008_card_detail.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp
 - runFlow: _login.yaml
@@ -368,7 +368,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-009_public_card.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp
 - runFlow: _login.yaml
@@ -407,7 +407,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-010_qr_show.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp
 - runFlow: _login.yaml
@@ -430,7 +430,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-011_contacts.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp
 - runFlow: _login.yaml
@@ -453,7 +453,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-012_group_explore.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp
 - runFlow: _login.yaml
@@ -479,7 +479,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-013_group_join.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp
 - runFlow: _login.yaml
@@ -504,7 +504,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-014_group_create.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp
 - runFlow: _login.yaml
@@ -534,7 +534,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-015_group_admin.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp
 - runFlow: _login.yaml
@@ -575,7 +575,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-016_events.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp
 - runFlow: _login.yaml
@@ -608,7 +608,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-017_chat_list.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp
 - runFlow: _login.yaml
@@ -628,7 +628,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-018_points.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp
 - runFlow: _login.yaml
@@ -652,7 +652,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-019_profile_edit.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp
 - runFlow: _login.yaml
@@ -681,7 +681,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-020_guardian_nav.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp
 - runFlow: _login.yaml
@@ -706,7 +706,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-021_guardian_invite.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp
 - runFlow: _login.yaml
@@ -741,7 +741,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-022_upgrade.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp
 - runFlow: _login.yaml
@@ -769,7 +769,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-023_lesson_schedules.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp
 - runFlow: _login.yaml
@@ -794,7 +794,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-024_card_limit.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp
 - runFlow: _login.yaml
@@ -824,7 +824,7 @@ appId: com.meti.app
 
 ```yaml
 # .maestro/TC-025_logout.yaml
-appId: com.meti.app
+appId: com.elid.app
 ---
 - launchApp
 - runFlow: _login.yaml

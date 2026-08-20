@@ -28,8 +28,8 @@ class _PartnershipScreenState extends State<PartnershipScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<PartnershipProvider>();
-      provider.loadServices();
-      provider.loadBalance();
+      // 잔액은 목록에서 해피트리 id를 찾아 조회하므로 순서를 지킨다
+      provider.loadServices().then((_) => provider.loadBalance());
     });
   }
 
@@ -127,7 +127,10 @@ class _PartnershipScreenState extends State<PartnershipScreen> {
                 ),
                 if (service.name.contains('해피트리')) ...[
                   const SizedBox(height: 8),
-                  _BalanceBar(balance: provider.balance),
+                  _BalanceBar(
+                    balance: provider.balance,
+                    status: provider.balanceStatus,
+                  ),
                 ],
                 const SizedBox(height: 12),
               ]
@@ -219,10 +222,19 @@ class _PartnershipScreenState extends State<PartnershipScreen> {
 }
 
 /// B-2 게임재화 잔액 바 — 별·하트·코인 (읽기 전용 표시, 통합 가이드 §1).
-/// 서버 프록시가 열리기 전(balance == null)에는 '—'와 연동 준비 중 안내를 보인다.
+/// 값을 못 가져온 이유에 따라 오른쪽 안내 문구가 달라진다.
 class _BalanceBar extends StatelessWidget {
   final PartnerBalance? balance;
-  const _BalanceBar({required this.balance});
+  final PartnerBalanceStatus status;
+  const _BalanceBar({required this.balance, required this.status});
+
+  /// 값이 없을 때 오른쪽에 붙는 안내. null이면 아무것도 보이지 않는다.
+  String? get _hint => switch (status) {
+        PartnerBalanceStatus.notLinked => '게임 시작 전',
+        PartnerBalanceStatus.unavailable => '연동 준비 중',
+        PartnerBalanceStatus.error => '불러오지 못함',
+        _ => null,
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -246,10 +258,16 @@ class _BalanceBar extends StatelessWidget {
           _divider(),
           _BalanceItem(emoji: '🪙', label: '코인', value: b?.coins.toString()),
           const Spacer(),
-          if (b == null)
-            const Text(
-              '연동 준비 중',
-              style: TextStyle(
+          if (status == PartnerBalanceStatus.loading)
+            const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else if (b == null && _hint != null)
+            Text(
+              _hint!,
+              style: const TextStyle(
                 fontSize: 11,
                 color: AppColors.textTertiary,
                 fontWeight: FontWeight.w500,

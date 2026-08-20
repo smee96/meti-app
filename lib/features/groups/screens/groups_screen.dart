@@ -390,6 +390,22 @@ class _GroupsScreenState extends State<GroupsScreen>
               showErrorSnackBar(
                   ctx, resp['message']?.toString() ?? '신청에 실패했습니다.');
             }
+          } on ApiException catch (e) {
+            if (!ctx.mounted) return;
+            Navigator.pop(ctx);
+            if (!mounted) return;
+            // 그룹 개설 한도 초과 — 명함과 동일하게 업그레이드로 유도한다
+            // (서버가 groups.ts에도 upgrade_required:true를 내려준다)
+            if (e.upgradeRequired) {
+              showPlanLimitDialog(
+                context,
+                title: '그룹 개설 한도 초과',
+                message: e.message,
+                upgradeContext: '플랜을 올리면 더 많은 그룹을 개설할 수 있습니다.',
+              );
+            } else {
+              showErrorSnackBar(context, e.message);
+            }
           } catch (e) {
             if (!ctx.mounted) return;
             showErrorSnackBar(ctx, e.toString());
@@ -646,8 +662,17 @@ class _GroupDetailSheetState extends State<_GroupDetailSheet> {
     } on ApiException catch (e) {
       if (!mounted) return;
       // v2.5: 멤버 한도 초과 → 업그레이드 모달
+      // 한도 종류가 늘어도 동작하도록 upgrade_required를 기준으로 삼고,
+      // 멤버 한도일 때만 기존 전용 모달(잔여 인원 표기)을 쓴다.
       if (e.upgradeRequired && e.errorCode == 'plan_member_limit_reached') {
         _showMemberLimitModal(e.extra?['limit'] as int? ?? 2);
+      } else if (e.upgradeRequired) {
+        showPlanLimitDialog(
+          context,
+          title: '플랜 한도 초과',
+          message: e.message,
+          upgradeContext: '플랜을 올리면 한도가 늘어납니다.',
+        );
       // v2.5: 포인트 부족 → 충전 버튼 없이 잔액/부족 금액만 표시
       } else if (e.errorCode == 'insufficient_points') {
         showInsufficientPointsSnackBar(

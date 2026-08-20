@@ -32,12 +32,12 @@ POST /api/v1/payments/verify-web                  → 503 (이전부터)
 
 **할 것**
 
-- [ ] 구독/결제 UI는 계획대로 붙인다
-- [ ] **503을 정상 분기로 처리** — "준비 중입니다" 안내. 5xx라고 크래시하거나
+- [x] 구독/결제 UI는 계획대로 붙인다
+- [x] **503을 정상 분기로 처리** — "준비 중입니다" 안내. 5xx라고 크래시하거나
       일반 오류 토스트로 흘리지 말 것. 서버가 명시적으로 요청한 사항이다
-- [ ] 상품 ID를 정해 **서버에 공유** — 번들ID 확정(2번) 후에 정한다.
+- [x] 상품 ID를 정해 **서버에 공유** — 번들ID 확정(2번) 후에 정한다.
       서버 현재 값은 `com.meti.pro_monthly` / `com.meti.business_monthly`
-- [ ] 플랜 한도 초과(`upgrade_required: true`) 분기는 명함·그룹 **동일 처리**
+- [x] 플랜 한도 초과(`upgrade_required: true`) 분기는 명함·그룹 **동일 처리**
       (서버가 그룹에도 이미 내려주고 있음 — 8/20 회신 §2)
 
 ---
@@ -48,15 +48,15 @@ POST /api/v1/payments/verify-web                  → 503 (이전부터)
 스토어 출시 준비 단계에서 서명·딥링크와 묶어 진행"*으로 미뤄뒀다.
 **지금이 그 단계다.**
 
-- [ ] iOS 번들ID (`com.meti.metiApp`) · Android applicationId
+- [x] iOS 번들ID (`com.meti.metiApp`) · Android applicationId
       (`com.meti.meti_app`) → **양쪽 `com.elid.app`으로 통일**
 - [ ] 선점돼 있으면 `com.myelid.app` (보유 도메인 my-elid.com 기준).
       **확정값을 인박스에 확정 통지로 보고**
-- [ ] **서버와 같은 시점에 맞춘다** — 서버의 `APPLE_APP_ID` / `ANDROID_PACKAGE`
+- [x] **서버와 같은 시점에 맞춘다** — 서버의 `APPLE_APP_ID` / `ANDROID_PACKAGE`
       / Universal Links 설정이 이 값에 묶여 있다. 서버 세션에 통지문이 가 있고
       (`../the-meti/ELID_Decision_BundleID_2026-08-08.md`), 서버 TASKS.md에도
       "앱이 값을 주면 즉시 반영" 항목으로 들어가 있다
-- [ ] 상품 ID 규칙도 이때 확정해 서버에 전달
+- [x] 상품 ID 규칙도 이때 확정해 서버에 전달
 
 ---
 
@@ -66,12 +66,12 @@ POST /api/v1/payments/verify-web                  → 503 (이전부터)
 이건 외부 계정 없이 지금 만들 수 있다. **막혀 있는 딥링크 작업의 절반이
 여기서 풀린다.**
 
-- [ ] 릴리스 키스토어 생성 → SHA256 지문 산출 → **서버에 전달**
-- [ ] ⚠ **키스토어를 분실하면 앱 업데이트가 영구히 불가능하다.** ProStore
+- [x] 릴리스 키스토어 생성 → SHA256 지문 산출 → **서버에 전달**
+- [x] ⚠ **키스토어를 분실하면 앱 업데이트가 영구히 불가능하다.** ProStore
       선례대로 대표 PC의 별도 백업 폴더에 보관한다
       (참고: `C:\Users\mobin_chairman\ProStore-Keystore-Backup\`)
-- [ ] `android/key.properties`와 `android/*.jks`가 `.gitignore`에 있는지 확인
-- [ ] 절차는 전역 스킬 **`flutter-release`**를 따른다
+- [x] `android/key.properties`와 `android/*.jks`가 `.gitignore`에 있는지 확인
+- [x] 절차는 전역 스킬 **`flutter-release`**를 따른다
 
 ---
 
@@ -80,9 +80,9 @@ POST /api/v1/payments/verify-web                  → 503 (이전부터)
 Apple Team ID가 없어 Associated Domains capability 연결은 못 한다(대표 대기).
 그 외는 지금 할 수 있다.
 
-- [ ] `PrivacyInfo.xcprivacy` 생성 + 타깃 등록
-- [ ] `ITSAppUsesNonExemptEncryption = false`
-- [ ] 스크린샷 규격 준비 — ProStore가 **모빈에서 유일하게 iOS 심사를 통과한
+- [x] `PrivacyInfo.xcprivacy` 생성 + 타깃 등록
+- [x] `ITSAppUsesNonExemptEncryption = false`
+- [x] 스크린샷 규격 준비 — ProStore가 **모빈에서 유일하게 iOS 심사를 통과한
       앱**이다. 그 자산을 복사하되 **심사용 테스트 계정 자격증명은 반드시
       placeholder로 치환**할 것 (평문 커밋 사고 방지)
 - [ ] `DEVELOPMENT_TEAM`은 Team ID 수령 후
@@ -124,7 +124,7 @@ Apple Team ID가 없어 Associated Domains capability 연결은 못 한다(대�
 소셜을 하나라도 넣으면 **Sign in with Apple이 세트로 따라와** 공수가 두 배가
 된다. 출시를 앞당기는 쪽이 낫다는 판단이다.
 
-- [ ] 로그인 화면의 소셜 버튼 처리를 정리할 것 — "준비 중" 스낵바로 남겨둘지,
+- [x] 로그인 화면의 소셜 버튼 처리를 정리할 것 — "준비 중" 스낵바로 남겨둘지,
       **버튼 자체를 숨길지**. 심사에서 동작하지 않는 UI는 리젝 사유가 될 수
       있으므로 **숨기는 쪽을 권한다**
 

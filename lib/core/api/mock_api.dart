@@ -53,6 +53,11 @@ class MockUsers {
   static Map<String, dynamic> uploadAvatar(String accessToken) =>
       MockAuth.uploadAvatar(accessToken);
 
+  /// PUT /auth/password — 로그인 상태 비밀번호 변경
+  static Map<String, dynamic> changePassword(
+          String accessToken, Map<String, dynamic> body) =>
+      MockAuth.changePassword(accessToken, body);
+
   static Map<String, dynamic> refreshToken(String refreshToken) =>
       MockAuth.refreshToken(refreshToken);
 

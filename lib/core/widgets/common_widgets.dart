@@ -521,3 +521,50 @@ class PlanBadge extends StatelessWidget {
     );
   }
 }
+
+// ─── 플랜 한도 초과 안내 ────────────────────────────────
+/// 서버가 `upgrade_required: true`로 내려준 403을 업그레이드 유도로 바꾼다.
+///
+/// 명함(cards.ts)·그룹(groups.ts) 모두 같은 형태로 내려오므로 분기를 한 곳에 둔다.
+/// 에러코드 문자열에 의존하지 않는다 — 새 한도 종류가 생겨도 그대로 동작한다.
+Future<void> showPlanLimitDialog(
+  BuildContext context, {
+  required String title,
+  required String message,
+  required String upgradeContext,
+}) {
+  // 다이얼로그를 닫은 뒤 이동해야 하므로 바깥 Navigator를 미리 잡아둔다.
+  // (ctx는 pop 이후 무효라 그대로 쓰면 이동이 실패한다)
+  final navigator = Navigator.of(context);
+  return showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Row(children: [
+        const Icon(Icons.workspace_premium, color: AppColors.accent, size: 20),
+        const SizedBox(width: 8),
+        Text(title),
+      ]),
+      content: Text(message, style: const TextStyle(fontSize: 14, height: 1.5)),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('나중에'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.pop(ctx);
+            // AppRoutes.upgrade — core에서 routes를 import하지 않으려 값을 직접 쓴다
+            navigator.pushNamed('/upgrade',
+                arguments: {'fromContext': upgradeContext});
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+          ),
+          child: const Text('플랜 업그레이드'),
+        ),
+      ],
+    ),
+  );
+}

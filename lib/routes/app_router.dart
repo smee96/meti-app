@@ -13,6 +13,8 @@ import '../features/schedules/screens/lesson_schedules_screen.dart';
 import '../features/schedules/screens/schedule_detail_screen.dart';
 import '../features/schedules/models/schedule_model.dart';
 import '../features/cards/screens/public_card_screen.dart';
+import '../features/mypage/screens/change_password_screen.dart';
+import '../features/mypage/screens/notification_settings_screen.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -49,6 +51,8 @@ class AppRoutes {
   static const String myProfile = '/my/profile';
   static const String myReward = '/my/reward';
   static const String myPoints = '/my/points';
+  static const String changePassword = '/my/password';
+  static const String notificationSettings = '/my/notifications';
 
   // Invite deep-link
   static const String inviteJoin = '/invite';
@@ -81,6 +85,10 @@ class AppRoutes {
         return _fade(const MainScreen(), settings);
       case myPoints:
         return _slide(const PointScreen(), settings);
+      case changePassword:
+        return _slide(const ChangePasswordScreen(), settings);
+      case notificationSettings:
+        return _slide(const NotificationSettingsScreen(), settings);
       case inviteJoin:
         // arguments: {'token': String}
         final args = settings.arguments as Map<String, dynamic>?;

@@ -21,16 +21,22 @@ Flutter. 디지털 명함 / 글로벌 네트워킹 앱. Maestro E2E 보유 (`.ma
 **심사 계정 자격증명을 문서에 평문으로 넣지 않는다.** ProStore 문서를 복사할 때
 반드시 placeholder로 치환한다 — 그쪽에 실제 계정이 커밋돼 있는 상태다.
 
-## ⚠ 번들 ID가 플랫폼 간 불일치한다
+## 번들 ID — `com.elid.app` 로 통일됨 (2026-08-20 실행)
 
 | 플랫폼 | 값 |
 |---|---|
-| iOS 번들ID | `com.meti.metiApp` |
-| Android applicationId | `com.meti.meti_app` |
+| iOS 번들ID | `com.elid.app` |
+| Android applicationId | `com.elid.app` |
 
-의도한 것일 수 있으나 **딥링크·유니버설링크 설정 시 혼선이 생긴다.**
-서버측(`the-meti`)의 `APPLE_APP_ID`, `ANDROID_PACKAGE` 설정과도 대조해야 한다.
-지금 정리할지, 그대로 갈지 정해두는 게 좋다.
+대표 확정(2026-08-08) 후 스토어 출시 준비 단계에서 실행했다. Kotlin 패키지
+디렉터리(`android/app/src/main/kotlin/com/elid/app/`)와 Maestro `appId`도 함께 옮겼다.
+
+⚠ **스토어에 아직 등록한 적이 없어 선점 여부가 미확인이다.** 계정 확보 후 등록
+시점에 이미 쓰이고 있으면 `com.myelid.app`(보유 도메인 기준)으로 간다.
+서버측(`the-meti`)의 `APPLE_APP_ID`·`ANDROID_PACKAGE`·Universal Links 설정이
+이 값에 묶여 있으므로 **바꾸면 서버와 같은 시점에 맞춰야 한다.**
+
+macOS·Linux 데스크톱 타깃은 출시 대상이 아니라 옛 식별자를 그대로 뒀다.
 
 ## 빌드 환경
 

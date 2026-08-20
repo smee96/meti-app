@@ -1,4 +1,4 @@
-appId: com.meti.meti_app
+appId: com.elid.app
 ---
 # 검증: 명함 수정 → 저장 → 상세 화면 즉시 갱신 (GET /cards/:id mock 라우트 추가 검증)
 - launchApp:

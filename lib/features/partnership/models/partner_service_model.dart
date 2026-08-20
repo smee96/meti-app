@@ -85,3 +85,20 @@ class PartnerBalance {
     );
   }
 }
+
+/// B-2 잔액 조회 상태 — 화면이 안내 문구를 고르는 기준.
+enum PartnerBalanceStatus {
+  /// 조회 대상 파트너가 목록에 없다 (잔액 바를 보이지 않음)
+  idle,
+  loading,
+  ok,
+
+  /// 아직 게임에 진입한 적이 없어 파트너 쪽에 플레이어가 없다 (404)
+  notLinked,
+
+  /// 서버가 파트너 잔액 조회를 아직 설정하지 못했다 — prod 키 대기 (503)
+  unavailable,
+
+  /// 일시적 실패 (네트워크·파트너 장애)
+  error,
+}

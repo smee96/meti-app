@@ -73,6 +73,10 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  /// 소셜 로그인 노출 여부 — 1차 출시 제외 (대표 확정 2026-08-20).
+  /// 서버 OAuth + Sign in with Apple이 준비되면 true로 되돌린다.
+  static const bool _socialLoginEnabled = false;
+
   void _notReady() => showErrorSnackBar(context, '소셜 로그인은 준비 중입니다.');
 
   // ── 골드 포커스 인풋 데코레이션 ─────────────────────────
@@ -338,6 +342,12 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 17),
 
+            // ── 소셜 로그인 (1차 출시 제외) ────────────────────────
+            // 대표 확정 2026-08-20: 이메일 로그인만 유지한다. 서버에 OAuth가 없고,
+            // iOS는 타사 소셜을 하나라도 넣으면 Sign in with Apple이 세트로 따라온다.
+            // 동작하지 않는 UI는 심사 리젝 사유가 되므로 화면에서 감춘다.
+            // 백엔드가 준비되면 이 상수만 true로 되돌리면 된다.
+            if (_socialLoginEnabled) ...[
             // "또는" 디바이더
             Row(
               children: [
@@ -419,6 +429,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ],
             ),
             const SizedBox(height: 21),
+            ],
 
             // 무료로 시작하기
             Center(

@@ -1,4 +1,4 @@
-package com.meti.meti_app
+package com.elid.app
 
 import io.flutter.embedding.android.FlutterActivity
 

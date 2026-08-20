@@ -157,6 +157,28 @@ class MockAuth {
     };
   }
 
+  // ── 비밀번호 변경 — PUT /auth/password ───────────────────────
+  // 서버 규격: current_password 불일치 400, new_password 8자 미만 422
+  static Map<String, dynamic> changePassword(
+      String accessToken, Map<String, dynamic> body) {
+    final email = MockStore.accessTokens[accessToken];
+    if (email == null) throw MockApiException('인증이 필요합니다.', 401);
+
+    final user = MockStore.users.firstWhere((u) => u['email'] == email);
+    final current = body['current_password'] as String? ?? '';
+    final next = body['new_password'] as String? ?? '';
+
+    if (user['password'] != current) {
+      throw MockApiException('현재 비밀번호가 올바르지 않습니다.', 400);
+    }
+    if (next.length < 8) {
+      throw MockApiException('새 비밀번호는 8자 이상이어야 합니다.', 422);
+    }
+    user['password'] = next;
+
+    return {'success': true, 'data': null, 'message': '비밀번호가 변경되었습니다.'};
+  }
+
   // ── 프로필 사진 업로드 — POST /auth/me/avatar ────────────────
   // v2.9 신규: multipart/form-data, field name = avatar
   // Mock: 실제 파일 처리 없이 더미 URL 반환
