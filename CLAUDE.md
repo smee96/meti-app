@@ -72,6 +72,18 @@ org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=1G
 
 `../mobin_ceo/reports/inbox/YYYY-MM-DD-elid-app-<주제>.md`
 형식은 `../mobin_ceo/reports/inbox/README.md` 참조.
+**⚠ 파일만 만들고 끝내지 않는다 — 커밋·push까지가 전달이다.**
+대표는 Windows와 맥북을 오가고 두 기기를 잇는 것은 git뿐이다. push하지 않으면
+다른 기기에서 연 부사장 세션에 그 파일은 **존재하지 않는다** (2026-08-22 실제 발생).
+
+```bash
+git add ../mobin_ceo/reports/inbox/<파일>.md
+git -C ../mobin_ceo commit -m "inbox: <한 줄>" && git -C ../mobin_ceo push
+```
+
+`../mobin_ceo`에서 개발 세션이 커밋해도 되는 것은 **인박스뿐이다.**
+나머지 허브 파일은 읽기 전용을 유지한다.
+
 
 
 ### 대표와 확정한 것은 통지로 남긴다
