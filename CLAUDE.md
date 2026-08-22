@@ -92,6 +92,34 @@ org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=1G
 **남기지 말 것**: 일상 개발 진행, 대표가 관여하지 않은 기술 선택
 
 
+### 배포는 Cloudflare 우선, 안 되는 것만 Vultr
+
+**대표 방침 (2026-08-22): 가능하면 Cloudflare를 쓴다.** 아래로 해결되면 그냥 쓴다 —
+Pages(정적·SPA) · Workers(API) · D1(SQLite, **DB당 10GB**) · R2(파일, egress 무료) ·
+KV · Queues · Cron Triggers · Durable Objects · Redirect Rules(리다이렉트에 서버 불필요).
+
+**아래에 걸리면 Cloudflare로 안 된다 → Vultr 우회를 검토한다.**
+
+JVM·PHP·Python 등 JS/WASM 외 런타임 · MySQL/PostgreSQL 서버 운영 · 10GB 초과 DB ·
+상시 실행 데몬 · Workers CPU 시간을 넘는 장시간 작업 · 네이티브 바이너리(ffmpeg 등) ·
+로컬 파일시스템 의존 · 고정 아웃바운드 IP 요구 · SMTP 직접 발송 · 임의 TCP/UDP 소켓
+
+**판단 순서**
+1. 걸리는 게 없으면 → 그냥 Cloudflare. 논의할 것 없다
+2. 걸리면 → **그 부분만 떼어낼 수 있는지 먼저 본다.** 예: 무거운 이미지 변환만
+   분리하고 나머지는 Workers에 남긴다
+3. 못 떼면 → Vultr. 이때 **왜 Cloudflare로 안 되는지 인박스에 한 줄 남긴다**
+
+3번의 기록이 없으면 나중에 "이게 왜 Vultr에 있지?"를 처음부터 다시 조사하게 된다.
+실제로 2026-08-22 실사 전까지 허브에 Vultr 기록이 한 줄도 없었다.
+
+**⚠ 기존 Vultr 서버(`141.164.43.43`)에 새로 얹지 않는다.** 체크앤바이 레거시
+7종 + MySQL 18.6GB가 이미 올라가 있고 RAM이 빠듯하다(스왑 사용 중). 단일 장애점이라
+여기에 추가하면 기존 실서비스까지 같이 위험해진다. Vultr가 필요하면 **인박스에
+올려 대표 판단을 받는다** — 별도 인스턴스를 띄울지 함께 정한다.
+
+기준표 원본: `../mobin_ceo/config/infra-policy.md`
+
 ### 이 문서의 관리 주체
 
 이 CLAUDE.md의 전사 컨텍스트 절과 사업 맥락은 **허브(mobin_ceo)의 부사장 세션이
